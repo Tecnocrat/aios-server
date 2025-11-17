@@ -46,7 +46,7 @@ scrape_configs:
   # Traefik metrics
   - job_name: 'traefik'
     static_configs:
-      - targets: ['traefik:8080']
+      - targets: ['traefik:8082']
         labels:
           instance: 'traefik'
           role: 'ingress'

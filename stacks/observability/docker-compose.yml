@@ -44,10 +44,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=changeme  # CHANGE THIS!
+      - GF_SECURITY_ADMIN_USER=aios
+      - GF_SECURITY_ADMIN_PASSWORD=6996
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
-      - GF_SERVER_ROOT_URL=https://grafana.lan
+      - GF_SERVER_ROOT_URL=http://grafana.lan
       - GF_ANALYTICS_REPORTING_ENABLED=false
     volumes:
       - grafana-data:/var/lib/grafana
@@ -56,8 +56,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`grafana.lan`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.routers.grafana.entrypoints=web"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
   # Loki - Log aggregation

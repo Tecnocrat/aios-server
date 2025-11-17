@@ -16,6 +16,7 @@ services:
       - "80:80"       # HTTP
       - "443:443"     # HTTPS
       - "8080:8080"   # Dashboard (restrict in production)
+      - "8082:8082"   # Metrics endpoint
     environment:
       - TZ=America/New_York
     volumes:
@@ -34,14 +35,13 @@ services:
     labels:
       - "traefik.enable=true"
       
-      # Dashboard
+      # Dashboard (HTTP-only, localhost)
       - "traefik.http.routers.dashboard.rule=Host(`traefik.lan`)"
       - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.entrypoints=websecure"
-      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.entrypoints=web"
       
-      # Middleware for dashboard auth (change credentials!)
-      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$8EVjn/nj$$GiLUZqcbueTFeD23SuB6x0" # admin:changeme
+      # Middleware for dashboard auth (AIOS credentials)
+      - "traefik.http.middlewares.auth.basicauth.users=aios:$$apr1$$X0a.BcWC$$YoIaH0N068wmzZBlIWV460"
       - "traefik.http.routers.dashboard.middlewares=auth"
 
   # Whoami test service to verify routing
@@ -60,5 +60,6 @@ services:
 
 networks:
   aios-ingress:
+    external: true
     name: aios-ingress
     driver: bridge

@@ -13,19 +13,19 @@ api:
 entryPoints:
   web:
     address: ":80"
-    # Redirect HTTP to HTTPS
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
   
   websecure:
     address: ":443"
+  
+  traefik:
+    address: ":8080"
     http:
       tls:
         # Use default certificate or configure per-domain
         options: default
+  
+  metrics:
+    address: ":8082"
 
 # Providers
 providers:
