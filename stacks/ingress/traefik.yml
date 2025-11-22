@@ -7,7 +7,8 @@ global:
 # API and Dashboard
 api:
   dashboard: true
-  insecure: true  # Set to false in production
+  insecure: true  # Dashboard accessible on :8080 without authentication (localhost only)
+  debug: false
 
 # Entry Points
 entryPoints:
@@ -17,12 +18,8 @@ entryPoints:
   websecure:
     address: ":443"
   
-  traefik:
-    address: ":8080"
-    http:
-      tls:
-        # Use default certificate or configure per-domain
-        options: default
+  # Dashboard/API on port 8080 (insecure mode)
+  # No separate traefik entrypoint needed when api.insecure=true
   
   metrics:
     address: ":8082"

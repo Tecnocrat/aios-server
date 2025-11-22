@@ -35,14 +35,16 @@ services:
     labels:
       - "traefik.enable=true"
       
-      # Dashboard (HTTP-only, localhost)
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.lan`)"
-      - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.entrypoints=web"
+      # Dashboard accessible via port 8080 (insecure mode for development)
+      # No hostname routing needed when api.insecure=true
+      # Access: http://localhost:8080/dashboard/
       
-      # Middleware for dashboard auth (AIOS credentials)
-      - "traefik.http.middlewares.auth.basicauth.users=aios:$$apr1$$X0a.BcWC$$YoIaH0N068wmzZBlIWV460"
-      - "traefik.http.routers.dashboard.middlewares=auth"
+      # Optional: Hostname-based routing for production
+      # - "traefik.http.routers.dashboard.rule=Host(`traefik.lan`)"
+      # - "traefik.http.routers.dashboard.service=api@internal"
+      # - "traefik.http.routers.dashboard.entrypoints=web"
+      # - "traefik.http.middlewares.auth.basicauth.users=aios:$$apr1$$X0a.BcWC$$YoIaH0N068wmzZBlIWV460"
+      # - "traefik.http.routers.dashboard.middlewares=auth"
 
   # Whoami test service to verify routing
   whoami:
