@@ -108,10 +108,10 @@ $networks = docker network ls --filter "name=aios-" --format "{{.Name}}"
 $expectedNetworks = @('aios-observability', 'aios-ingress')
 foreach ($expected in $expectedNetworks) {
     if ($networks -contains $expected) {
-        Write-Success "Network $expected: Exists"
+        Write-Success "Network ${expected}: Exists"
         Add-TestResult -Category "Infrastructure" -Test "Network $expected" -Status "Pass" -Details "Network configured"
     } else {
-        Write-Error "Network $expected: Missing"
+        Write-Error "Network ${expected}: Missing"
         Add-TestResult -Category "Infrastructure" -Test "Network $expected" -Status "Fail" -Details "Network not found"
     }
 }
