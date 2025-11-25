@@ -66,28 +66,28 @@ scrape_configs:
   #   static_configs:
   #     - targets: ['host.docker.internal:9323']
 
-  # Service discovery for Docker containers
-  - job_name: 'docker-services'
-    docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-    relabel_configs:
-      # Only scrape containers with prometheus labels
-      - source_labels: [__meta_docker_container_label_prometheus_scrape]
-        regex: 'true'
-        action: keep
+  # Service discovery for Docker containers (disabled on Windows)
+  # - job_name: 'docker-services'
+  #   docker_sd_configs:
+  #     - host: unix:///var/run/docker.sock
+  #   relabel_configs:
+  #     # Only scrape containers with prometheus labels
+  #     - source_labels: [__meta_docker_container_label_prometheus_scrape]
+  #       regex: 'true'
+  #       action: keep
       
-      # Use custom port if specified
-      - source_labels: [__meta_docker_container_label_prometheus_port]
-        regex: '(.+)'
-        target_label: __address__
-        replacement: '$1'
+  #     # Use custom port if specified
+  #     - source_labels: [__meta_docker_container_label_prometheus_port]
+  #       regex: '(.+)'
+  #       target_label: __address__
+  #       replacement: '$1'
       
-      # Set instance name from container name
-      - source_labels: [__meta_docker_container_name]
-        target_label: instance
-        regex: '/(.*)'
-        replacement: '$1'
+  #     # Set instance name from container name
+  #     - source_labels: [__meta_docker_container_name]
+  #       target_label: instance
+  #       regex: '/(.*)'
+  #       replacement: '$1'
       
-      # Set job name from label
-      - source_labels: [__meta_docker_container_label_prometheus_job]
-        target_label: job
+  #     # Set job name from label
+  #     - source_labels: [__meta_docker_container_label_prometheus_job]
+  #       target_label: job
