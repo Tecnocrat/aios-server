@@ -7,7 +7,7 @@ global:
 # API and Dashboard
 api:
   dashboard: true
-  insecure: true  # Dashboard accessible on :8080 without authentication (localhost only)
+  insecure: false  # Disabled - use hostname routing
   debug: false
 
 # Entry Points

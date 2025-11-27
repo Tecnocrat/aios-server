@@ -5,7 +5,7 @@ version: '3.8'
 
 services:
   traefik:
-    image: traefik:v2.10
+    image: traefik:v3.1
     container_name: aios-traefik
     restart: unless-stopped
     security_opt:
@@ -35,16 +35,11 @@ services:
     labels:
       - "traefik.enable=true"
       
-      # Dashboard accessible via port 8080 (insecure mode for development)
-      # No hostname routing needed when api.insecure=true
-      # Access: http://localhost:8080/dashboard/
-      
-      # Optional: Hostname-based routing for production
-      # - "traefik.http.routers.dashboard.rule=Host(`traefik.lan`)"
-      # - "traefik.http.routers.dashboard.service=api@internal"
-      # - "traefik.http.routers.dashboard.entrypoints=web"
-      # - "traefik.http.middlewares.auth.basicauth.users=aios:$$apr1$$X0a.BcWC$$YoIaH0N068wmzZBlIWV460"
-      # - "traefik.http.routers.dashboard.middlewares=auth"
+      # Dashboard accessible via hostname routing
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.lan`)"
+      - "traefik.http.routers.dashboard.service=dashboard"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+      - "traefik.http.services.dashboard.loadbalancer.server.port=8080"
 
   # Whoami test service to verify routing
   whoami:
@@ -56,8 +51,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.whoami.rule=Host(`whoami.lan`)"
-      - "traefik.http.routers.whoami.entrypoints=websecure"
-      - "traefik.http.routers.whoami.tls=true"
+      - "traefik.http.routers.whoami.entrypoints=web"
       - "traefik.http.services.whoami.loadbalancer.server.port=80"
 
 networks:

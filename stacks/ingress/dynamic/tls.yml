@@ -1,22 +1,81 @@
 # AIOS Supercell - Traefik Dynamic Configuration
 
-# TLS Configuration
-tls:
-  options:
-    default:
-      minVersion: VersionTLS12
-      cipherSuites:
-        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
-  
-  # Self-signed certificate for .lan domains
-  certificates:
-    - certFile: /certs/lan.crt
-      keyFile: /certs/lan.key
-
-# Middleware definitions
+# HTTP Routes and Services (static configuration since Docker provider is failing)
 http:
+  routers:
+    # Traefik Dashboard
+    dashboard:
+      rule: "Host(`traefik.lan`)"
+      service: api@internal
+      entrypoints:
+        - web
+    
+    # Prometheus
+    prometheus:
+      rule: "Host(`prometheus.lan`)"
+      service: prometheus
+      entrypoints:
+        - web
+    
+    # Grafana
+    grafana:
+      rule: "Host(`grafana.lan`)"
+      service: grafana
+      entrypoints:
+        - web
+    
+    # Loki
+    loki:
+      rule: "Host(`loki.lan`)"
+      service: loki
+      entrypoints:
+        - web
+    
+    # Vault
+    vault:
+      rule: "Host(`vault.lan`)"
+      service: vault
+      entrypoints:
+        - web
+    
+    # Whoami
+    whoami:
+      rule: "Host(`whoami.lan`)"
+      service: whoami
+      entrypoints:
+        - web
+  
+  services:
+    # Prometheus
+    prometheus:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:9090"
+    
+    # Grafana
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:3000"
+    
+    # Loki
+    loki:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:3100"
+    
+    # Vault
+    vault:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8200"
+    
+    # Whoami
+    whoami:
+      loadBalancer:
+        servers:
+          - url: "http://aios-whoami:80"
+
   middlewares:
     # Security headers
     secure-headers:
