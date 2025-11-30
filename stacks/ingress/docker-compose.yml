@@ -30,8 +30,8 @@ services:
       # Let's Encrypt ACME storage (if using Let's Encrypt)
       - ./acme.json:/acme.json
       
-      # Docker socket for service discovery
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Docker socket disabled on Windows - using file provider only
+      # - /var/run/docker.sock:/var/run/docker.sock:ro
     labels:
       - "traefik.enable=true"
       

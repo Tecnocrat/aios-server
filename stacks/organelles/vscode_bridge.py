@@ -88,6 +88,23 @@ FLASK_AVAILABLE = _check_framework_availability('flask')
 BOTTLE_AVAILABLE = _check_framework_availability('bottle')
 AIOHTTP_AVAILABLE = _check_framework_availability('aiohttp')
 
+# AINLP.dendritic: Import frameworks when available
+FastAPI = HTTPException = JSONResponse = None
+Flask = jsonify = None
+
+if FASTAPI_AVAILABLE:
+    try:
+        from fastapi import FastAPI, HTTPException
+        from fastapi.responses import JSONResponse
+    except ImportError:
+        FASTAPI_AVAILABLE = False
+
+if FLASK_AVAILABLE:
+    try:
+        from flask import Flask, jsonify
+    except ImportError:
+        FLASK_AVAILABLE = False
+
 # AINLP.dendritic growth: Enhanced logging for framework availability
 if not AIOHTTP_AVAILABLE:
     logger.warning(
@@ -955,3 +972,7 @@ def main():
         ) as httpd:
             logger.info("Serving basic HTTP on port %s", port)
             httpd.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

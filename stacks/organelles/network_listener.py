@@ -12,11 +12,26 @@ import socket
 import time
 from typing import Dict, List
 
-# Import shared dendritic utilities
-from ..shared.dendritic_utils import (
-    DendriticFrameworkDetector,
-    get_base_model
-)
+# Import shared dendritic utilities - handle standalone container context
+try:
+    from ..shared.dendritic_utils import (
+        DendriticFrameworkDetector,
+        get_base_model
+    )
+except ImportError:
+    # Running standalone in container - inline minimal detector
+    class DendriticFrameworkDetector:
+        """Minimal framework detector for standalone execution."""
+        def is_available(self, name: str) -> bool:
+            import importlib.util
+            return importlib.util.find_spec(name) is not None
+
+    def get_base_model():
+        try:
+            from pydantic import BaseModel
+            return BaseModel
+        except ImportError:
+            return object
 
 # Configure logging early
 logging.basicConfig(level=logging.INFO)
@@ -255,7 +270,7 @@ else:
     organelle = None
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "8080"))
+    port = int(os.getenv("PORT", "3000"))
     logger.info("Starting Network Listener Organelle on port %d", port)
 
     if organelle and 'uvicorn' in framework_imports:

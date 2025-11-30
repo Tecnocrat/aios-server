@@ -24,11 +24,26 @@ import aiohttp
 import redis.asyncio as redis
 import uvicorn
 
-# Import shared dendritic utilities
-from ..shared.dendritic_utils import (
-    DendriticFrameworkDetector,
-    get_base_model
-)
+# Import shared dendritic utilities - handle standalone container
+try:
+    from ..shared.dendritic_utils import (
+        DendriticFrameworkDetector,
+        get_base_model
+    )
+except ImportError:
+    class DendriticFrameworkDetector:
+        def is_available(self, name: str) -> bool:
+            import importlib.util
+            return importlib.util.find_spec(name) is not None
+
+    def get_base_model():
+        try:
+            from pydantic import BaseModel
+            return BaseModel
+        except ImportError:
+            return object
+
+get_base_model  # Silence unused import (used dynamically)
 
 # Configure logging early
 logging.basicConfig(

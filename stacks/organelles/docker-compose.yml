@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile.network-listener
     container_name: aios-network-listener
     ports:
-      - "3000:3000"
+      - "3003:3000"  # Avoid conflict with Grafana (3000)
     environment:
       - DESKTOP_AIOS_CELL_URL=http://host.docker.internal:8000
       - ORGANELLE_ID=network-listener-001
@@ -104,7 +104,7 @@ services:
       dockerfile: Dockerfile.task-dispatcher
     container_name: aios-task-dispatcher
     ports:
-      - "3003:3003"
+      - "3004:3003"  # Map to 3004 externally
     environment:
       - DESKTOP_AIOS_CELL_URL=http://host.docker.internal:8000
       - ORGANELLE_ID=task-dispatcher-001

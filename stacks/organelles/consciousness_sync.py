@@ -18,11 +18,26 @@ import sys
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 
-# Import shared dendritic utilities
-from ..shared.dendritic_utils import (
-    DendriticFrameworkDetector,
-    get_base_model
-)
+# Import shared dendritic utilities - handle both package and standalone contexts
+try:
+    from ..shared.dendritic_utils import (
+        DendriticFrameworkDetector,
+        get_base_model
+    )
+except ImportError:
+    # Running standalone in container - inline minimal detector
+    class DendriticFrameworkDetector:
+        """Minimal framework detector for standalone execution."""
+        def is_available(self, name: str) -> bool:
+            import importlib.util
+            return importlib.util.find_spec(name) is not None
+    
+    def get_base_model():
+        try:
+            from pydantic import BaseModel
+            return BaseModel
+        except ImportError:
+            return object
 
 # Configure logging early
 logging.basicConfig(

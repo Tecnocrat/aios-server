@@ -7,7 +7,7 @@ global:
 # API and Dashboard
 api:
   dashboard: true
-  insecure: false  # Disabled - use hostname routing
+  insecure: true   # Enable for local development (port 8080)
   debug: false
 
 # Entry Points
@@ -26,11 +26,13 @@ entryPoints:
 
 # Providers
 providers:
-  docker:
-    endpoint: "unix:///var/run/docker.sock"
-    exposedByDefault: false
-    network: aios-ingress
-    watch: true
+  # Docker provider disabled on Windows Docker Desktop (socket access issues)
+  # Use file-based routing instead
+  # docker:
+  #   endpoint: "unix:///var/run/docker.sock"
+  #   exposedByDefault: false
+  #   network: aios-ingress
+  #   watch: true
   
   file:
     directory: "/dynamic"
