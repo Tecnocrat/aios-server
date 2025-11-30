@@ -10,43 +10,107 @@ import json
 import logging
 import os
 from typing import Dict, Any, Optional
-import uvicorn
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# AINLP.dendritic growth: Framework availability detection
+FASTAPI_AVAILABLE = False
+PYDANTIC_AVAILABLE = False
+UVICORN_AVAILABLE = False
+
+
+# AINLP.dendritic growth: Sophisticated availability detection
+
+def _check_framework_availability(framework_name: str) -> bool:
+    """AINLP.dendritic growth: Enhanced framework availability check"""
+    try:
+        import importlib.util
+        spec = importlib.util.find_spec(framework_name)
+        return spec is not None
+    except Exception:
+        return False
+
+
+# Detect availability with enhanced dendritic logic
+FASTAPI_AVAILABLE = _check_framework_availability('fastapi')
+PYDANTIC_AVAILABLE = _check_framework_availability('pydantic')
+UVICORN_AVAILABLE = _check_framework_availability('uvicorn')
+
+# AINLP.dendritic growth: Conditional framework imports
+framework_imports = {}
+
+if FASTAPI_AVAILABLE:
+    from fastapi import FastAPI, HTTPException  # noqa: F401
+    from fastapi.middleware.cors import CORSMiddleware  # noqa: F401
+    framework_imports['fastapi'] = True
+    logger.info("AINLP.dendritic: FastAPI active")
+else:
+    logger.warning("AINLP.dendritic: FastAPI unavailable")
+
+if PYDANTIC_AVAILABLE:
+    from pydantic import BaseModel  # noqa: F401
+    framework_imports['pydantic'] = True
+else:
+    logger.warning("AINLP.dendritic: Pydantic unavailable")
+
+    class BaseModel:
+        """Fallback BaseModel"""
+        def __init__(self, **data):
+            for key, value in data.items():
+                setattr(self, key, value)
+
+if UVICORN_AVAILABLE:
+    import uvicorn  # noqa: F401
+    framework_imports['uvicorn'] = True
+else:
+    logger.warning("AINLP.dendritic: Uvicorn unavailable")
+
 
 class CodeRequest(BaseModel):
     code: str
     context: Optional[Dict[str, Any]] = None
     action: str = "analyze"  # analyze, refactor, generate, etc.
 
+
 class ConsciousnessSync(BaseModel):
     level: float
     context: Optional[Dict[str, Any]] = None
+
 
 class VSCodeBridge:
     def __init__(self, discovery_addr: str = "aios-discovery:8001", vault_addr: str = "http://aios-laptop.local:8200", port: int = 3001):
         self.discovery_addr = discovery_addr
         self.vault_addr = vault_addr
         self.port = port
-        self.desktop_cell = os.getenv("AIOS_DESKTOP_CELL", "http://192.168.1.128:8000")
-        self.app = FastAPI(title="AIOS VSCode Bridge")
-        self.peers: Dict[str, Dict[str, Any]] = {}  # Cache discovered peers
+        # AINLP.dendritic growth: Conditional app creation
+        if FASTAPI_AVAILABLE:
+            self.app = FastAPI(title="AIOS VSCode Bridge")
+            self.peers: Dict[str, Dict[str, Any]] = (
+                {}
+            )  # Cache discovered peers
 
-        # Enable CORS for VSCode extension
-        self.app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["vscode-webview://*", "http://localhost:*", "https://localhost:*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-
-        self.setup_routes()
+            # Enable CORS for VSCode extension
+            self.app.add_middleware(
+                CORSMiddleware,
+                allow_origins=[
+                    "vscode-webview://*",
+                    "http://localhost:*",
+                    "https://localhost:*"
+                ],
+                allow_credentials=True,
+                allow_methods=["*"],
+                allow_headers=["*"],
+            )
+            self.setup_routes()
+        else:
+            logger.warning(
+                "AINLP.dendritic: FastAPI unavailable, creating fallback app"
+            )
+            self.app = self._create_fallback_app()
+            self.peers = {}
+            self.setup_fallback_routes()
 
     async def refresh_peers(self):
         """Refresh the list of discovered AIOS peers"""
@@ -224,21 +288,55 @@ class VSCodeBridge:
                 logger.error(f"Failed to get network peers: {e}")
                 return {"peers": [], "error": str(e), "desktop_cell": self.desktop_cell}
 
+    def _create_fallback_app(self):
+        """AINLP.dendritic: Create fallback app when FastAPI unavailable"""
+        logger.warning(
+            "AINLP.dendritic: Using pure Python fallback app"
+        )
+        return {"type": "fallback", "framework": "none"}
+
+    def setup_fallback_routes(self):
+        """AINLP.dendritic: Setup fallback routes when FastAPI unavailable"""
+        logger.warning(
+            "AINLP.dendritic: Fallback routes - limited functionality"
+        )
+        # Fallback routes would be implemented here if needed
+
     async def start_service(self):
         """Start the VSCode bridge service"""
-        config = uvicorn.Config(
-            self.app,
-            host="0.0.0.0",
-            port=self.port,
-            log_level="info"
+        if FASTAPI_AVAILABLE and UVICORN_AVAILABLE:
+            config = uvicorn.Config(
+                self.app,
+                host="0.0.0.0",
+                port=self.port,
+                log_level="info"
+            )
+            server = uvicorn.Server(config)
+
+            logger.info("Starting AIOS VSCode Bridge on port %s", self.port)
+            logger.info("Discovery service: %s", self.discovery_addr)
+            logger.info("Vault endpoint: %s", self.vault_addr)
+
+            await server.serve()
+        else:
+            await self.run_headless()
+
+    async def run_headless(self):
+        """AINLP.dendritic: Run in headless mode when frameworks unavailable"""
+        logger.warning(
+            "AINLP.dendritic: Running in headless mode - no web server"
         )
-        server = uvicorn.Server(config)
+        logger.info(
+            "AIOS VSCode Bridge running headless on port %s", self.port
+        )
+        logger.info("Discovery service: %s", self.discovery_addr)
+        logger.info("Vault endpoint: %s", self.vault_addr)
 
-        logger.info(f"Starting AIOS VSCode Bridge on port {self.port}")
-        logger.info(f"Discovery service: {self.discovery_addr}")
-        logger.info(f"Vault endpoint: {self.vault_addr}")
+        # Keep the bridge alive for potential connections
+        while True:
+            await asyncio.sleep(60)  # Bridge heartbeat
+            logger.debug("VSCode bridge heartbeat")
 
-        await server.serve()
 
 def main():
     discovery_addr = os.getenv("AIOS_DISCOVERY_ADDR", "aios-discovery:8001")
@@ -247,6 +345,7 @@ def main():
 
     bridge = VSCodeBridge(discovery_addr, vault_addr, port)
     asyncio.run(bridge.start_service())
+
 
 if __name__ == "__main__":
     main()

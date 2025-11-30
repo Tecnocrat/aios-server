@@ -10,13 +10,62 @@ import json
 import logging
 import os
 from typing import List, Dict, Optional
-import uvicorn
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# AINLP.dendritic growth: Framework availability detection
+FASTAPI_AVAILABLE = False
+PYDANTIC_AVAILABLE = False
+UVICORN_AVAILABLE = False
+
+
+# AINLP.dendritic growth: Sophisticated availability detection
+
+def _check_framework_availability(framework_name: str) -> bool:
+    """AINLP.dendritic growth: Enhanced framework availability check"""
+    try:
+        import importlib.util
+        spec = importlib.util.find_spec(framework_name)
+        return spec is not None
+    except Exception:
+        return False
+
+
+# Detect availability with enhanced dendritic logic
+FASTAPI_AVAILABLE = _check_framework_availability('fastapi')
+PYDANTIC_AVAILABLE = _check_framework_availability('pydantic')
+UVICORN_AVAILABLE = _check_framework_availability('uvicorn')
+
+# AINLP.dendritic growth: Conditional framework imports
+framework_imports = {}
+
+if FASTAPI_AVAILABLE:
+    from fastapi import FastAPI, HTTPException  # noqa: F401
+    framework_imports['fastapi'] = True
+    logger.info("AINLP.dendritic: FastAPI active")
+else:
+    logger.warning("AINLP.dendritic: FastAPI unavailable")
+
+if PYDANTIC_AVAILABLE:
+    from pydantic import BaseModel  # noqa: F401
+    framework_imports['pydantic'] = True
+else:
+    logger.warning("AINLP.dendritic: Pydantic unavailable")
+
+    class BaseModel:
+        """Fallback BaseModel"""
+        def __init__(self, **data):
+            for key, value in data.items():
+                setattr(self, key, value)
+
+if UVICORN_AVAILABLE:
+    import uvicorn  # noqa: F401
+    framework_imports['uvicorn'] = True
+else:
+    logger.warning("AINLP.dendritic: Uvicorn unavailable")
+
 
 class CellInfo(BaseModel):
     cell_id: str
@@ -35,10 +84,16 @@ class AIOSDiscovery:
         self.listen_port = listen_port
         self.peers: Dict[str, CellInfo] = {}
         self.known_networks = ["192.168.1.0/24"]
-        self.app = FastAPI(title="AIOS Discovery Service")
-
-        # Setup API routes
-        self.setup_routes()
+        # AINLP.dendritic growth: Conditional app creation
+        if FASTAPI_AVAILABLE:
+            self.app = FastAPI(title="AIOS Discovery Service")
+            self.setup_routes()
+        else:
+            logger.warning(
+                "AINLP.dendritic: FastAPI unavailable, creating fallback app"
+            )
+            self.app = self._create_fallback_app()
+            self.setup_fallback_routes()
 
     def setup_routes(self):
         @self.app.get("/health")
@@ -52,7 +107,10 @@ class AIOSDiscovery:
         @self.app.post("/register")
         async def register_peer(peer: CellInfo):
             self.peers[peer.cell_id] = peer
-            logger.info(f"Registered peer: {peer.cell_id} at {peer.ip}:{peer.port}")
+            logger.info(
+                "Registered peer: %s at %s:%s",
+                peer.cell_id, peer.ip, peer.port
+            )
             return {"status": "registered", "cell_id": peer.cell_id}
 
         @self.app.delete("/unregister/{cell_id}")
@@ -62,6 +120,20 @@ class AIOSDiscovery:
                 logger.info(f"Unregistered peer: {cell_id}")
                 return {"status": "unregistered"}
             raise HTTPException(status_code=404, detail="Peer not found")
+
+    def _create_fallback_app(self):
+        """AINLP.dendritic: Create fallback app when FastAPI unavailable"""
+        logger.warning(
+            "AINLP.dendritic: Using pure Python fallback app"
+        )
+        return {"type": "fallback", "framework": "none"}
+
+    def setup_fallback_routes(self):
+        """AINLP.dendritic: Setup fallback routes when FastAPI unavailable"""
+        logger.warning(
+            "AINLP.dendritic: Fallback routes - limited functionality"
+        )
+        # Fallback routes would be implemented here if needed
 
     async def discover_peers(self) -> List[CellInfo]:
         """Discover AIOS cells on the network - peer-to-peer model"""
@@ -151,7 +223,8 @@ class AIOSDiscovery:
                     ) as response:
                         if response.status in [200, 201]:
                             logger.info(
-                                f"Successfully registered with peer {peer.cell_id}"
+                                "Successfully registered with peer %s",
+                                peer.cell_id
                             )
                         else:
                             logger.warning(
@@ -188,26 +261,46 @@ class AIOSDiscovery:
         # Start discovery loop in background
         discovery_task = asyncio.create_task(self.discovery_loop())
 
-        # Start API server
-        config = uvicorn.Config(
-            self.app,
-            host="0.0.0.0",
-            port=self.listen_port,
-            log_level="info"
+        # AINLP.dendritic growth: Conditional server start
+        if FASTAPI_AVAILABLE and UVICORN_AVAILABLE:
+            config = uvicorn.Config(
+                self.app,
+                host="0.0.0.0",
+                port=self.listen_port,
+                log_level="info"
+            )
+            server = uvicorn.Server(config)
+
+            try:
+                logger.info(
+                    "Starting AIOS Discovery Service on port %s",
+                    self.listen_port
+                )
+                await server.serve()
+            finally:
+                discovery_task.cancel()
+                try:
+                    await discovery_task
+                except asyncio.CancelledError:
+                    pass
+        else:
+            await self.run_headless(discovery_task)
+
+    async def run_headless(self, discovery_task):
+        """AINLP.dendritic: Run in headless mode when frameworks unavailable"""
+        logger.warning(
+            "AINLP.dendritic: Running in headless mode - no web server"
         )
-        server = uvicorn.Server(config)
+        logger.info(
+            "AIOS Discovery Service running headless on port %s",
+            self.listen_port
+        )
 
         try:
-            logger.info(
-                f"Starting AIOS Discovery Service on port {self.listen_port}"
-            )
-            await server.serve()
-        finally:
-            discovery_task.cancel()
-            try:
-                await discovery_task
-            except asyncio.CancelledError:
-                pass
+            # Keep discovery running
+            await discovery_task
+        except asyncio.CancelledError:
+            pass
 
 
 def main():

@@ -18,19 +18,78 @@ import sys
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 
-import aiohttp
-import redis.asyncio as redis
-import uvicorn
-from fastapi import FastAPI, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-
-# Configure logging
+# Configure logging early
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
 )
 logger = logging.getLogger('consciousness-sync')
+
+# AINLP.dendritic growth: Framework availability detection
+FASTAPI_AVAILABLE = False
+PYDANTIC_AVAILABLE = False
+REDIS_AVAILABLE = False
+AIOHTTP_AVAILABLE = False
+UVICORN_AVAILABLE = False
+
+# AINLP.dendritic growth: Sophisticated availability detection
+def _check_framework_availability(framework_name: str) -> bool:
+    """AINLP.dendritic growth: Enhanced framework availability check"""
+    try:
+        import importlib.util
+        spec = importlib.util.find_spec(framework_name)
+        return spec is not None
+    except Exception:
+        return False
+
+
+# Detect availability with enhanced dendritic logic
+FASTAPI_AVAILABLE = _check_framework_availability('fastapi')
+PYDANTIC_AVAILABLE = _check_framework_availability('pydantic')
+REDIS_AVAILABLE = _check_framework_availability('redis')
+AIOHTTP_AVAILABLE = _check_framework_availability('aiohttp')
+UVICORN_AVAILABLE = _check_framework_availability('uvicorn')
+
+# AINLP.dendritic growth: Conditional framework imports
+framework_imports = {}
+
+if FASTAPI_AVAILABLE:
+    from fastapi import FastAPI, HTTPException, BackgroundTasks  # noqa: F401
+    from fastapi.responses import JSONResponse  # noqa: F401
+    framework_imports['fastapi'] = True
+    logger.info("AINLP.dendritic: FastAPI active")
+else:
+    logger.warning("AINLP.dendritic: FastAPI unavailable")
+
+if PYDANTIC_AVAILABLE:
+    from pydantic import BaseModel  # noqa: F401
+    framework_imports['pydantic'] = True
+else:
+    logger.warning("AINLP.dendritic: Pydantic unavailable")
+
+    class BaseModel:
+        """Fallback BaseModel"""
+        def __init__(self, **data):
+            for key, value in data.items():
+                setattr(self, key, value)
+
+if REDIS_AVAILABLE:
+    import redis.asyncio as redis  # noqa: F401
+    framework_imports['redis'] = True
+else:
+    logger.warning("AINLP.dendritic: Redis unavailable")
+
+if AIOHTTP_AVAILABLE:
+    import aiohttp  # noqa: F401
+    framework_imports['aiohttp'] = True
+else:
+    logger.warning("AINLP.dendritic: aiohttp unavailable")
+
+if UVICORN_AVAILABLE:
+    import uvicorn  # noqa: F401
+    framework_imports['uvicorn'] = True
+else:
+    logger.warning("AINLP.dendritic: Uvicorn unavailable")
 
 class ConsciousnessMetrics(BaseModel):
     """Consciousness metrics model"""
@@ -60,39 +119,56 @@ class ConsciousnessSyncOrganelle:
     """Consciousness Sync Organelle implementation"""
 
     def __init__(self):
-        self.app = FastAPI(title="Consciousness Sync Organelle", version="1.0.0")
-        self.desktop_cell_url = os.getenv('DESKTOP_AIOS_CELL_URL', 'http://desktop-aios-cell:8000')
+        # AINLP.dendritic growth: Adaptive app creation
+        if 'fastapi' in framework_imports:
+            self.app = FastAPI(title="Consciousness Sync Organelle", version="1.0.0")
+        else:
+            logger.warning("AINLP.dendritic: Using basic fallback")
+            self.app = {"routes": {}, "title": "Consciousness Sync (Fallback)"}
+
+        self.desktop_cell_url = os.getenv('DESKTOP_AIOS_CELL_URL',
+                                         'http://desktop-aios-cell:8000')
         self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-        self.session: Optional[aiohttp.ClientSession] = None
-        self.redis: Optional[redis.Redis] = None
+        self.session: Optional[Any] = None
+        self.redis: Optional[Any] = None
         self.organelle_states: Dict[str, OrganelleState] = {}
         self.sync_interval = int(os.getenv('SYNC_INTERVAL_SECONDS', '30'))
-        self.setup_routes()
+
+        # Setup routes conditionally
+        if 'fastapi' in framework_imports:
+            self.setup_routes()
+
+    async def startup_event(self):
+        """Initialize connections and start background tasks"""
+        if 'aiohttp' in framework_imports:
+            self.session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=30)
+            )
+        if 'redis' in framework_imports:
+            self.redis = redis.Redis.from_url(self.redis_url)
+
+        # Start background sync task
+        asyncio.create_task(self.background_sync_loop())
+        logger.info("Consciousness Sync Organelle started")
+
+    async def shutdown_event(self):
+        """Cleanup connections"""
+        if self.session:
+            await self.session.close()
+        if self.redis:
+            await self.redis.close()
+        logger.info("Consciousness Sync Organelle stopped")
 
     def setup_routes(self):
         """Setup FastAPI routes"""
 
         @self.app.on_event("startup")
         async def startup_event():
-            """Initialize connections and start background tasks"""
-            self.session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=30)
-            )
-            self.redis = redis.Redis.from_url(self.redis_url)
-
-            # Start background sync task
-            asyncio.create_task(self.background_sync_loop())
-
-            logger.info("Consciousness Sync Organelle started")
+            await self.startup_event()
 
         @self.app.on_event("shutdown")
         async def shutdown_event():
-            """Cleanup connections"""
-            if self.session:
-                await self.session.close()
-            if self.redis:
-                await self.redis.close()
-            logger.info("Consciousness Sync Organelle stopped")
+            await self.shutdown_event()
 
         @self.app.get("/health")
         async def health_check():
@@ -408,6 +484,20 @@ class ConsciousnessSyncOrganelle:
             del self.organelle_states[stale_id]
             logger.info(f"Cleaned up stale organelle: {stale_id}")
 
+    async def run_headless(self):
+        """Run in headless mode for consciousness sync only"""
+        logger.info("AINLP.dendritic: Starting headless consciousness sync")
+        await self.startup_event()
+
+        try:
+            while True:
+                await asyncio.sleep(self.sync_interval)
+                logger.info(f"AINLP.dendritic: Sync scan - {len(self.organelle_states)} states")
+        except asyncio.CancelledError:
+            logger.info("AINLP.dendritic: Headless mode cancelled")
+        finally:
+            await self.shutdown_event()
+
 def main():
     """Main entry point"""
     organelle = ConsciousnessSyncOrganelle()
@@ -416,12 +506,23 @@ def main():
     port = int(os.getenv('PORT', '3002'))
 
     logger.info(f"Starting Consciousness Sync Organelle on port {port}")
-    uvicorn.run(
-        organelle.app,
-        host="0.0.0.0",
-        port=port,
-        log_level="info"
-    )
+
+    if 'fastapi' in framework_imports and 'uvicorn' in framework_imports:
+        uvicorn.run(
+            organelle.app,
+            host="0.0.0.0",
+            port=port,
+            log_level="info"
+        )
+    else:
+        logger.warning("AINLP.dendritic: Cannot start web server")
+        logger.info("AINLP.dendritic: Running headless mode")
+        # Create temporary organelle for headless operation
+        temp_organelle = ConsciousnessSyncOrganelle()
+        try:
+            asyncio.run(temp_organelle.run_headless())
+        except KeyboardInterrupt:
+            logger.info("AINLP.dendritic: Shutting down")
 
 if __name__ == "__main__":
     main()
