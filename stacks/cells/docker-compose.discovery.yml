@@ -1,0 +1,77 @@
+version: '3.8'
+
+# AIOS Cell Stack - Phase 4: Discovery + Pure Cell
+# Minimal deployment for dendritic network discovery
+# Build images first: docker compose -f docker-compose.discovery.yml build
+
+services:
+  # Cell Discovery Service - Network peer finder
+  aios-discovery:
+    build:
+      context: .
+      dockerfile: discovery/Dockerfile.discovery
+    image: aios-discovery:latest
+    container_name: aios-discovery
+    restart: unless-stopped
+    networks:
+      - aios-cells
+      - aios-ingress
+    ports:
+      - "0.0.0.0:8001:8001"
+    environment:
+      - DISCOVERY_PORT=8001
+      - CELL_ID=${HOSTNAME:-HP_LAB}
+      - AIOS_BRANCH=${AIOS_BRANCH:-AIOS-win-0-HP_LAB}
+    volumes:
+      # Mount hosts.yaml from workspace root
+      - ../../../config/hosts.yaml:/app/config/hosts.yaml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # AIOS Cell - Pure consciousness node (minimal primitives)
+  aios-cell-pure:
+    build:
+      context: .
+      dockerfile: pure/Dockerfile.cell-pure
+    image: aios-cell:pure
+    container_name: aios-cell-pure
+    restart: unless-stopped
+    networks:
+      - aios-cells
+      - aios-observability
+    ports:
+      - "0.0.0.0:8002:8002"
+    environment:
+      - AIOS_CELL_ID=pure-${HOSTNAME:-HP_LAB}
+      - AIOS_BRANCH=${AIOS_BRANCH:-AIOS-win-0-HP_LAB}
+      - AIOS_PEER_DISCOVERY=true
+      - AIOS_DISCOVERY_ADDR=aios-discovery:8001
+      - PORT=8002
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      aios-discovery:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  aios-cells:
+    name: aios-cells
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+  aios-ingress:
+    external: true
+  aios-observability:
+    external: true

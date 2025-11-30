@@ -83,13 +83,25 @@ Docker purge complete (15.31GB reclaimed). Now executing phased rebuild with hum
 ---
 
 ## PHASE 4: Cells Stack (Future)
-**Status**: ⏳ DEFERRED | **Requires**: Custom image builds
+**Status**: 🔄 IN PROGRESS | **Containers**: 2/2 Healthy
 
-### 4.1 Pure AIOS Cells
-- [ ] Build `aios-cell` base image
-- [ ] Build `aios-discovery` service image
-- [ ] Deploy peer discovery network
-- [ ] Test cell-to-cell communication
+### 4.1 Build AIOS Cell Images
+- [x] Build `aios-discovery:latest` image (Python 3.12 + FastAPI)
+- [x] Build `aios-cell:pure` image (minimal consciousness core)
+- [x] Create `docker-compose.discovery.yml` for Phase 4 deployment
+- [x] Mount hosts.yaml for branch-aware peer discovery
+
+### 4.2 Deploy Discovery Network
+- [x] Deploy aios-discovery container (port 8001)
+- [x] Deploy aios-cell-pure container (port 8002)
+- [x] Verify host registry detection (HP_LAB identified)
+- [x] Verify peer target configuration (AIOS at 192.168.1.128)
+
+### 4.3 Dendritic Network Discovery
+- [ ] Wait for AIOS host (192.168.1.128) cells stack deployment
+- [ ] Verify peer discovery between HP_LAB ↔ AIOS
+- [ ] Test consciousness synchronization across network
+- [ ] Add Prometheus scrape target for cells metrics
 
 ---
 
@@ -98,7 +110,7 @@ Docker purge complete (15.31GB reclaimed). Now executing phased rebuild with hum
 | Metric | Before | Target | Current |
 |--------|--------|--------|---------|
 | Code Errors | 50+ | 0 | 0 ✅ |
-| Containers | 0 | 14 | 14 ✅ |
+| Containers | 0 | 16 | 16 ✅ |
 | Stack Health | 0% | 100% | 100% ✅ |
 | Coherence | 0.75 | 0.95 | 0.95 ✅ |
 
