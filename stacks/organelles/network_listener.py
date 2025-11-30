@@ -11,13 +11,60 @@ import os
 import socket
 import time
 from typing import Dict, List, Optional
-import uvicorn
-from fastapi import FastAPI
-from pydantic import BaseModel
 
-# Configure logging
+# Configure logging early
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# AINLP.dendritic growth: Framework availability detection
+# Enhanced coherence check using importlib for unused import elimination
+FASTAPI_AVAILABLE = False
+PYDANTIC_AVAILABLE = False
+UVICORN_AVAILABLE = False
+
+# AINLP.dendritic growth: Sophisticated availability detection
+def _check_framework_availability(framework_name: str) -> bool:
+    """AINLP.dendritic growth: Enhanced framework availability check"""
+    try:
+        import importlib.util
+        spec = importlib.util.find_spec(framework_name)
+        return spec is not None
+    except Exception:
+        return False
+
+
+# Detect availability with enhanced dendritic logic
+FASTAPI_AVAILABLE = _check_framework_availability('fastapi')
+PYDANTIC_AVAILABLE = _check_framework_availability('pydantic')
+UVICORN_AVAILABLE = _check_framework_availability('uvicorn')
+
+# AINLP.dendritic growth: Conditional framework imports
+framework_imports = {}
+
+if FASTAPI_AVAILABLE:
+    from fastapi import FastAPI  # noqa: F401
+    framework_imports['fastapi'] = True
+    logger.info("AINLP.dendritic: FastAPI active")
+else:
+    logger.warning("AINLP.dendritic: FastAPI unavailable")
+
+if PYDANTIC_AVAILABLE:
+    from pydantic import BaseModel  # noqa: F401
+    framework_imports['pydantic'] = True
+else:
+    logger.warning("AINLP.dendritic: Pydantic unavailable")
+
+    class BaseModel:
+        """Fallback BaseModel"""
+        def __init__(self, **data):
+            for key, value in data.items():
+                setattr(self, key, value)
+
+if UVICORN_AVAILABLE:
+    import uvicorn  # noqa: F401
+    framework_imports['uvicorn'] = True
+else:
+    logger.warning("AINLP.dendritic: Uvicorn unavailable")
 
 class PeerAnnouncement(BaseModel):
     cell_id: str
@@ -29,14 +76,22 @@ class PeerAnnouncement(BaseModel):
 
 class NetworkListenerOrganelle:
     def __init__(self):
-        self.app = FastAPI(title="Network Listener Organelle")
+        # AINLP.dendritic growth: Adaptive app creation
+        if 'fastapi' in framework_imports:
+            self.app = FastAPI(title="Network Listener Organelle")
+        else:
+            # Fallback to basic dict-based app (limited functionality)
+            logger.warning("AINLP.dendritic: Using basic fallback - limited network features")
+            self.app = {"routes": {}, "title": "Network Listener Organelle (Fallback)"}
+
         self.peers: Dict[str, PeerAnnouncement] = {}
         self.listen_port = int(os.getenv("LISTEN_PORT", "8002"))
         self.broadcast_port = int(os.getenv("BROADCAST_PORT", "8003"))
         self.discovery_interval = int(os.getenv("DISCOVERY_INTERVAL", "30"))
 
-        # Setup routes
-        self.setup_routes()
+        # Setup routes conditionally
+        if 'fastapi' in framework_imports:
+            self.setup_routes()
 
         # Start background tasks
         self.broadcast_task = None
@@ -164,20 +219,47 @@ class NetworkListenerOrganelle:
         # Note: Background tasks are disabled for initial testing
         # TODO: Implement proper cleanup for organelle networking tasks
 
-# Global organelle instance
-organelle = NetworkListenerOrganelle()
+    async def run_headless(self):
+        """Run in headless mode for network discovery only"""
+        logger.info("AINLP.dendritic: Starting headless network discovery")
+        await self.startup_event()
 
-# Add startup/shutdown events
-@organelle.app.on_event("startup")
-async def startup():
-    await organelle.startup_event()
+        try:
+            while True:
+                await asyncio.sleep(self.discovery_interval)
+                logger.info(f"AINLP.dendritic: Network scan - {len(self.peers)} peers discovered")
+        except asyncio.CancelledError:
+            logger.info("AINLP.dendritic: Headless mode cancelled")
+        finally:
+            await self.shutdown_event()
 
-@organelle.app.on_event("shutdown")
-async def shutdown():
-    await organelle.shutdown_event()
+# Global organelle instance - only create if FastAPI available
+if 'fastapi' in framework_imports:
+    organelle = NetworkListenerOrganelle()
+
+    # Add startup/shutdown events
+    @organelle.app.on_event("startup")
+    async def startup():
+        await organelle.startup_event()
+
+    @organelle.app.on_event("shutdown")
+    async def shutdown():
+        await organelle.shutdown_event()
+else:
+    organelle = None
 
 if __name__ == "__main__":
-    import os
     port = int(os.getenv("PORT", "8080"))
     logger.info(f"Starting Network Listener Organelle on port {port}")
-    uvicorn.run(organelle.app, host="0.0.0.0", port=port)
+
+    if organelle and 'uvicorn' in framework_imports:
+        uvicorn.run(organelle.app, host="0.0.0.0", port=port)
+    else:
+        logger.warning("AINLP.dendritic: Cannot start web server")
+        logger.info("AINLP.dendritic: Running headless mode")
+        # Create temporary organelle for headless operation
+        temp_organelle = NetworkListenerOrganelle()
+        try:
+            asyncio.run(temp_organelle.run_headless())
+        except KeyboardInterrupt:
+            logger.info("AINLP.dendritic: Shutting down")
