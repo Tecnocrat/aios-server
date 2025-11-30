@@ -3,20 +3,42 @@
 ## Quick Start
 
 ```powershell
+# Navigate to observability scripts
+cd server/stacks/observability/scripts
+
 # Basic health check
-.\test_observability_stack.ps1
+.\test_stack.ps1
 
 # Detailed output with all metrics
-.\test_observability_stack.ps1 -Detailed
+.\test_stack.ps1 -Detailed
 
 # Open all dashboards in browser
-.\test_observability_stack.ps1 -OpenBrowsers
+.\test_stack.ps1 -OpenBrowsers
 
-# Export JSON report
-.\test_observability_stack.ps1 -ExportReport
+# Export JSON report (saved to ../reports/)
+.\test_stack.ps1 -ExportReport
 
 # Full test with all options
-.\test_observability_stack.ps1 -Detailed -OpenBrowsers -ExportReport
+.\test_stack.ps1 -Detailed -OpenBrowsers -ExportReport
+```
+
+## Directory Structure
+
+```
+stacks/observability/
+├── docker-compose.yml      # Stack definition
+├── docs/                   # Documentation
+│   ├── HEALTH_REPORT.md    # Status & health reports
+│   └── TESTING.md          # This file
+├── scripts/                # Utilities
+│   ├── test_stack.ps1      # Health test suite
+│   └── import_dashboards.ps1
+├── reports/                # Test artifacts (gitignored)
+│   └── test_report_*.json
+├── grafana/                # Grafana config
+├── prometheus/             # Prometheus config
+├── loki/                   # Loki config
+└── promtail/               # Promtail config
 ```
 
 ## Service URLs

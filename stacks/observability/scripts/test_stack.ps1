@@ -449,7 +449,10 @@ Write-Host "Pass Rate: $passRate%" -ForegroundColor $(if ($passRate -ge 90) { "G
 
 # Export report if requested
 if ($ExportReport) {
-    $reportPath = ".\observability_test_report_$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
+    # AINLP.dendritic: Reports stored in sibling reports/ directory
+    $reportsDir = Join-Path $PSScriptRoot "..\reports"
+    if (-not (Test-Path $reportsDir)) { New-Item -ItemType Directory -Path $reportsDir -Force | Out-Null }
+    $reportPath = Join-Path $reportsDir "test_report_$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
     $global:TestResults | ConvertTo-Json -Depth 10 | Out-File -FilePath $reportPath -Encoding utf8
     Write-Info "Report exported to: $reportPath"
 }

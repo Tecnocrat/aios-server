@@ -12,6 +12,10 @@ vault-root-token.txt
 **/logs/
 *.log
 
+# Test reports (timestamped artifacts)
+**/reports/*.json
+!**/reports/.gitkeep
+
 # OS
 .DS_Store
 Thumbs.db
