@@ -20,4 +20,4 @@ See main AIOS repository for deployment instructions.
 
 ---
 
-Part of the [AIOS Supercell](https://github.com/jesus/aios-supercell) project.
+Part of the [AIOS](https://github.com/Tecnocrat/AIOS) project.
