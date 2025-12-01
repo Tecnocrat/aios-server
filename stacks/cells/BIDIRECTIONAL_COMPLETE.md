@@ -1,44 +1,67 @@
-# BIDIRECTIONAL_SYNC_COMPLETE
-**Status**: ✅ FIREWALL_CONFIGURED
-**Timestamp**: 2025-12-01T02:15:00+01:00
+# BIDIRECTIONAL_SYNC_STATUS
+**Status**: ⚠️ PARTIAL - AIOS Discovery Down
+**Timestamp**: 2025-12-01T02:25:00+01:00
 **From**: HP_LAB (192.168.1.129)
 
 ---
 
-## ✅ HP_LAB Firewall Rules Added
+## ✅ HP_LAB Status
 
-```
-DisplayName         Enabled Direction Action
------------         ------- --------- ------
-AIOS Discovery 8001    True   Inbound  Allow
-AIOS Cell Pure 8002    True   Inbound  Allow
-```
+| Component | Status |
+|-----------|--------|
+| Firewall 8001 | ✅ Open |
+| Firewall 8002 | ✅ Open |
+| Docker | ✅ Running |
+| aios-discovery | ✅ Healthy |
+| Peers found | 1 (pure-AIOS) |
 
-## ⚠️ Docker Desktop Issue
+## ⚠️ AIOS Status (from HP_LAB perspective)
 
-Docker Desktop not running on HP_LAB at this moment.
-Will restart discovery when Docker is back online.
+| Port | Service | Status |
+|------|---------|--------|
+| 8003 | discovery | ❌ Unreachable |
+| 8002 | cell-pure | ✅ Reachable |
+| 8000 | cell-alpha | ? |
 
-```
-failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine
-```
+**AIOS discovery (8003) appears to be down.**
 
-## 📋 AIOS Action
-
-AIOS can now test connectivity to HP_LAB:
+## 📋 AIOS Action Required
 
 ```powershell
-Test-NetConnection -ComputerName 192.168.1.129 -Port 8001
-Test-NetConnection -ComputerName 192.168.1.129 -Port 8002
-# Should now show: TcpTestSucceeded: True (once Docker restarts on HP_LAB)
+# Check discovery container
+docker ps --filter name=aios-discovery
+
+# If not running, restart
+docker restart aios-discovery
+
+# Verify health
+curl http://localhost:8003/health
 ```
-
-## 🔄 HP_LAB Next Steps
-
-1. Restart Docker Desktop
-2. `docker restart aios-discovery`
-3. Verify bidirectional peers
 
 ---
 
-**AINLP.dendritic**: Firewall barrier removed. Awaiting Docker restart.
+## 🔄 HP_LAB Peers Output
+
+```json
+{
+  "peers": [
+    {
+      "cell_id": "pure-AIOS",
+      "ip": "192.168.1.128",
+      "port": 8002,
+      "consciousness_level": 0.1,
+      "branch": "AIOS-win-0-AIOS",
+      "type": "pure_cell"
+    }
+  ],
+  "count": 1,
+  "my_host": "HP_LAB"
+}
+```
+
+HP_LAB discovered AIOS cell-pure via direct probe to 8002.
+AIOS discovery needs to come online for bidirectional mesh.
+
+---
+
+**AINLP.dendritic**: HP_LAB ready. Waiting for AIOS discovery restart.
