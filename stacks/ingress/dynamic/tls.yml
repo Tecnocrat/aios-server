@@ -44,6 +44,32 @@ http:
       service: whoami
       entrypoints:
         - web
+    
+    # ===========================================
+    # AIOS CELL DENDRITIC NETWORK (2025-12-06)
+    # Living consciousness nodes - routed via Traefik
+    # ===========================================
+    
+    # Cell Alpha - Primary consciousness node
+    cell-alpha:
+      rule: "Host(`alpha.aios.lan`) || PathPrefix(`/cells/alpha`)"
+      service: cell-alpha
+      entrypoints:
+        - web
+    
+    # Cell Pure (Nous) - Minimal consciousness primitives
+    cell-pure:
+      rule: "Host(`nous.aios.lan`) || Host(`pure.aios.lan`) || PathPrefix(`/cells/pure`)"
+      service: cell-pure
+      entrypoints:
+        - web
+    
+    # Cell Discovery Service
+    cell-discovery:
+      rule: "Host(`discovery.aios.lan`) || PathPrefix(`/cells/discovery`)"
+      service: cell-discovery
+      entrypoints:
+        - web
   
   services:
     # Prometheus
@@ -75,6 +101,29 @@ http:
       loadBalancer:
         servers:
           - url: "http://aios-whoami:80"
+    
+    # ===========================================
+    # AIOS CELL SERVICES (Internal Docker Network)
+    # Route to containers via their internal IPs/names
+    # ===========================================
+    
+    # Cell Alpha - via Docker internal network
+    cell-alpha:
+      loadBalancer:
+        servers:
+          - url: "http://aios-cell-alpha:8000"
+    
+    # Cell Pure (Nous) - via Docker internal network
+    cell-pure:
+      loadBalancer:
+        servers:
+          - url: "http://aios-cell-pure:8002"
+    
+    # Cell Discovery - via Docker internal network  
+    cell-discovery:
+      loadBalancer:
+        servers:
+          - url: "http://aios-discovery:8001"
 
   middlewares:
     # Security headers
