@@ -52,24 +52,51 @@ http:
     
     # Cell Alpha - Primary consciousness node
     cell-alpha:
-      rule: "Host(`alpha.aios.lan`) || PathPrefix(`/cells/alpha`)"
+      rule: "Host(`alpha.aios.lan`)"
       service: cell-alpha
       entrypoints:
         - web
     
+    # Cell Alpha - Path prefix (with strip)
+    cell-alpha-path:
+      rule: "PathPrefix(`/cells/alpha`)"
+      service: cell-alpha
+      entrypoints:
+        - web
+      middlewares:
+        - strip-cells-alpha
+    
     # Cell Pure (Nous) - Minimal consciousness primitives
     cell-pure:
-      rule: "Host(`nous.aios.lan`) || Host(`pure.aios.lan`) || PathPrefix(`/cells/pure`)"
+      rule: "Host(`nous.aios.lan`) || Host(`pure.aios.lan`)"
       service: cell-pure
       entrypoints:
         - web
     
+    # Cell Pure - Path prefix (with strip)
+    cell-pure-path:
+      rule: "PathPrefix(`/cells/pure`)"
+      service: cell-pure
+      entrypoints:
+        - web
+      middlewares:
+        - strip-cells-pure
+    
     # Cell Discovery Service
     cell-discovery:
-      rule: "Host(`discovery.aios.lan`) || PathPrefix(`/cells/discovery`)"
+      rule: "Host(`discovery.aios.lan`)"
       service: cell-discovery
       entrypoints:
         - web
+    
+    # Cell Discovery - Path prefix (with strip)
+    cell-discovery-path:
+      rule: "PathPrefix(`/cells/discovery`)"
+      service: cell-discovery
+      entrypoints:
+        - web
+      middlewares:
+        - strip-cells-discovery
   
   services:
     # Prometheus
@@ -126,6 +153,22 @@ http:
           - url: "http://aios-discovery:8001"
 
   middlewares:
+    # Strip path prefixes for cell routing
+    strip-cells-alpha:
+      stripPrefix:
+        prefixes:
+          - "/cells/alpha"
+    
+    strip-cells-pure:
+      stripPrefix:
+        prefixes:
+          - "/cells/pure"
+    
+    strip-cells-discovery:
+      stripPrefix:
+        prefixes:
+          - "/cells/discovery"
+    
     # Security headers
     secure-headers:
       headers:
