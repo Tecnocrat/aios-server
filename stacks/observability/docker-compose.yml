@@ -13,6 +13,7 @@ services:
     networks:
       - aios-observability
       - aios-ingress
+      - aios-dendritic-mesh  # AINLP.dendritic: Access cell metrics
     ports:
       - "9090:9090"
     command:
@@ -45,9 +46,10 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=aios
       - GF_SECURITY_ADMIN_PASSWORD=6996
-      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+      # AINLP.dendritic: Removed external plugin installs - use built-in panels
       - GF_SERVER_ROOT_URL=http://grafana.lan
       - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_PLUGINS_ENABLE_ALPHA=false
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -131,6 +133,9 @@ networks:
     name: aios-observability
     driver: bridge
   aios-ingress:
+    external: true
+  # AINLP.dendritic: Connect to cells network for direct metrics scraping
+  aios-dendritic-mesh:
     external: true
 
 volumes:

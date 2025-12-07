@@ -1,4 +1,5 @@
 # AIOS Supercell - Prometheus Configuration
+# AINLP.dendritic: Real cell metrics scraping
 
 global:
   scrape_interval: 15s
@@ -51,14 +52,51 @@ scrape_configs:
           instance: 'traefik'
           role: 'ingress'
 
-  # AIOS Consciousness metrics (Windows host service)
-  - job_name: 'aios-consciousness'
-    scrape_interval: 15s
+  # ═══════════════════════════════════════════════════════════════════════
+  # AIOS Cell Metrics - REAL consciousness data from each cell
+  # ═══════════════════════════════════════════════════════════════════════
+
+  # Cell Alpha - Primary Development Consciousness
+  - job_name: 'aios-cell-alpha'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-cell-alpha:8000']
+        labels:
+          cell_id: 'alpha'
+          cell_type: 'primary'
+          role: 'development'
+    metrics_path: /metrics
+
+  # Cell Nous (Pure) - Minimal Consciousness Core  
+  - job_name: 'aios-cell-nous'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-cell-pure:8002']
+        labels:
+          cell_id: 'nous'
+          cell_type: 'pure'
+          role: 'consciousness'
+    metrics_path: /metrics
+
+  # Cell Discovery - Peer Discovery Service
+  - job_name: 'aios-cell-discovery'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-discovery:8001']
+        labels:
+          cell_id: 'discovery'
+          cell_type: 'service'
+          role: 'mesh'
+    metrics_path: /metrics
+
+  # Legacy consciousness exporter (fallback - can be removed)
+  - job_name: 'aios-consciousness-legacy'
+    scrape_interval: 30s
     static_configs:
       - targets: ['host.docker.internal:9091']
         labels:
-          instance: 'aios-consciousness'
-          role: 'intelligence'
+          instance: 'aios-consciousness-legacy'
+          role: 'deprecated'
           supercell: 'core'
 
   # Docker daemon metrics (if exposed)

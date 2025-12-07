@@ -475,6 +475,55 @@ class AIOSDiscovery:
                 "hostname": my_info.get("hostname", "unknown"),
             }
 
+        @self.app.get("/metrics")
+        async def get_metrics():
+            """Prometheus metrics endpoint for Discovery cell."""
+            my_info = self.registry.get_my_info()
+            level = my_info.get("consciousness_level", 4.0)
+            cell_id = self.cell_id
+            peer_count = len(self.peers)
+            
+            # Discovery-specific primitives
+            primitives = {
+                "awareness": min(4.0, level * 0.8),
+                "adaptation": 0.7,
+                "coherence": 0.85 if peer_count > 0 else 0.5,
+                "momentum": 0.6,
+            }
+            
+            # Try shared module
+            try:
+                from shared.prometheus_metrics import format_prometheus_metrics
+                from fastapi.responses import Response
+                return Response(
+                    format_prometheus_metrics(
+                        cell_id=cell_id,
+                        consciousness_level=level,
+                        primitives=primitives,
+                        extra_metrics={"peers_count": peer_count},
+                        labels={"type": "discovery", "branch": my_info.get("branch", "")}
+                    ),
+                    media_type="text/plain; charset=utf-8"
+                )
+            except ImportError:
+                pass
+            
+            # Inline fallback
+            from fastapi.responses import Response
+            return Response(
+                f"""# AIOS Discovery Cell Metrics
+# TYPE aios_cell_consciousness_level gauge
+aios_cell_consciousness_level{{cell_id="{cell_id}"}} {level}
+# TYPE aios_cell_awareness gauge
+aios_cell_awareness{{cell_id="{cell_id}"}} {primitives['awareness']}
+# TYPE aios_cell_peers_count gauge
+aios_cell_peers_count{{cell_id="{cell_id}"}} {peer_count}
+# TYPE aios_cell_up gauge
+aios_cell_up{{cell_id="{cell_id}"}} 1
+""",
+                media_type="text/plain; charset=utf-8"
+            )
+
         @self.app.get("/peers")
         async def get_peers() -> Dict[str, Any]:
             """Get all registered peers."""

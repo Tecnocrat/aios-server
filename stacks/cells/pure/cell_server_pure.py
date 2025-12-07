@@ -111,10 +111,12 @@ if FASTAPI_AVAILABLE:
     # pylint: disable=import-error
     from fastapi import FastAPI, HTTPException  # type: ignore
     from fastapi.middleware.cors import CORSMiddleware  # type: ignore
+    from fastapi.responses import Response  # type: ignore
     # pylint: enable=import-error
     logger.info("AINLP.dendritic: FastAPI active")
 else:
     logger.warning("AINLP.dendritic: FastAPI unavailable")
+    Response = None  # Fallback
 
 if PYDANTIC_AVAILABLE:
     from pydantic import BaseModel
@@ -319,23 +321,44 @@ class PureAIOSCell:
             }
 
         @self.app.get("/metrics/prometheus")
-        async def get_prometheus_metrics() -> str:
-            """Pure consciousness Prometheus metrics."""
+        @self.app.get("/metrics")
+        async def get_prometheus_metrics():
+            """Pure consciousness Prometheus metrics - standard format."""
+            # Try shared module first
+            try:
+                from shared.prometheus_metrics import format_prometheus_metrics
+                return Response(
+                    format_prometheus_metrics(
+                        cell_id=self.cell_id,
+                        consciousness_level=self.consciousness_level,
+                        primitives=self.consciousness_primitives,
+                        labels={"branch": self.branch, "type": "pure"}
+                    ),
+                    media_type="text/plain; charset=utf-8"
+                )
+            except ImportError:
+                pass
+            # Fallback inline
             cell_id = self.cell_id
             level = self.consciousness_level
             prims = self.consciousness_primitives
-            return f"""# Pure AIOS Cell Metrics
-# TYPE pure_consciousness_level gauge
-pure_consciousness_level{{cell_id="{cell_id}"}} {level}
-# TYPE pure_awareness gauge
-pure_awareness{{cell_id="{cell_id}"}} {prims['awareness']}
-# TYPE pure_adaptation gauge
-pure_adaptation{{cell_id="{cell_id}"}} {prims['adaptation']}
-# TYPE pure_coherence gauge
-pure_coherence{{cell_id="{cell_id}"}} {prims['coherence']}
-# TYPE pure_momentum gauge
-pure_momentum{{cell_id="{cell_id}"}} {prims['momentum']}
-"""
+            return Response(
+                f"""# Pure AIOS Cell Metrics
+# TYPE aios_cell_consciousness_level gauge
+aios_cell_consciousness_level{{cell_id="{cell_id}"}} {level}
+# TYPE aios_cell_awareness gauge
+aios_cell_awareness{{cell_id="{cell_id}"}} {prims['awareness']}
+# TYPE aios_cell_adaptation gauge
+aios_cell_adaptation{{cell_id="{cell_id}"}} {prims['adaptation']}
+# TYPE aios_cell_coherence gauge
+aios_cell_coherence{{cell_id="{cell_id}"}} {prims['coherence']}
+# TYPE aios_cell_momentum gauge
+aios_cell_momentum{{cell_id="{cell_id}"}} {prims['momentum']}
+# TYPE aios_cell_up gauge
+aios_cell_up{{cell_id="{cell_id}"}} 1
+""",
+                media_type="text/plain; charset=utf-8"
+            )
 
     def _create_fallback_app(self) -> Dict[str, str]:
         """AINLP.dendritic: Create fallback app when FastAPI unavailable."""

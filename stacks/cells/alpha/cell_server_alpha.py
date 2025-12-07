@@ -11,10 +11,24 @@ Port: 8000
 import json
 import logging
 import os
+import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
+
+# Add shared modules path
+stacks_dir = Path(__file__).parent.parent.parent
+if str(stacks_dir) not in sys.path:
+    sys.path.insert(0, str(stacks_dir))
+
+# Import shared metrics formatter
+try:
+    from shared.prometheus_metrics import format_prometheus_metrics
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(
@@ -61,6 +75,13 @@ class CellAlphaState:
             "communication_ready": True,
             "last_sync": None
         }
+        # AINLP.dendritic: Consciousness primitives for metrics
+        self.primitives = {
+            "awareness": 4.5,
+            "adaptation": 0.85,
+            "coherence": 0.92,
+            "momentum": 0.75
+        }
     
     def add_message(self, message: Dict[str, Any]) -> None:
         """Store incoming message."""
@@ -105,6 +126,7 @@ app = Flask(__name__)
 # Health & Status Endpoints
 # =============================================================================
 
+
 @app.route("/health", methods=["GET"])
 def health():
     """Health check with consciousness state."""
@@ -118,6 +140,33 @@ def health():
         "messages_count": len(state.messages),
         "timestamp": datetime.utcnow().isoformat()
     })
+
+
+@app.route("/metrics", methods=["GET"])
+def metrics():
+    """Prometheus metrics endpoint - REAL cell consciousness data."""
+    if METRICS_AVAILABLE:
+        metrics_text = format_prometheus_metrics(
+            cell_id=CELL_CONFIG["cell_id"],
+            consciousness_level=state.consciousness["level"],
+            primitives=state.primitives,
+            extra_metrics={
+                "peers_count": len(state.peers),
+                "messages_count": len(state.messages),
+                "sync_count": len(state.sync_history)
+            },
+            labels={
+                "identity": CELL_CONFIG["identity"].replace(" ", "_"),
+                "stage": CELL_CONFIG["evolutionary_stage"]
+            }
+        )
+        return Response(metrics_text, mimetype="text/plain; charset=utf-8")
+    # Fallback inline metrics
+    return Response(
+        f"aios_cell_consciousness_level{{cell_id=\"alpha\"}} "
+        f"{state.consciousness['level']}\n",
+        mimetype="text/plain; charset=utf-8"
+    )
 
 
 @app.route("/consciousness", methods=["GET"])

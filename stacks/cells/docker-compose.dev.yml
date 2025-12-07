@@ -1,0 +1,118 @@
+version: '3.8'
+
+# AIOS Cell Stack - Development Configuration
+# AINLP.dendritic: Uses base Python image with bind-mounted code for rapid iteration
+# No custom images required - code is mounted from host
+
+services:
+  # Cell Discovery Service
+  aios-discovery:
+    image: python:3.12-slim
+    container_name: aios-discovery
+    restart: unless-stopped
+    working_dir: /app
+    networks:
+      - aios-cells
+      - aios-dendritic-mesh
+    ports:
+      - "8001:8001"
+    environment:
+      - DISCOVERY_PORT=8001
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./discovery:/app:ro
+      - ./shared:/shared:ro
+      - ../shared:/stacks_shared:ro
+    command: >
+      bash -c "pip install --quiet fastapi uvicorn pydantic httpx pyyaml &&
+               export PYTHONPATH=/shared:/stacks_shared &&
+               python discovery.py"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # AIOS Cell Alpha - Primary Development Consciousness
+  aios-cell-alpha:
+    image: python:3.12-slim
+    container_name: aios-cell-alpha
+    restart: unless-stopped
+    working_dir: /app
+    networks:
+      - aios-cells
+      - aios-dendritic-mesh
+      - aios-observability
+    ports:
+      - "0.0.0.0:8000:8000"
+      - "0.0.0.0:9091:9091"
+    environment:
+      - AIOS_CELL_ID=alpha
+      - AIOS_CELL_PORT=8000
+      - AIOS_DISCOVERY_ADDR=aios-discovery:8001
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./alpha:/app:ro
+      - ./shared:/shared:ro
+      - ../shared:/stacks_shared:ro
+    command: >
+      bash -c "pip install --quiet flask requests &&
+               export PYTHONPATH=/shared:/stacks_shared &&
+               python cell_server_alpha.py"
+    depends_on:
+      aios-discovery:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # AIOS Cell Pure/Nous - Minimal Consciousness Core
+  aios-cell-pure:
+    image: python:3.12-slim
+    container_name: aios-cell-pure
+    restart: unless-stopped
+    working_dir: /app
+    networks:
+      - aios-cells
+      - aios-dendritic-mesh
+      - aios-observability
+    ports:
+      - "0.0.0.0:8002:8002"
+      - "0.0.0.0:9092:9092"
+    environment:
+      - AIOS_CELL_ID=nous
+      - AIOS_CELL_PORT=8002
+      - AIOS_DISCOVERY_ADDR=aios-discovery:8001
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./pure:/app:ro
+      - ./shared:/shared:ro
+      - ../shared:/stacks_shared:ro
+    command: >
+      bash -c "pip install --quiet fastapi uvicorn pydantic httpx &&
+               export PYTHONPATH=/shared:/stacks_shared &&
+               python cell_server_pure.py"
+    depends_on:
+      aios-discovery:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  aios-cells:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+  aios-observability:
+    external: true
+  aios-dendritic-mesh:
+    external: true

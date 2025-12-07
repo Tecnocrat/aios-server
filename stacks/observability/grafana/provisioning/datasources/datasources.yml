@@ -7,8 +7,9 @@ datasources:
   # Prometheus
   - name: Prometheus
     type: prometheus
+    uid: prometheus
     access: proxy
-    url: http://prometheus:9090
+    url: http://aios-prometheus:9090
     isDefault: true
     editable: true
     jsonData:
@@ -18,8 +19,9 @@ datasources:
   # Loki
   - name: Loki
     type: loki
+    uid: loki
     access: proxy
-    url: http://loki:3100
+    url: http://aios-loki:3100
     editable: true
     jsonData:
       maxLines: 1000
