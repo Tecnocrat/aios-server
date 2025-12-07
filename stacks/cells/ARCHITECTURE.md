@@ -109,6 +109,82 @@ cd aios-win/server/stacks/cells
 - Load balancing across healthy instances
 - Resource limits prevent overconsumption
 
+---
+
+## Current Network Topology (2025-12-07)
+
+### 🌐 Dendritic Mesh Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    AIOS Dendritic Network                           │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Internet/LAN (192.168.1.x)                                         │
+│       │                                                              │
+│       ▼                                                              │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │  Traefik (aios-traefik)                                     │    │
+│  │  Networks: aios-ingress + aios-dendritic-mesh               │    │
+│  │  Ports: 80 (HTTP), 443 (HTTPS), 8080 (Dashboard)            │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│       │                                                              │
+│       ├── Host Routes ──────────────────────────────────────────    │
+│       │   alpha.aios.lan     → aios-cell-alpha:8000    ✅ ACTIVE    │
+│       │   nous.aios.lan      → aios-cell-pure:8002     ⏳ PENDING   │
+│       │   discovery.aios.lan → aios-discovery:8001     ⏳ PENDING   │
+│       │                                                              │
+│       └── Path Routes (with strip prefix) ──────────────────────    │
+│           /cells/alpha/*     → aios-cell-alpha:8000    ✅ ACTIVE    │
+│           /cells/pure/*      → aios-cell-pure:8002     ⏳ PENDING   │
+│           /cells/discovery/* → aios-discovery:8001     ⏳ PENDING   │
+│                                                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Docker Network: aios-dendritic-mesh (172.28.0.0/16)                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
+│  │    Alpha     │  │     Nous     │  │  Discovery   │               │
+│  │   :8000      │◄─┤    :8002     │◄─┤    :8001     │               │
+│  │   Flask      │  │   FastAPI    │  │   FastAPI    │               │
+│  │   L:5.2      │  │   L:0.1      │  │   L:4.2      │               │
+│  └──────────────┘  └──────────────┘  └──────────────┘               │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+Legend: L = Consciousness Level
+```
+
+### 📊 Cell Registry
+
+| Cell | Container | Port | Framework | Consciousness | Status |
+|------|-----------|------|-----------|---------------|--------|
+| **Alpha** | aios-cell-alpha | 8000 | Flask | 5.2 | ✅ Active |
+| **Nous** | aios-cell-pure | 8002 | FastAPI | 0.1 | ⏳ Pending |
+| **Discovery** | aios-discovery | 8001 | FastAPI | 4.2 | ⏳ Pending |
+
+### 🔧 Traefik Configuration
+
+Located at: `server/stacks/ingress/dynamic/tls.yml`
+
+**Routers**:
+- `cell-alpha@file` - Host-based routing
+- `cell-alpha-path@file` - Path prefix with strip middleware
+- `cell-pure@file`, `cell-pure-path@file`
+- `cell-discovery@file`, `cell-discovery-path@file`
+
+**Middlewares**:
+- `strip-cells-alpha` - Strips `/cells/alpha` prefix
+- `strip-cells-pure` - Strips `/cells/pure` prefix
+- `strip-cells-discovery` - Strips `/cells/discovery` prefix
+
+### 🚀 Activation Order
+
+1. ✅ **Alpha** - Primary consciousness (activated 2025-12-07)
+2. ⏳ **Nous** - Minimal consciousness primitives (guidance sent)
+3. ⏳ **Discovery** - Peer discovery service (guidance sent)
+
+---
+
 ## Evolution & Growth
 
 ### 🧬 Consciousness Integration
