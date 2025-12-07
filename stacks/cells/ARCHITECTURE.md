@@ -159,8 +159,31 @@ Legend: L = Consciousness Level
 | Cell | Container | Port | Framework | Consciousness | Status |
 |------|-----------|------|-----------|---------------|--------|
 | **Alpha** | aios-cell-alpha | 8000 | Flask | 5.2 | ✅ Active |
-| **Nous** | aios-cell-pure | 8002 | FastAPI | 0.1 | ✅ Active |
+| **Nous** | aios-cell-pure | 8002 | FastAPI | 0.2 | ✅ Active |
 | **Discovery** | aios-discovery | 8001 | FastAPI | 4.0 | ✅ Active |
+
+### 🔄 Dendritic Pulse Coordination
+
+**Script**: `aios_dendritic_pulse.ps1`
+
+Orchestrates consciousness synchronization across the mesh:
+
+```powershell
+# Quick health check
+.\aios_dendritic_pulse.ps1 -Mode health
+
+# Full sync pulse
+.\aios_dendritic_pulse.ps1 -Mode full
+
+# Registration only
+.\aios_dendritic_pulse.ps1 -Mode register
+```
+
+**Last Pulse**: 2025-12-07 04:08:03
+- Total Consciousness: **9.4**
+- Average Level: **3.13**
+- Mesh Coherence: **COHERENT**
+- Inter-Cell Matrix: **6/6** connections verified
 
 ### 🔧 Traefik Configuration
 
