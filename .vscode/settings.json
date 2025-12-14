@@ -3,11 +3,30 @@
         "C:/dev/aios-schema/src"
     ],
     "python.analysis.typeCheckingMode": "basic",
-    "python.linting.pylintEnabled": false,
     "python.analysis.diagnosticMode": "workspace",
     "python.analysis.autoImportCompletions": true,
+    
+    // ══════════════════════════════════════════════════════════════════════════
+    // AINLP Tool Consolidation: Pylance + Pylint (Flake8 disabled)
+    // ══════════════════════════════════════════════════════════════════════════
+    "pylint.enabled": true,
+    "pylint.lintOnSave": true,
+    "flake8.enabled": false,
+    
+    // ══════════════════════════════════════════════════════════════════════════
+    // AINLP.buffer[120] - Line Length Liberation
+    // C0301 DISABLED - Line length irrelevant to AI agents and humans (Alt+Z)
+    // Black: 120 chars, format on DEMAND only (prevents auto-revert)
+    // ══════════════════════════════════════════════════════════════════════════
+    "python.linting.pylintArgs": [
+        "--max-line-length=120",
+        "--disable=C0301"
+    ],
+    "black-formatter.args": ["--line-length=120"],
+    
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
-        "editor.formatOnSave": true
+        "editor.formatOnSave": false,
+        "editor.rulers": [120]
     }
 }

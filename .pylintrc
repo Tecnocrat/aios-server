@@ -1,0 +1,41 @@
+# ============================================================================
+# AIOS Cell Server Pylint Configuration
+# AINLP Harmonized - Inherits from AIOS biological architecture patterns
+# ============================================================================
+
+[MASTER]
+ignore=__pycache__,node_modules,build,dist,.venv,.git
+jobs=2
+persistent=yes
+py-version=3.12
+extension-pkg-allow-list=psutil,fastapi,uvicorn,docker
+
+[MESSAGES CONTROL]
+# C0114,C0115,C0116 (docstrings) MUST remain enabled - AINLP.comment critical!
+# C0301 DISABLED - Line length is obsolete (AINLP.buffer[120])
+disable=
+    C0301,
+    W0611,W0612,W0613,
+    R0903,R0902,R0913,R0914,R0915,
+    R0912,C0103
+
+[REPORTS]
+output-format=colorized
+reports=no
+score=yes
+
+[FORMAT]
+# AINLP.buffer[120] - Modern standard, no formatter conflicts
+max-line-length=120
+indent-string='    '
+good-names=i,j,k,ex,Run,_,pk,id,ai,cell,config,logger
+
+[DESIGN]
+max-args=10
+max-locals=25
+max-branches=18
+max-statements=60
+max-parents=8
+max-attributes=12
+max-public-methods=20
+max-module-lines=1000
