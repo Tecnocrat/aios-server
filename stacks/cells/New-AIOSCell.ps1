@@ -82,24 +82,26 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # Build command arguments
-$Args = @($PythonScript, $Action)
+# AINLP: Use $PythonArgs not $Args - $Args is a PowerShell automatic variable
+# PSAvoidAssignmentToAutomaticVariable - avoid shadowing built-ins
+$PythonArgs = @($PythonScript, $Action)
 
 if ($Name) {
-    $Args += "--name"
-    $Args += $Name
+    $PythonArgs += "--name"
+    $PythonArgs += $Name
 }
 
 if ($Port) {
-    $Args += "--port"
-    $Args += $Port
+    $PythonArgs += "--port"
+    $PythonArgs += $Port
 }
 
 if ($WithCore) {
-    $Args += "--with-core"
+    $PythonArgs += "--with-core"
 }
 
 # Execute
 Write-Host "🧬 AIOS Cell Birth Automation" -ForegroundColor Cyan
 Write-Host "   Action: $Action" -ForegroundColor Gray
 
-& python @Args
+& python @PythonArgs
