@@ -74,7 +74,8 @@ if (-not $Docker) {
 }
 
 # Check Docker is running
-$DockerInfo = docker info 2>&1
+# AINLP: $null assignment suppresses PSScriptAnalyzer PSUseDeclaredVarsMoreThanAssignments
+$null = docker info 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Docker is not running. Please start Docker Desktop." -ForegroundColor Red
     exit 1
