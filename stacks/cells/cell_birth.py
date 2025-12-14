@@ -287,10 +287,13 @@ def main():
     elif args.action == "list":
         cells = birther.list_cells()
         if cells:
-            print(f"\n{'Name':<10} {'Port':<8} {'Status':<10} {'Container':<15}")
+            hdr = f"{'Name':<10} {'Port':<8} {'Status':<10} {'Container':<15}"
+            print(f"\n{hdr}")
             print("-" * 45)
             for cell in cells:
-                print(f"{cell['name']:<10} {cell['port']:<8} {cell['status']:<10} {cell['container_id']:<15}")
+                row = (f"{cell['name']:<10} {cell['port']:<8} "
+                       f"{cell['status']:<10} {cell['container_id']:<15}")
+                print(row)
         else:
             print("No cells registered")
             
