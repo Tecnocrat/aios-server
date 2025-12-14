@@ -1,5 +1,13 @@
 {
+    "python.analysis.extraPaths": [
+        "C:/dev/aios-schema/src"
+    ],
+    "python.analysis.typeCheckingMode": "basic",
+    "python.linting.pylintEnabled": false,
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.autoImportCompletions": true,
     "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter"
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true
     }
 }

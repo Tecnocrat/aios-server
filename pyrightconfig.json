@@ -1,0 +1,4 @@
+{
+  "extraPaths": ["C:/dev/aios-schema/src"],
+  "reportMissingImports": "warning"
+}

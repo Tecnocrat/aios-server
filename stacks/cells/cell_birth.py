@@ -3,28 +3,37 @@
 AIOS Cell Birth Automation - Waypoint 26 (was 29)
 
 Streamlined cell spawning using sibling repos pattern and aios-schema.
+
+AINLP.bible[COMPLIANCE]: L3 (Enforced Dendritic Density)
 """
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-# Add aios-schema to path
-SCHEMA_PATH = (
-    Path(__file__).parent.parent.parent.parent / "aios-schema" / "src"
-)
-if SCHEMA_PATH.exists():
-    sys.path.insert(0, str(SCHEMA_PATH))
-    from aios_schema import CellConfig, CellIdentity, CellStatus
-    SCHEMA_AVAILABLE = True
-else:
-    SCHEMA_AVAILABLE = False
-    print("⚠️ aios-schema not found, using fallback types")
+# ══════════════════════════════════════════════════════════════════════════════
+# SCHEMA INTEGRATION - Canonical types from aios-schema
+# AINLP.dendritic[CONNECT] aios-schema → aios-server
+#   Installation: pip install -e C:\dev\aios-schema
+#   Pattern: Direct canonical import (no fallback - enforced dendritic density)
+#   Pylance config: pyrightconfig.json extraPaths
+#
+# DENDRITIC ARCHITECTURE PRINCIPLE:
+#   aios-schema is the single source of truth for cell types.
+#   aios-server MUST have aios-schema installed - no standalone mode.
+# ══════════════════════════════════════════════════════════════════════════════
+
+from aios_schema import CellConfig, CellIdentity
+
+# Schema verification (runtime assertion)
+assert hasattr(CellConfig, 'name'), \
+    "aios-schema CellConfig missing expected members"
+assert hasattr(CellIdentity, 'to_dict'), \
+    "aios-schema CellIdentity missing expected methods"
 
 
 class CellBirther:
@@ -52,14 +61,14 @@ class CellBirther:
     def _load_registry(self) -> dict:
         """Load or create cell registry."""
         if self.registry_file.exists():
-            with open(self.registry_file) as f:
+            with open(self.registry_file, encoding='utf-8') as f:
                 return json.load(f)
         return {"cells": {}, "next_port": 8001}
 
     def _save_registry(self):
         """Persist cell registry."""
         self.registry_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.registry_file, "w") as f:
+        with open(self.registry_file, "w", encoding='utf-8') as f:
             json.dump(self.registry, f, indent=2, default=str)
 
     def _get_next_cell_name(self) -> str:
@@ -102,27 +111,21 @@ class CellBirther:
 
         print(f"🧬 Birthing cell: {name} on port {port}")
 
-        # Create cell config
-        if SCHEMA_AVAILABLE:
-            config = CellConfig(
-                name=name,
-                port=port,
-                environment={
-                    "AIOS_CELL_ID": name,
-                    "AIOS_BRANCH": "main",
-                    "SKIP_CORE_BUILD": "1" if skip_core_build else "0",
-                    "PYTHONPATH": "/app"
-                },
-                networks=[network],
-                skip_core_build=skip_core_build
-            )
-        else:
-            config = {
-                "name": name,
-                "port": port,
-                "skip_core_build": skip_core_build,
-                "network": network
-            }
+        # Create cell config using canonical aios-schema types
+        # AINLP.loader[latent:_config] Future cell orchestration/serialization
+        _config = CellConfig(
+            name=name,
+            port=port,
+            environment={
+                "AIOS_CELL_ID": name,
+                "AIOS_BRANCH": "main",
+                "SKIP_CORE_BUILD": "1" if skip_core_build else "0",
+                "PYTHONPATH": "/app"
+            },
+            networks=[network],
+            skip_core_build=skip_core_build
+        )
+        # _config available for future use (cell orchestration, serialization)
 
         # Check if network exists, create if not
         self._ensure_network(network)
@@ -150,7 +153,9 @@ class CellBirther:
             "aios-cell:latest"
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, check=False
+        )
 
         if result.returncode != 0:
             print(f"❌ Failed to birth cell: {result.stderr}")
@@ -158,24 +163,17 @@ class CellBirther:
 
         container_id = result.stdout.strip()[:12]
 
-        # Create identity
-        if SCHEMA_AVAILABLE:
-            identity = CellIdentity(
-                name=name,
-                host="localhost",
-                port=port,
-                version="0.1.0"
-            )
-            identity_dict = identity.to_dict()
-        else:
-            identity_dict = {
-                "name": name,
-                "host": "localhost",
-                "port": port,
-                "version": "0.1.0",
-                "birth_time": datetime.now().isoformat(),
-                "container_id": container_id
-            }
+        # Create identity using canonical aios-schema types
+        identity = CellIdentity(
+            name=name,
+            host="localhost",
+            port=port,
+            version="0.1.0"
+        )
+        identity_dict = identity.to_dict()
+        # Add runtime metadata
+        identity_dict["birth_time"] = datetime.now().isoformat()
+        identity_dict["container_id"] = container_id
 
         # Update registry
         self.registry["cells"][name] = {
@@ -195,19 +193,25 @@ class CellBirther:
         """Ensure Docker network exists."""
         result = subprocess.run(
             ["docker", "network", "inspect", network],
-            capture_output=True
+            capture_output=True,
+            check=False
         )
         if result.returncode != 0:
             print(f"🔗 Creating network: {network}")
-            subprocess.run(["docker", "network", "create", network])
+            subprocess.run(
+                ["docker", "network", "create", network],
+                check=False
+            )
 
-    def _build_image(self, skip_core_build: bool):
+    def _build_image(self, _skip_core_build: bool):
         """Build cell image if needed."""
+        # Note: _skip_core_build reserved for future use (native core)
         # Check if image exists
         result = subprocess.run(
             ["docker", "images", "-q", "aios-cell:latest"],
             capture_output=True,
-            text=True
+            text=True,
+            check=False
         )
 
         if not result.stdout.strip():
@@ -225,7 +229,7 @@ class CellBirther:
                 "-t", "aios-cell:latest",
                 str(self.workspace_root / "aios-win")  # Build context
             ]
-            subprocess.run(cmd, cwd=self.workspace_root)
+            subprocess.run(cmd, cwd=self.workspace_root, check=False)
 
     def list_cells(self) -> list:
         """List all registered cells."""
@@ -234,7 +238,8 @@ class CellBirther:
             # Check actual status
             result = subprocess.run(
                 ["docker", "inspect", f"aios-cell-{name}"],
-                capture_output=True
+                capture_output=True,
+                check=False
             )
             status = "running" if result.returncode == 0 else "stopped"
             cells.append({
@@ -250,11 +255,16 @@ class CellBirther:
         container_name = f"aios-cell-{name}"
 
         # Stop
-        subprocess.run(["docker", "stop", container_name], capture_output=True)
+        subprocess.run(
+            ["docker", "stop", container_name],
+            capture_output=True,
+            check=False
+        )
         # Remove
         result = subprocess.run(
             ["docker", "rm", container_name],
-            capture_output=True
+            capture_output=True,
+            check=False
         )
 
         if result.returncode == 0:
