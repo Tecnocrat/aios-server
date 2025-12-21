@@ -1,5 +1,3 @@
-version: '3.8'
-
 # AIOS Cell Stack - Development Configuration
 # AINLP.dendritic: Uses base Python image with bind-mounted code for rapid iteration
 # No custom images required - code is mounted from host
@@ -15,7 +13,7 @@ services:
       - aios-cells
       - aios-dendritic-mesh
     ports:
-      - "8001:8001"
+      - "0.0.0.0:8001:8001"
     environment:
       - DISCOVERY_PORT=8001
       - PYTHONUNBUFFERED=1

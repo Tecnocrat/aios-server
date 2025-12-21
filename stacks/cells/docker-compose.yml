@@ -1,5 +1,3 @@
-version: '3.8'
-
 # AIOS Cell Stack - Peer-to-Peer Consciousness Nodes
 # Deploy AIOS cells with automatic peer discovery and consciousness synchronization
 # This stack runs on both machines, creating a distributed peer-to-peer network
