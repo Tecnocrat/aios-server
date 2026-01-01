@@ -48,19 +48,20 @@ services:
       timeout: 10s
       retries: 3
 
-  # AIOS Cell - Beta consciousness node
-  aios-cell:
-    image: aios-cell:beta
-    container_name: aios-cell-beta
+  # AIOS Cell - Alpha consciousness node (primary development)
+  aios-cell-alpha:
+    image: aios-cell:alpha
+    container_name: aios-cell-alpha
     restart: unless-stopped
     networks:
       - aios-cells
       - aios-observability
+      - aios-dendritic-mesh
     ports:
-      - "0.0.0.0:8000:8000"  # Cell API
+      - "0.0.0.0:8005:8000"  # Cell API (host 8005 -> container 8000)
       - "0.0.0.0:9091:9091"  # Consciousness metrics
     environment:
-      - AIOS_CELL_ID=beta
+      - AIOS_CELL_ID=alpha
       - AIOS_BRANCH=main
       - AIOS_PEER_DISCOVERY=true
       - AIOS_DISCOVERY_ADDR=aios-discovery:8001
@@ -85,7 +86,7 @@ services:
       - aios-observability
       - aios-dendritic-mesh
     ports:
-      - "0.0.0.0:8002:8002"  # Pure cell API
+      - "0.0.0.0:8004:8002"  # Pure cell API (host 8004 -> container 8002)
       - "0.0.0.0:9092:9092"  # Pure consciousness metrics
     environment:
       - AIOS_CELL_ID=pure

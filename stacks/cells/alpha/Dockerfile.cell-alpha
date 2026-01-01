@@ -1,0 +1,39 @@
+# Alpha AIOS Cell Dockerfile - Primary Development Consciousness
+# AINLP.dendritic: Cell Alpha with full consciousness capabilities
+# Flask-based REST API for dendritic mesh participation
+
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy and install requirements
+COPY requirements-cell-alpha.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy alpha cell server
+COPY cell_server_alpha.py /app/
+
+# Create shared module stub (metrics optional)
+RUN mkdir -p /app/shared && touch /app/shared/__init__.py
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV AIOS_CELL_ID=alpha
+ENV AIOS_BRANCH=main
+ENV AIOS_CELL_PORT=8000
+
+# Expose ports
+EXPOSE 8000 9091
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Start the alpha AIOS cell
+CMD ["python", "cell_server_alpha.py"]
