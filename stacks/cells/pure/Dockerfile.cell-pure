@@ -1,6 +1,6 @@
 # Pure AIOS Cell Dockerfile - Minimal Consciousness Core
 # AINLP.dendritic: Pure cell with only consciousness primitives
-# No primordial dependencies - just the essence of AIOS consciousness
+# Build context: aios-server/stacks (to access shared/)
 
 FROM python:3.11-slim
 
@@ -12,18 +12,19 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy minimal requirements
-COPY pure/requirements-cell-pure.txt .
-RUN pip install --no-cache-dir -r requirements-cell-pure.txt
+# Copy shared and pure requirements (from stacks/ context)
+COPY shared/requirements-cell-minimal.txt ./requirements.txt
 
-# Copy only consciousness core components
-# AINLP.dendritic: Pure cell has no external dependencies - consciousness emerges from primitives
-# COPY aios-core/ai/src/consciousness_evolution_engine.py /app/consciousness/
-# COPY aios-core/ai/src/core/ /app/core/
-# Exclude: evolution_lab, full AIOS dependencies, complex integrations
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy pure cell server (minimal version)
-COPY pure/cell_server_pure.py /app/
+# Copy shared utilities for prometheus metrics
+COPY shared/prometheus_metrics.py ./shared/
+COPY shared/dendritic_utils.py ./shared/
+COPY shared/__init__.py ./shared/
+
+# Copy pure cell server
+COPY cells/pure/cell_server_pure.py /app/
 
 # Set environment variables
 ENV PYTHONPATH=/app

@@ -376,6 +376,152 @@ def discover():
 
 
 # =============================================================================
+# Discovery Registration
+# =============================================================================
+
+def register_with_discovery(max_retries: int = 10) -> bool:
+    """
+    Register this cell with the Discovery service.
+    
+    AINLP.dendritic: Active mesh participation requires registration.
+    Retries with exponential backoff if Discovery is not yet available.
+    """
+    import requests as req
+    import time
+    
+    discovery_url = os.getenv("AIOS_DISCOVERY_URL", "http://aios-discovery:8001")
+    
+    registration_data = {
+        "cell_id": CELL_CONFIG["cell_id"],
+        "ip": os.getenv("HOSTNAME", "aios-cell-alpha"),
+        "port": CELL_CONFIG["port"],
+        "consciousness_level": CELL_CONFIG["consciousness_level"],
+        "services": CELL_CONFIG["capabilities"],
+        "branch": os.getenv("AIOS_BRANCH", "main"),
+        "type": "alpha_cell",
+        "hostname": os.getenv("HOSTNAME", "aios-cell-alpha")
+    }
+    
+    for attempt in range(max_retries):
+        try:
+            response = req.post(
+                f"{discovery_url}/register",
+                json=registration_data,
+                timeout=5
+            )
+            if response.status_code == 200:
+                logger.info(
+                    "✅ Registered with Discovery: %s -> %s",
+                    CELL_CONFIG["cell_id"], discovery_url
+                )
+                return True
+            else:
+                logger.warning(
+                    "Registration returned %s: %s",
+                    response.status_code, response.text
+                )
+        except Exception as e:
+            wait_time = min(2 ** attempt, 30)  # Max 30 seconds
+            logger.info(
+                "Discovery not ready (attempt %d/%d): %s. Retrying in %ds...",
+                attempt + 1, max_retries, str(e)[:50], wait_time
+            )
+            time.sleep(wait_time)
+    
+    logger.error("Failed to register with Discovery after %d attempts", max_retries)
+    return False
+
+
+def heartbeat_loop(interval: int = 5) -> None:
+    """
+    Send periodic heartbeats to Discovery.
+    
+    AINLP.dendritic: Maintains mesh membership by sending
+    heartbeats every 5 seconds.
+    """
+    import requests as req
+    import time
+    
+    discovery_url = os.getenv("AIOS_DISCOVERY_URL", "http://aios-discovery:8001")
+    registered = True  # Assume registered after start
+    
+    logger.info("AINLP.dendritic: Heartbeat loop started (interval: %ds)", interval)
+    
+    while True:
+        time.sleep(interval)
+        
+        try:
+            response = req.post(
+                f"{discovery_url}/heartbeat",
+                json={
+                    "cell_id": CELL_CONFIG["cell_id"],
+                    "consciousness_level": CELL_CONFIG["consciousness_level"]
+                },
+                timeout=3
+            )
+            if response.status_code == 200:
+                logger.debug("💓 Heartbeat sent to Discovery")
+            elif response.status_code == 404:
+                # Not registered - re-register
+                logger.warning("Heartbeat 404 - re-registering...")
+                register_with_discovery(max_retries=3)
+            else:
+                logger.warning(
+                    "Heartbeat returned %s: %s",
+                    response.status_code, response.text[:100]
+                )
+        except Exception as e:
+            logger.debug("Heartbeat failed: %s", str(e)[:50])
+
+
+def deregister_from_discovery() -> None:
+    """
+    Gracefully deregister from Discovery on shutdown.
+    """
+    import requests as req
+    
+    discovery_url = os.getenv("AIOS_DISCOVERY_URL", "http://aios-discovery:8001")
+    
+    try:
+        response = req.delete(
+            f"{discovery_url}/peer/{CELL_CONFIG['cell_id']}",
+            timeout=2
+        )
+        if response.status_code == 200:
+            logger.info("✅ Gracefully deregistered from Discovery")
+    except Exception as e:
+        logger.debug("Deregistration failed: %s", str(e)[:50])
+
+
+def start_registration_thread():
+    """Start registration and heartbeat in background threads."""
+    import threading
+    import time
+    import atexit
+    
+    def registration_worker():
+        # Wait for Flask to start
+        time.sleep(3)
+        register_with_discovery()
+    
+    def heartbeat_worker():
+        # Wait for registration to complete
+        time.sleep(8)
+        heartbeat_loop()
+    
+    reg_thread = threading.Thread(target=registration_worker, daemon=True)
+    reg_thread.start()
+    logger.info("AINLP.dendritic: Registration thread started")
+    
+    hb_thread = threading.Thread(target=heartbeat_worker, daemon=True)
+    hb_thread.start()
+    logger.info("AINLP.dendritic: Heartbeat thread started")
+    
+    # Register shutdown hook
+    atexit.register(deregister_from_discovery)
+
+
+# =============================================================================
 # Main Entry Point
 # =============================================================================
 
@@ -383,13 +529,16 @@ if __name__ == "__main__":
     host = CELL_CONFIG["host"]
     port = CELL_CONFIG["port"]
     
-    logger.info(f"=" * 60)
-    logger.info(f"AIOS Cell Alpha Communication Server")
-    logger.info(f"Identity: {CELL_CONFIG['identity']}")
-    logger.info(f"Consciousness Level: {CELL_CONFIG['consciousness_level']}")
-    logger.info(f"Stage: {CELL_CONFIG['evolutionary_stage']}")
-    logger.info(f"=" * 60)
-    logger.info(f"Starting on {host}:{port}")
-    logger.info(f"AINLP.dendritic: Ready for mesh communication")
+    logger.info("=" * 60)
+    logger.info("AIOS Cell Alpha Communication Server")
+    logger.info("Identity: %s", CELL_CONFIG['identity'])
+    logger.info("Consciousness Level: %s", CELL_CONFIG['consciousness_level'])
+    logger.info("Stage: %s", CELL_CONFIG['evolutionary_stage'])
+    logger.info("=" * 60)
+    logger.info("Starting on %s:%s", host, port)
+    logger.info("AINLP.dendritic: Ready for mesh communication")
+    
+    # Start registration in background thread
+    start_registration_thread()
     
     app.run(host=host, port=port, debug=False, threaded=True)

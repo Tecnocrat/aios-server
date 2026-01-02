@@ -174,6 +174,13 @@ class CellInfo(BaseModel):
     branch: str = "main"
     type: str = "cell"
     hostname: str = ""
+    last_seen: str = ""  # ISO timestamp of last heartbeat
+
+
+class HeartbeatRequest(BaseModel):
+    """AINLP.dendritic: Heartbeat request from cells."""
+    cell_id: str
+    consciousness_level: float = 0.0
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -559,6 +566,8 @@ aios_cell_up{{cell_id="{cell_id}"}} 1
         @self.app.post("/register")
         async def register_peer(peer: CellInfo) -> Dict[str, str]:
             """Register a new peer."""
+            from datetime import datetime
+            peer.last_seen = datetime.utcnow().isoformat() + "Z"
             self.peers[peer.cell_id] = peer
             logger.info(
                 "Registered peer: %s at %s:%s (branch: %s)",
@@ -566,9 +575,42 @@ aios_cell_up{{cell_id="{cell_id}"}} 1
             )
             return {"status": "registered", "cell_id": peer.cell_id}
 
+        @self.app.post("/heartbeat")
+        async def heartbeat(hb: HeartbeatRequest) -> Dict[str, Any]:
+            """Receive heartbeat from a cell - updates last_seen timestamp."""
+            from datetime import datetime
+            if hb.cell_id not in self.peers:
+                if HTTPException is not None:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Peer {hb.cell_id} not registered. Call /register first."
+                    )
+                return {"status": "error", "message": "not registered"}
+            
+            # Update last_seen and consciousness level
+            self.peers[hb.cell_id].last_seen = datetime.utcnow().isoformat() + "Z"
+            self.peers[hb.cell_id].consciousness_level = hb.consciousness_level
+            
+            return {
+                "status": "ok",
+                "cell_id": hb.cell_id,
+                "peers_count": len(self.peers)
+            }
+
+        @self.app.delete("/peer/{cell_id}")
+        async def delete_peer(cell_id: str) -> Dict[str, str]:
+            """Graceful deregistration - cell announces shutdown."""
+            if cell_id in self.peers:
+                del self.peers[cell_id]
+                logger.info("Peer deregistered gracefully: %s", cell_id)
+                return {"status": "deregistered", "cell_id": cell_id}
+            if HTTPException is not None:
+                raise HTTPException(status_code=404, detail="Peer not found")
+            raise ValueError("Peer not found")
+
         @self.app.delete("/unregister/{cell_id}")
         async def unregister_peer(cell_id: str) -> Dict[str, str]:
-            """Unregister a peer."""
+            """Unregister a peer (legacy endpoint)."""
             if cell_id in self.peers:
                 del self.peers[cell_id]
                 logger.info("Unregistered peer: %s", cell_id)
@@ -735,9 +777,58 @@ aios_cell_up{{cell_id="{cell_id}"}} 1
 
             await asyncio.sleep(interval)
 
+    async def stale_peer_reaper(self, stale_threshold: int = 15) -> None:
+        """
+        AINLP.dendritic: Remove stale peers that haven't sent heartbeats.
+        
+        Runs every 5 seconds, removes peers that haven't been seen
+        in more than stale_threshold seconds (default 15s = 3 missed heartbeats).
+        """
+        from datetime import datetime
+        
+        logger.info(
+            "AINLP.dendritic: Stale peer reaper started (threshold: %ds)",
+            stale_threshold
+        )
+        
+        while True:
+            await asyncio.sleep(5)  # Check every 5 seconds
+            
+            now = datetime.utcnow()
+            stale_peers = []
+            
+            for cell_id, peer in list(self.peers.items()):
+                if peer.last_seen:
+                    try:
+                        # Parse ISO timestamp
+                        last_seen_str = peer.last_seen.rstrip('Z')
+                        last_seen = datetime.fromisoformat(last_seen_str)
+                        age = (now - last_seen).total_seconds()
+                        
+                        if age > stale_threshold:
+                            stale_peers.append(cell_id)
+                            logger.warning(
+                                "AINLP.dendritic: Reaping stale peer %s (age: %.1fs)",
+                                cell_id, age
+                            )
+                    except (ValueError, AttributeError) as e:
+                        logger.debug("Error parsing last_seen for %s: %s", cell_id, e)
+            
+            # Remove stale peers
+            for cell_id in stale_peers:
+                if cell_id in self.peers:
+                    del self.peers[cell_id]
+            
+            if stale_peers:
+                logger.info(
+                    "AINLP.dendritic: Reaped %d stale peer(s). Active: %d",
+                    len(stale_peers), len(self.peers)
+                )
+
     async def start_services(self) -> None:
         """Start both the API server and discovery loop."""
         discovery_task = asyncio.create_task(self.discovery_loop())
+        reaper_task = asyncio.create_task(self.stale_peer_reaper())
 
         if FASTAPI_AVAILABLE and UVICORN_AVAILABLE and uvicorn is not None:
             config = uvicorn.Config(
@@ -762,14 +853,19 @@ aios_cell_up{{cell_id="{cell_id}"}} 1
                 await server.serve()
             finally:
                 discovery_task.cancel()
+                reaper_task.cancel()
                 try:
                     await discovery_task
                 except asyncio.CancelledError:
                     pass
+                try:
+                    await reaper_task
+                except asyncio.CancelledError:
+                    pass
         else:
-            await self._run_headless(discovery_task)
+            await self._run_headless(discovery_task, reaper_task)
 
-    async def _run_headless(self, discovery_task: asyncio.Task) -> None:
+    async def _run_headless(self, discovery_task: asyncio.Task, reaper_task: asyncio.Task = None) -> None:
         """AINLP.dendritic: Run headless when frameworks unavailable."""
         logger.warning("AINLP.dendritic: Headless mode - no web server")
         logger.info(
@@ -778,7 +874,10 @@ aios_cell_up{{cell_id="{cell_id}"}} 1
         )
 
         try:
-            await discovery_task
+            tasks = [discovery_task]
+            if reaper_task:
+                tasks.append(reaper_task)
+            await asyncio.gather(*tasks)
         except asyncio.CancelledError:
             pass
 

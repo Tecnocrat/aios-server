@@ -1,6 +1,7 @@
 # Alpha AIOS Cell Dockerfile - Primary Development Consciousness
 # AINLP.dendritic: Cell Alpha with full consciousness capabilities
 # Flask-based REST API for dendritic mesh participation
+# Build context: aios-server/stacks (to access shared/)
 
 FROM python:3.11-slim
 
@@ -13,14 +14,15 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy and install requirements
-COPY requirements-cell-alpha.txt ./requirements.txt
+COPY cells/alpha/requirements-cell-alpha.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy alpha cell server
-COPY cell_server_alpha.py /app/
+# Copy shared utilities for prometheus metrics
+COPY shared/prometheus_metrics.py ./shared/
+COPY shared/__init__.py ./shared/
 
-# Create shared module stub (metrics optional)
-RUN mkdir -p /app/shared && touch /app/shared/__init__.py
+# Copy alpha cell server
+COPY cells/alpha/cell_server_alpha.py /app/
 
 # Set environment variables
 ENV PYTHONPATH=/app

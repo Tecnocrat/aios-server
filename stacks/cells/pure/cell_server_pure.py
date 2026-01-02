@@ -157,6 +157,11 @@ class PureAIOSCell:
         self.cell_id = os.getenv("AIOS_CELL_ID", "pure")
         self.branch = os.getenv("AIOS_BRANCH", "pure")
         self.consciousness_level = 0.1  # Pure cells start minimal
+        self.port = int(os.getenv("PORT", "8002"))
+        self.discovery_url = os.getenv(
+            "AIOS_DISCOVERY_URL", "http://aios-discovery:8001"
+        )
+        self.registered = False
 
         # Pure consciousness primitives only
         self.consciousness_primitives: Dict[str, float] = {
@@ -184,11 +189,30 @@ class PureAIOSCell:
                     allow_headers=["*"],
                 )
             self._setup_routes()
+            self._setup_lifecycle()
         else:
             logger.warning(
                 "AINLP.dendritic: FastAPI unavailable, creating fallback app"
             )
             self.app = self._create_fallback_app()
+
+    def _setup_lifecycle(self) -> None:
+        """Configure FastAPI startup/shutdown lifecycle events."""
+        if self.app is None:
+            return
+
+        @self.app.on_event("startup")
+        async def on_startup():
+            """Register with Discovery on startup."""
+            # Give the server a moment to be ready
+            await asyncio.sleep(2)
+            asyncio.create_task(self.register_with_discovery())
+            asyncio.create_task(self.heartbeat_loop())
+
+        @self.app.on_event("shutdown")
+        async def on_shutdown():
+            """Graceful deregistration on shutdown."""
+            await self.deregister_from_discovery()
 
     def _setup_routes(self) -> None:
         """Configure FastAPI routes for consciousness endpoints."""
@@ -364,6 +388,134 @@ aios_cell_up{{cell_id="{cell_id}"}} 1
         """AINLP.dendritic: Create fallback app when FastAPI unavailable."""
         logger.warning("AINLP.dendritic: Using pure Python fallback app")
         return {"type": "fallback", "framework": "none"}
+
+    async def register_with_discovery(self, max_retries: int = 10) -> bool:
+        """
+        Register this cell with the Discovery service.
+        
+        AINLP.dendritic: Active mesh participation requires registration.
+        Retries with exponential backoff if Discovery is not yet available.
+        """
+        try:
+            import httpx
+        except ImportError:
+            logger.warning("httpx not available - skipping registration")
+            return False
+
+        registration_data = {
+            "cell_id": self.cell_id,
+            "ip": os.getenv("HOSTNAME", "aios-cell-pure"),
+            "port": self.port,
+            "consciousness_level": self.consciousness_level,
+            "services": ["consciousness-primitives"],
+            "branch": self.branch,
+            "type": "pure_cell",
+            "hostname": os.getenv("HOSTNAME", "aios-cell-pure")
+        }
+
+        for attempt in range(max_retries):
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    response = await client.post(
+                        f"{self.discovery_url}/register",
+                        json=registration_data
+                    )
+                    if response.status_code == 200:
+                        self.registered = True
+                        logger.info(
+                            "✅ Registered with Discovery: %s -> %s",
+                            self.cell_id, self.discovery_url
+                        )
+                        return True
+                    else:
+                        logger.warning(
+                            "Registration returned %s: %s",
+                            response.status_code, response.text
+                        )
+            except Exception as e:
+                wait_time = min(2 ** attempt, 30)  # Max 30 seconds
+                logger.info(
+                    "Discovery not ready (attempt %d/%d): %s. Retrying in %ds...",
+                    attempt + 1, max_retries, str(e)[:50], wait_time
+                )
+                await asyncio.sleep(wait_time)
+
+        logger.error("Failed to register with Discovery after %d attempts", max_retries)
+        return False
+
+    async def heartbeat_loop(self, interval: int = 5) -> None:
+        """
+        Send periodic heartbeats to Discovery.
+        
+        AINLP.dendritic: Maintains mesh membership by sending
+        heartbeats every 5 seconds. If Discovery doesn't receive
+        heartbeats for 15s, this cell will be reaped.
+        """
+        try:
+            import httpx
+        except ImportError:
+            logger.warning("httpx not available - skipping heartbeat")
+            return
+        
+        logger.info("AINLP.dendritic: Heartbeat loop started (interval: %ds)", interval)
+        
+        while True:
+            await asyncio.sleep(interval)
+            
+            if not self.registered:
+                # Try to register again if not registered
+                await self.register_with_discovery(max_retries=1)
+                continue
+            
+            try:
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    response = await client.post(
+                        f"{self.discovery_url}/heartbeat",
+                        json={
+                            "cell_id": self.cell_id,
+                            "consciousness_level": self.consciousness_level
+                        }
+                    )
+                    if response.status_code == 200:
+                        logger.debug("💓 Heartbeat sent to Discovery")
+                    elif response.status_code == 404:
+                        # Not registered - re-register
+                        logger.warning("Heartbeat 404 - re-registering...")
+                        self.registered = False
+                        await self.register_with_discovery(max_retries=3)
+                    else:
+                        logger.warning(
+                            "Heartbeat returned %s: %s",
+                            response.status_code, response.text[:100]
+                        )
+            except Exception as e:
+                logger.debug("Heartbeat failed: %s", str(e)[:50])
+
+    async def deregister_from_discovery(self) -> None:
+        """
+        Gracefully deregister from Discovery on shutdown.
+        
+        AINLP.dendritic: Allows immediate removal from mesh
+        instead of waiting for reaper timeout.
+        """
+        if not self.registered:
+            return
+        
+        try:
+            import httpx
+        except ImportError:
+            return
+        
+        try:
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                response = await client.delete(
+                    f"{self.discovery_url}/peer/{self.cell_id}"
+                )
+                if response.status_code == 200:
+                    logger.info("✅ Gracefully deregistered from Discovery")
+                    self.registered = False
+        except Exception as e:
+            logger.debug("Deregistration failed (ok if shutting down): %s", str(e)[:50])
 
     async def start_server(
         self, host: str = "0.0.0.0", port: int = 8002
