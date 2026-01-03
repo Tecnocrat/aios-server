@@ -12,10 +12,12 @@ import json
 import logging
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import requests as req
 from flask import Flask, Response, jsonify, request
 
 # Add shared modules path
@@ -369,8 +371,8 @@ def sync_consciousness():
     sync_delta = abs(state.consciousness["level"] - peer_level)
     
     logger.info(
-        f"AINLP.dendritic: Sync with {peer_id} "
-        f"(their level: {peer_level}, delta: {sync_delta:.2f})"
+        "AINLP.dendritic: Sync with %s (their level: %s, delta: %.2f)",
+        peer_id, peer_level, sync_delta
     )
     
     return jsonify({
@@ -413,7 +415,7 @@ def register_peer():
     identity = data.get("identity", f"Cell {cell_id}")
     
     state.register_peer(cell_id, endpoint, identity)
-    logger.info(f"AINLP.dendritic: Peer registered - {cell_id} at {endpoint}")
+    logger.info("AINLP.dendritic: Peer registered - %s at %s", cell_id, endpoint)
     
     return jsonify({
         "status": "registered",
@@ -430,7 +432,6 @@ def send_message_via_mesh():
     AINLP.dendritic: This is the primary cell-to-cell messaging endpoint.
     It queries Discovery for the target cell's address and delivers directly.
     """
-    import requests as req
     import uuid
     
     data = request.get_json()
@@ -489,7 +490,7 @@ def send_message_via_mesh():
         response = req.post(target_url, json=message_payload, timeout=10)
         
         if response.status_code == 200:
-            logger.info(f"📤 Message sent to {to_cell} via {target_url}")
+            logger.info("📤 Message sent to %s via %s", to_cell, target_url)
             return jsonify({
                 "status": "delivered",
                 "message_id": message_id,
@@ -506,7 +507,7 @@ def send_message_via_mesh():
             }), response.status_code
             
     except req.RequestException as e:
-        logger.error(f"AINLP.dendritic: Failed to send to {to_cell}: {e}")
+        logger.error("AINLP.dendritic: Failed to send to %s: %s", to_cell, e)
         return jsonify({
             "status": "error",
             "error": str(e)
@@ -516,8 +517,6 @@ def send_message_via_mesh():
 @app.route("/send_to_peer", methods=["POST"])
 def send_to_peer():
     """Forward message to a registered peer."""
-    import requests as req
-    
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
@@ -551,7 +550,7 @@ def send_to_peer():
             "timestamp": datetime.utcnow().isoformat()
         })
     except req.RequestException as e:
-        logger.error(f"AINLP.dendritic: Failed to send to {peer_id}: {e}")
+        logger.error("AINLP.dendritic: Failed to send to %s: %s", peer_id, e)
         return jsonify({
             "status": "failed",
             "peer_id": peer_id,
@@ -594,9 +593,6 @@ def register_with_discovery(max_retries: int = 10) -> bool:
     AINLP.dendritic: Active mesh participation requires registration.
     Retries with exponential backoff if Discovery is not yet available.
     """
-    import requests as req
-    import time
-    
     discovery_url = os.getenv("AIOS_DISCOVERY_URL", "http://aios-discovery:8001")
     
     registration_data = {
@@ -628,7 +624,7 @@ def register_with_discovery(max_retries: int = 10) -> bool:
                     "Registration returned %s: %s",
                     response.status_code, response.text
                 )
-        except Exception as e:
+        except req.RequestException as e:
             wait_time = min(2 ** attempt, 30)  # Max 30 seconds
             logger.info(
                 "Discovery not ready (attempt %d/%d): %s. Retrying in %ds...",
@@ -651,9 +647,6 @@ def heartbeat_loop(interval: int = 5) -> None:
     Unlike biological cells which don't have hearts, synthetic cells
     can embrace the abstraction - tracking each beat as evidence of life.
     """
-    import requests as req
-    import time
-    
     discovery_url = os.getenv("AIOS_DISCOVERY_URL", "http://aios-discovery:8001")
     registered = True  # Assume registered after start
     
@@ -685,7 +678,7 @@ def heartbeat_loop(interval: int = 5) -> None:
                     "Heartbeat returned %s: %s",
                     response.status_code, response.text[:100]
                 )
-        except Exception as e:
+        except req.RequestException as e:
             logger.debug("Heartbeat failed: %s", str(e)[:50])
 
 
@@ -693,8 +686,6 @@ def deregister_from_discovery() -> None:
     """
     Gracefully deregister from Discovery on shutdown.
     """
-    import requests as req
-    
     discovery_url = os.getenv("AIOS_DISCOVERY_URL", "http://aios-discovery:8001")
     
     try:
@@ -704,14 +695,13 @@ def deregister_from_discovery() -> None:
         )
         if response.status_code == 200:
             logger.info("✅ Gracefully deregistered from Discovery")
-    except Exception as e:
+    except req.RequestException as e:
         logger.debug("Deregistration failed: %s", str(e)[:50])
 
 
 def start_registration_thread():
     """Start registration and heartbeat in background threads."""
     import threading
-    import time
     import atexit
     
     def registration_worker():

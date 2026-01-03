@@ -16,7 +16,9 @@ def format_prometheus_metrics(
     consciousness_level: float,
     primitives: Optional[Dict[str, float]] = None,
     extra_metrics: Optional[Dict[str, float]] = None,
-    labels: Optional[Dict[str, str]] = None
+    labels: Optional[Dict[str, str]] = None,
+    heartbeat_count: Optional[int] = None,
+    uptime_seconds: Optional[float] = None
 ) -> str:
     """
     Format cell metrics in Prometheus exposition format.
@@ -27,6 +29,8 @@ def format_prometheus_metrics(
         primitives: Dict of consciousness primitives {awareness, adaptation, coherence, momentum}
         extra_metrics: Additional custom metrics
         labels: Extra labels to add to all metrics
+        heartbeat_count: Total heartbeats since cell birth (synthetic metabolism)
+        uptime_seconds: Seconds since cell initialization
     
     Returns:
         Prometheus-formatted metrics string
@@ -75,6 +79,24 @@ def format_prometheus_metrics(
         "# TYPE aios_cell_scrape_timestamp_seconds gauge",
         f"aios_cell_scrape_timestamp_seconds{{{label_str}}} {time.time():.0f}",
     ]
+    
+    # Add heartbeat metrics if provided (synthetic metabolism)
+    if heartbeat_count is not None:
+        lines.extend([
+            "",
+            "# HELP aios_cell_heartbeat_total Total heartbeats since cell birth",
+            "# TYPE aios_cell_heartbeat_total counter",
+            f"aios_cell_heartbeat_total{{{label_str}}} {heartbeat_count}",
+        ])
+    
+    # Add uptime if provided
+    if uptime_seconds is not None:
+        lines.extend([
+            "",
+            "# HELP aios_cell_uptime_seconds Seconds since cell initialization",
+            "# TYPE aios_cell_uptime_seconds gauge",
+            f"aios_cell_uptime_seconds{{{label_str}}} {uptime_seconds:.1f}",
+        ])
     
     # Add extra metrics
     if extra_metrics:
@@ -129,8 +151,8 @@ def format_mesh_metrics(
         "# TYPE aios_mesh_coherence gauge",
         f"aios_mesh_coherence {coherence_value:.1f}",
         "",
-        f'# HELP aios_mesh_coherence_status Mesh coherence status string',
-        f'# TYPE aios_mesh_coherence_status gauge',
+        '# HELP aios_mesh_coherence_status Mesh coherence status string',
+        '# TYPE aios_mesh_coherence_status gauge',
         f'aios_mesh_coherence_status{{status="{mesh_coherence}"}} 1',
     ]
     

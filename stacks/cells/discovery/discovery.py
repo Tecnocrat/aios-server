@@ -30,7 +30,7 @@ import socket
 import subprocess
 import sys
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # Configure logging early
 logging.basicConfig(
@@ -583,7 +583,6 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
         @self.app.post("/register")
         async def register_peer(peer: CellInfo) -> Dict[str, str]:
             """Register a new peer."""
-            from datetime import datetime
             peer.last_seen = datetime.utcnow().isoformat() + "Z"
             self.peers[peer.cell_id] = peer
             logger.info(
@@ -595,7 +594,6 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
         @self.app.post("/heartbeat")
         async def heartbeat(hb: HeartbeatRequest) -> Dict[str, Any]:
             """Receive heartbeat from a cell - updates last_seen timestamp."""
-            from datetime import datetime
             if hb.cell_id not in self.peers:
                 if HTTPException is not None:
                     raise HTTPException(
@@ -639,7 +637,6 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
         @self.app.get("/consciousness/list")
         async def consciousness_list() -> Dict[str, Any]:
             """Poll all registered peers for consciousness state."""
-            from datetime import datetime
             results = []
             
             for cell_id, peer in self.peers.items():
@@ -688,7 +685,6 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
         @self.app.get("/debug/state")
         async def debug_state() -> Dict[str, Any]:
             """Return full internal state for debugging."""
-            from datetime import datetime
             my_info = self.registry.get_my_info()
             return {
                 "cell_id": self.cell_id,
@@ -748,7 +744,6 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
         @self.app.get("/debug/peers")
         async def debug_peers() -> Dict[str, Any]:
             """Return detailed peer information with heartbeat timing."""
-            from datetime import datetime
             now = datetime.utcnow()
             peer_details = []
             
@@ -962,8 +957,6 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
         Runs every 5 seconds, removes peers that haven't been seen
         in more than stale_threshold seconds (default 15s = 3 missed heartbeats).
         """
-        from datetime import datetime
-        
         logger.info(
             "AINLP.dendritic: Stale peer reaper started (threshold: %ds)",
             stale_threshold
@@ -1043,7 +1036,7 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
         else:
             await self._run_headless(discovery_task, reaper_task)
 
-    async def _run_headless(self, discovery_task: asyncio.Task, reaper_task: asyncio.Task = None) -> None:
+    async def _run_headless(self, discovery_task: asyncio.Task, reaper_task: Optional[asyncio.Task] = None) -> None:
         """AINLP.dendritic: Run headless when frameworks unavailable."""
         logger.warning("AINLP.dendritic: Headless mode - no web server")
         logger.info(

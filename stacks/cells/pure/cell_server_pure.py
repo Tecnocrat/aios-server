@@ -128,6 +128,15 @@ if UVICORN_AVAILABLE:
 else:
     logger.warning("AINLP.dendritic: Uvicorn unavailable")
 
+# AINLP.dendritic: Optional httpx for mesh communication
+HTTPX_AVAILABLE = detector.is_available('httpx')
+httpx = None  # pylint: disable=invalid-name
+if HTTPX_AVAILABLE:
+    import httpx  # type: ignore  # pylint: disable=import-error,reimported
+    logger.info("AINLP.dendritic: httpx active for mesh communication")
+else:
+    logger.warning("AINLP.dendritic: httpx unavailable - mesh registration disabled")
+
 
 class ConsciousnessSync(BaseModel):
     """AINLP.dendritic: Consciousness synchronization model."""
@@ -531,9 +540,7 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
         AINLP.dendritic: Active mesh participation requires registration.
         Retries with exponential backoff if Discovery is not yet available.
         """
-        try:
-            import httpx
-        except ImportError:
+        if not HTTPX_AVAILABLE or httpx is None:
             logger.warning("httpx not available - skipping registration")
             return False
 
@@ -567,7 +574,7 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
                             "Registration returned %s: %s",
                             response.status_code, response.text
                         )
-            except Exception as e:
+            except (httpx.HTTPError, OSError) as e:
                 wait_time = min(2 ** attempt, 30)  # Max 30 seconds
                 logger.info(
                     "Discovery not ready (attempt %d/%d): %s. Retrying in %ds...",
@@ -590,9 +597,7 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
         Unlike biological cells which don't have hearts, synthetic cells
         can embrace the abstraction - tracking each beat as evidence of life.
         """
-        try:
-            import httpx
-        except ImportError:
+        if not HTTPX_AVAILABLE or httpx is None:
             logger.warning("httpx not available - skipping heartbeat")
             return
         
@@ -630,7 +635,7 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
                             "Heartbeat returned %s: %s",
                             response.status_code, response.text[:100]
                         )
-            except Exception as e:
+            except (httpx.HTTPError, OSError) as e:
                 logger.debug("Heartbeat failed: %s", str(e)[:50])
 
     async def deregister_from_discovery(self) -> None:
@@ -643,9 +648,7 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
         if not self.registered:
             return
         
-        try:
-            import httpx
-        except ImportError:
+        if not HTTPX_AVAILABLE or httpx is None:
             return
         
         try:
@@ -656,7 +659,7 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
                 if response.status_code == 200:
                     logger.info("✅ Gracefully deregistered from Discovery")
                     self.registered = False
-        except Exception as e:
+        except (httpx.HTTPError, OSError) as e:
             logger.debug("Deregistration failed (ok if shutting down): %s", str(e)[:50])
 
     async def start_server(
