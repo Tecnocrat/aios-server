@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy shared utilities for prometheus metrics
 COPY shared/prometheus_metrics.py ./shared/
+COPY shared/dendritic_utils.py ./shared/
 COPY shared/__init__.py ./shared/
 
 # Copy alpha cell server

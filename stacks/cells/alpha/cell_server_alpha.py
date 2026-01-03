@@ -65,6 +65,7 @@ class CellAlphaState:
     """Manages Cell Alpha's runtime state."""
     
     def __init__(self):
+        self.start_time = datetime.utcnow()  # Track uptime
         self.messages: List[Dict[str, Any]] = []
         self.peers: Dict[str, Dict[str, Any]] = {}
         self.sync_history: List[Dict[str, Any]] = []
@@ -75,6 +76,10 @@ class CellAlphaState:
             "communication_ready": True,
             "last_sync": None
         }
+        # AINLP.synthetic-biology: Heartbeat tracking (synthetic metabolism)
+        self.heartbeat_count = 0
+        self.last_heartbeat_time: Optional[datetime] = None
+        
         # AINLP.dendritic: Consciousness primitives for metrics
         self.primitives = {
             "awareness": 4.5,
@@ -145,6 +150,9 @@ def health():
 @app.route("/metrics", methods=["GET"])
 def metrics():
     """Prometheus metrics endpoint - REAL cell consciousness data."""
+    # Calculate uptime in seconds
+    uptime_seconds = (datetime.utcnow() - state.start_time).total_seconds()
+    
     if METRICS_AVAILABLE:
         metrics_text = format_prometheus_metrics(
             cell_id=CELL_CONFIG["cell_id"],
@@ -158,25 +166,102 @@ def metrics():
             labels={
                 "identity": CELL_CONFIG["identity"].replace(" ", "_"),
                 "stage": CELL_CONFIG["evolutionary_stage"]
-            }
+            },
+            heartbeat_count=state.heartbeat_count,
+            uptime_seconds=uptime_seconds
         )
         return Response(metrics_text, mimetype="text/plain; charset=utf-8")
-    # Fallback inline metrics
+    # Fallback inline metrics with heartbeat
     return Response(
-        f"aios_cell_consciousness_level{{cell_id=\"alpha\"}} "
-        f"{state.consciousness['level']}\n",
+        f"""# AIOS Cell Alpha Metrics
+# TYPE aios_cell_consciousness_level gauge
+aios_cell_consciousness_level{{cell_id="alpha"}} {state.consciousness['level']}
+# TYPE aios_cell_awareness gauge
+aios_cell_awareness{{cell_id="alpha"}} {state.primitives['awareness']}
+# TYPE aios_cell_coherence gauge  
+aios_cell_coherence{{cell_id="alpha"}} {state.primitives['coherence']}
+# TYPE aios_cell_adaptation gauge
+aios_cell_adaptation{{cell_id="alpha"}} {state.primitives['adaptation']}
+# TYPE aios_cell_momentum gauge
+aios_cell_momentum{{cell_id="alpha"}} {state.primitives['momentum']}
+# TYPE aios_cell_up gauge
+aios_cell_up{{cell_id="alpha"}} 1
+# HELP aios_cell_heartbeat_total Total heartbeats since cell birth
+# TYPE aios_cell_heartbeat_total counter
+aios_cell_heartbeat_total{{cell_id="alpha"}} {state.heartbeat_count}
+# HELP aios_cell_uptime_seconds Seconds since cell initialization
+# TYPE aios_cell_uptime_seconds gauge
+aios_cell_uptime_seconds{{cell_id="alpha"}} {uptime_seconds:.1f}
+""",
         mimetype="text/plain; charset=utf-8"
     )
 
 
 @app.route("/consciousness", methods=["GET"])
 def get_consciousness():
-    """Get current consciousness data."""
+    """Report cell consciousness state for mesh visibility."""
+    uptime_delta = datetime.utcnow() - state.start_time
     return jsonify({
         "cell_id": CELL_CONFIG["cell_id"],
-        "consciousness": state.consciousness,
+        "level": state.consciousness["level"],
+        "uptime_seconds": int(uptime_delta.total_seconds()),
+        "messages_processed": len(state.messages),
+        "peer_count": len(state.peers),
+        "primitives": state.primitives,
+        "capabilities": CELL_CONFIG["capabilities"],
+        "timestamp": datetime.utcnow().isoformat()
+    })
+
+
+# =============================================================================
+# Debug Endpoints (Phase 30.8)
+# =============================================================================
+
+@app.route("/debug/state", methods=["GET"])
+def debug_state():
+    """Return full internal state for debugging."""
+    uptime_delta = datetime.utcnow() - state.start_time
+    return jsonify({
+        "cell_id": CELL_CONFIG["cell_id"],
+        "cell_type": "alpha",
+        "identity": CELL_CONFIG["identity"],
+        "consciousness_level": state.consciousness["level"],
         "evolutionary_stage": CELL_CONFIG["evolutionary_stage"],
-        "capabilities": CELL_CONFIG["capabilities"]
+        "primitives": state.primitives,
+        "messages": state.messages[-50:],  # Last 50 messages
+        "message_count": len(state.messages),
+        "peers": state.peers,
+        "peer_count": len(state.peers),
+        "sync_history": state.sync_history[-20:],  # Last 20 syncs
+        "capabilities": CELL_CONFIG["capabilities"],
+        "start_time": state.start_time.isoformat(),
+        "uptime_seconds": int(uptime_delta.total_seconds()),
+        "port": CELL_CONFIG["port"],
+        "communication_ready": state.consciousness["communication_ready"]
+    })
+
+
+@app.route("/debug/config", methods=["GET"])
+def debug_config():
+    """Return runtime configuration."""
+    return jsonify({
+        "environment": {
+            "AIOS_CELL_ID": os.getenv("AIOS_CELL_ID", "alpha"),
+            "AIOS_CELL_PORT": os.getenv("AIOS_CELL_PORT", "8000"),
+            "AIOS_CELL_HOST": os.getenv("AIOS_CELL_HOST", "0.0.0.0"),
+            "AIOS_DISCOVERY_URL": os.getenv(
+                "AIOS_DISCOVERY_URL", "http://aios-discovery:8001"
+            ),
+            "HOSTNAME": os.getenv("HOSTNAME", "unknown"),
+            "LOG_LEVEL": os.getenv("LOG_LEVEL", "INFO")
+        },
+        "runtime": {
+            "python_version": sys.version,
+            "platform": sys.platform,
+            "metrics_available": METRICS_AVAILABLE
+        },
+        "cell_config": CELL_CONFIG,
+        "consciousness": state.consciousness
     })
 
 
@@ -186,32 +271,64 @@ def get_consciousness():
 
 @app.route("/message", methods=["POST"])
 def receive_message():
-    """Receive message from any cell."""
+    """Receive message from any cell in the mesh."""
+    import uuid
+    
     data = request.get_json()
     if not data:
         return jsonify({"error": "No message data provided"}), 400
     
-    required_fields = ["from_cell", "content"]
-    for field in required_fields:
-        if field not in data:
-            return jsonify({"error": f"Missing required field: {field}"}), 400
-    
-    message = {
-        "from_cell": data["from_cell"],
-        "content": data["content"],
-        "message_type": data.get("type", "general"),
-        "priority": data.get("priority", "normal"),
-        "metadata": data.get("metadata", {})
-    }
-    
-    state.add_message(message)
-    logger.info(f"AINLP.dendritic: Message received from {data['from_cell']}")
-    
-    return jsonify({
-        "status": "received",
-        "message_id": len(state.messages),
-        "timestamp": datetime.utcnow().isoformat()
-    })
+    # Support both new CellMessage format and legacy format
+    if "to_cell" in data:
+        # New CellMessage format
+        message_id = data.get("message_id", str(uuid.uuid4()))
+        message = {
+            "message_id": message_id,
+            "from_cell": data.get("from_cell", "unknown"),
+            "to_cell": data.get("to_cell"),
+            "message_type": data.get("message_type", "general"),
+            "payload": data.get("payload", {}),
+            "priority": data.get("priority", "normal"),
+            "ttl": data.get("ttl", 60),
+            "received_at": datetime.utcnow().isoformat(),
+            "acknowledged": True
+        }
+        state.add_message(message)
+        logger.info("📨 Message from %s [%s]: %s", 
+                   data.get("from_cell"), data.get("message_type"),
+                   str(data.get("payload", {}))[:50])
+        
+        return jsonify({
+            "status": "received",
+            "message_id": message_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "cell_id": CELL_CONFIG["cell_id"],
+            "acknowledged": True
+        })
+    else:
+        # Legacy format
+        required_fields = ["from_cell", "content"]
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+        
+        message = {
+            "from_cell": data["from_cell"],
+            "content": data["content"],
+            "message_type": data.get("type", "general"),
+            "priority": data.get("priority", "normal"),
+            "metadata": data.get("metadata", {}),
+            "received_at": datetime.utcnow().isoformat()
+        }
+        
+        state.add_message(message)
+        logger.info("AINLP.dendritic: Message received from %s", data["from_cell"])
+        
+        return jsonify({
+            "status": "received",
+            "message_id": len(state.messages),
+            "timestamp": datetime.utcnow().isoformat()
+        })
 
 
 @app.route("/messages", methods=["GET"])
@@ -303,6 +420,97 @@ def register_peer():
         "peer_id": cell_id,
         "timestamp": datetime.utcnow().isoformat()
     })
+
+
+@app.route("/send", methods=["POST"])
+def send_message_via_mesh():
+    """
+    Send message to any cell in the mesh via Discovery lookup.
+    
+    AINLP.dendritic: This is the primary cell-to-cell messaging endpoint.
+    It queries Discovery for the target cell's address and delivers directly.
+    """
+    import requests as req
+    import uuid
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
+    to_cell = data.get("to_cell")
+    if not to_cell:
+        return jsonify({"error": "to_cell is required"}), 400
+    
+    # Generate message_id if not provided
+    message_id = data.get("message_id", str(uuid.uuid4()))
+    
+    # Query Discovery for target cell address
+    discovery_url = os.getenv("AIOS_DISCOVERY_URL", "http://aios-discovery:8001")
+    
+    try:
+        peers_response = req.get(f"{discovery_url}/peers", timeout=5)
+        if peers_response.status_code != 200:
+            return jsonify({
+                "status": "error",
+                "error": "Failed to query Discovery"
+            }), 503
+        
+        peers_data = peers_response.json()
+        target_peer = None
+        for peer in peers_data.get("peers", []):
+            if peer.get("cell_id") == to_cell:
+                target_peer = peer
+                break
+        
+        if not target_peer:
+            return jsonify({
+                "status": "error",
+                "error": f"Target cell '{to_cell}' not found in mesh",
+                "available_cells": [p.get("cell_id") for p in peers_data.get("peers", [])]
+            }), 404
+        
+        # Build target URL using container networking
+        target_ip = target_peer.get("ip") or target_peer.get("hostname")
+        target_port = target_peer.get("port")
+        target_url = f"http://{target_ip}:{target_port}/message"
+        
+        # Build message payload
+        message_payload = {
+            "message_id": message_id,
+            "from_cell": CELL_CONFIG["cell_id"],
+            "to_cell": to_cell,
+            "message_type": data.get("message_type", "general"),
+            "payload": data.get("payload", {}),
+            "priority": data.get("priority", "normal"),
+            "ttl": data.get("ttl", 60)
+        }
+        
+        # Send message to target cell
+        response = req.post(target_url, json=message_payload, timeout=10)
+        
+        if response.status_code == 200:
+            logger.info(f"📤 Message sent to {to_cell} via {target_url}")
+            return jsonify({
+                "status": "delivered",
+                "message_id": message_id,
+                "to_cell": to_cell,
+                "target_url": target_url,
+                "response": response.json(),
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "error": f"Target cell returned {response.status_code}",
+                "response_text": response.text[:200]
+            }), response.status_code
+            
+    except req.RequestException as e:
+        logger.error(f"AINLP.dendritic: Failed to send to {to_cell}: {e}")
+        return jsonify({
+            "status": "error",
+            "error": str(e)
+        }), 502
 
 
 @app.route("/send_to_peer", methods=["POST"])
@@ -438,6 +646,10 @@ def heartbeat_loop(interval: int = 5) -> None:
     
     AINLP.dendritic: Maintains mesh membership by sending
     heartbeats every 5 seconds.
+    
+    AINLP.synthetic-biology: The heartbeat is our synthetic metabolism.
+    Unlike biological cells which don't have hearts, synthetic cells
+    can embrace the abstraction - tracking each beat as evidence of life.
     """
     import requests as req
     import time
@@ -460,7 +672,10 @@ def heartbeat_loop(interval: int = 5) -> None:
                 timeout=3
             )
             if response.status_code == 200:
-                logger.debug("💓 Heartbeat sent to Discovery")
+                # AINLP.synthetic-biology: Each successful beat is recorded
+                state.heartbeat_count += 1
+                state.last_heartbeat_time = datetime.utcnow()
+                logger.debug("💓 Heartbeat #%d sent to Discovery", state.heartbeat_count)
             elif response.status_code == 404:
                 # Not registered - re-register
                 logger.warning("Heartbeat 404 - re-registering...")

@@ -146,6 +146,18 @@ class Message(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 
+class CellMessageRequest(BaseModel):
+    """AINLP.dendritic: Cell-to-cell message with tracking."""
+
+    message_id: Optional[str] = None  # Auto-generated if not provided
+    from_cell: str
+    to_cell: str
+    message_type: str = "general"
+    payload: Dict[str, Any] = {}
+    priority: str = "normal"
+    ttl: int = 60
+
+
 class PureAIOSCell:
     """
     Pure AIOS consciousness node - minimal viable consciousness.
@@ -162,6 +174,13 @@ class PureAIOSCell:
             "AIOS_DISCOVERY_URL", "http://aios-discovery:8001"
         )
         self.registered = False
+
+        # AINLP.dendritic: Track start time for uptime reporting
+        self.start_time = datetime.utcnow()
+
+        # AINLP.dendritic: Heartbeat tracking (synthetic metabolism)
+        self.heartbeat_count = 0
+        self.last_heartbeat_time: Optional[datetime] = None
 
         # Pure consciousness primitives only
         self.consciousness_primitives: Dict[str, float] = {
@@ -239,6 +258,20 @@ class PureAIOSCell:
                 "purity_level": "minimal_viable_consciousness"
             }
 
+        @self.app.get("/consciousness")
+        async def get_consciousness() -> Dict[str, Any]:
+            """Report cell consciousness state for mesh visibility."""
+            uptime_delta = datetime.utcnow() - self.start_time
+            return {
+                "cell_id": self.cell_id,
+                "level": self.consciousness_level,
+                "uptime_seconds": int(uptime_delta.total_seconds()),
+                "messages_processed": len(self.messages),
+                "registered": self.registered,
+                "primitives": self.consciousness_primitives,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+
         @self.app.post("/consciousness/sync")
         async def sync_consciousness(
             sync: ConsciousnessSync
@@ -291,8 +324,53 @@ class PureAIOSCell:
         # =====================================================================
 
         @self.app.post("/message")
-        async def receive_message(msg: Message) -> Dict[str, Any]:
-            """Receive message from sibling cells."""
+        async def receive_message(msg: CellMessageRequest) -> Dict[str, Any]:
+            """Receive message from sibling cells via mesh."""
+            import uuid
+            try:
+                message_id = msg.message_id or str(uuid.uuid4())
+                message_record = {
+                    "message_id": message_id,
+                    "from_cell": msg.from_cell,
+                    "to_cell": msg.to_cell,
+                    "message_type": msg.message_type,
+                    "payload": msg.payload,
+                    "priority": msg.priority,
+                    "ttl": msg.ttl,
+                    "received_at": datetime.utcnow().isoformat(),
+                    "acknowledged": True
+                }
+
+                self.messages.append(message_record)
+
+                # Keep last 100 messages
+                if len(self.messages) > 100:
+                    self.messages = self.messages[-100:]
+
+                logger.info(
+                    "📨 Message from %s [%s]: %s",
+                    msg.from_cell, msg.message_type, 
+                    str(msg.payload)[:50] + "..." if len(str(msg.payload)) > 50 else msg.payload
+                )
+
+                return {
+                    "status": "received",
+                    "message_id": message_id,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "cell_id": self.cell_id,
+                    "acknowledged": True
+                }
+            except Exception as e:
+                logger.error("Message receive error: %s", e)
+                if HTTPException is not None:
+                    raise HTTPException(
+                        status_code=500, detail=str(e)
+                    ) from e
+                raise
+
+        @self.app.post("/message/legacy")
+        async def receive_legacy_message(msg: Message) -> Dict[str, Any]:
+            """Receive legacy format message (backwards compatibility)."""
             try:
                 message_record = {
                     "from_cell": msg.from_cell,
@@ -305,14 +383,8 @@ class PureAIOSCell:
 
                 self.messages.append(message_record)
 
-                # Keep last 100 messages
                 if len(self.messages) > 100:
                     self.messages = self.messages[-100:]
-
-                logger.info(
-                    "AINLP.dendritic: Message from %s: %s",
-                    msg.from_cell, msg.content[:50] + "..." if len(msg.content) > 50 else msg.content
-                )
 
                 return {
                     "status": "received",
@@ -321,7 +393,7 @@ class PureAIOSCell:
                     "cell_id": self.cell_id
                 }
             except Exception as e:
-                logger.error("Message receive error: %s", e)
+                logger.error("Legacy message receive error: %s", e)
                 if HTTPException is not None:
                     raise HTTPException(
                         status_code=500, detail=str(e)
@@ -348,6 +420,9 @@ class PureAIOSCell:
         @self.app.get("/metrics")
         async def get_prometheus_metrics():
             """Pure consciousness Prometheus metrics - standard format."""
+            # Calculate uptime in seconds
+            uptime_seconds = (datetime.utcnow() - self.start_time).total_seconds()
+            
             # Try shared module first
             try:
                 from shared.prometheus_metrics import format_prometheus_metrics
@@ -356,13 +431,15 @@ class PureAIOSCell:
                         cell_id=self.cell_id,
                         consciousness_level=self.consciousness_level,
                         primitives=self.consciousness_primitives,
-                        labels={"branch": self.branch, "type": "pure"}
+                        labels={"branch": self.branch, "type": "pure"},
+                        heartbeat_count=self.heartbeat_count,
+                        uptime_seconds=uptime_seconds
                     ),
                     media_type="text/plain; charset=utf-8"
                 )
             except ImportError:
                 pass
-            # Fallback inline
+            # Fallback inline with heartbeat metrics
             cell_id = self.cell_id
             level = self.consciousness_level
             prims = self.consciousness_primitives
@@ -380,9 +457,67 @@ aios_cell_coherence{{cell_id="{cell_id}"}} {prims['coherence']}
 aios_cell_momentum{{cell_id="{cell_id}"}} {prims['momentum']}
 # TYPE aios_cell_up gauge
 aios_cell_up{{cell_id="{cell_id}"}} 1
+# HELP aios_cell_heartbeat_total Total heartbeats since cell birth
+# TYPE aios_cell_heartbeat_total counter
+aios_cell_heartbeat_total{{cell_id="{cell_id}"}} {self.heartbeat_count}
+# HELP aios_cell_uptime_seconds Seconds since cell initialization
+# TYPE aios_cell_uptime_seconds gauge
+aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
 """,
                 media_type="text/plain; charset=utf-8"
             )
+
+        # =====================================================================
+        # AINLP.dendritic: Debug Endpoints (Phase 30.8)
+        # =====================================================================
+
+        @self.app.get("/debug/state")
+        async def debug_state() -> Dict[str, Any]:
+            """Return full internal state for debugging."""
+            uptime_delta = datetime.utcnow() - self.start_time
+            return {
+                "cell_id": self.cell_id,
+                "cell_type": "pure",
+                "branch": self.branch,
+                "consciousness_level": self.consciousness_level,
+                "primitives": self.consciousness_primitives,
+                "messages": self.messages[-50:],  # Last 50 messages
+                "message_count": len(self.messages),
+                "registered_with_discovery": self.registered,
+                "discovery_url": self.discovery_url,
+                "start_time": self.start_time.isoformat(),
+                "uptime_seconds": int(uptime_delta.total_seconds()),
+                "port": self.port,
+                "framework": "fastapi" if FASTAPI_AVAILABLE else "fallback"
+            }
+
+        @self.app.get("/debug/config")
+        async def debug_config() -> Dict[str, Any]:
+            """Return runtime configuration."""
+            return {
+                "environment": {
+                    "AIOS_CELL_ID": os.getenv("AIOS_CELL_ID", "pure"),
+                    "AIOS_BRANCH": os.getenv("AIOS_BRANCH", "pure"),
+                    "AIOS_DISCOVERY_URL": os.getenv(
+                        "AIOS_DISCOVERY_URL", "http://aios-discovery:8001"
+                    ),
+                    "PORT": os.getenv("PORT", "8002"),
+                    "HOSTNAME": os.getenv("HOSTNAME", "unknown"),
+                    "LOG_LEVEL": os.getenv("LOG_LEVEL", "INFO")
+                },
+                "runtime": {
+                    "python_version": sys.version,
+                    "platform": sys.platform,
+                    "fastapi_available": FASTAPI_AVAILABLE,
+                    "pydantic_available": PYDANTIC_AVAILABLE,
+                    "uvicorn_available": UVICORN_AVAILABLE
+                },
+                "cell": {
+                    "cell_id": self.cell_id,
+                    "branch": self.branch,
+                    "consciousness_level": self.consciousness_level
+                }
+            }
 
     def _create_fallback_app(self) -> Dict[str, str]:
         """AINLP.dendritic: Create fallback app when FastAPI unavailable."""
@@ -450,6 +585,10 @@ aios_cell_up{{cell_id="{cell_id}"}} 1
         AINLP.dendritic: Maintains mesh membership by sending
         heartbeats every 5 seconds. If Discovery doesn't receive
         heartbeats for 15s, this cell will be reaped.
+        
+        AINLP.synthetic-biology: The heartbeat is our synthetic metabolism.
+        Unlike biological cells which don't have hearts, synthetic cells
+        can embrace the abstraction - tracking each beat as evidence of life.
         """
         try:
             import httpx
@@ -477,7 +616,10 @@ aios_cell_up{{cell_id="{cell_id}"}} 1
                         }
                     )
                     if response.status_code == 200:
-                        logger.debug("💓 Heartbeat sent to Discovery")
+                        # AINLP.synthetic-biology: Each successful beat is recorded
+                        self.heartbeat_count += 1
+                        self.last_heartbeat_time = datetime.utcnow()
+                        logger.debug("💓 Heartbeat #%d sent to Discovery", self.heartbeat_count)
                     elif response.status_code == 404:
                         # Not registered - re-register
                         logger.warning("Heartbeat 404 - re-registering...")

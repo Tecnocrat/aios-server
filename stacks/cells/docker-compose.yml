@@ -15,7 +15,7 @@ services:
       - "0.0.0.0:8001:8001"  # Discovery API
     environment:
       - DISCOVERY_PORT=8001
-      - CELL_ID=primary
+      - CELL_ID=discovery
     volumes:
       - ./discovery/discovery.py:/app/discovery.py:ro
     healthcheck:

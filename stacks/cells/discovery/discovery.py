@@ -29,6 +29,7 @@ import os
 import socket
 import subprocess
 import sys
+from datetime import datetime
 from typing import Any, Dict, List
 
 # Configure logging early
@@ -440,6 +441,9 @@ class AIOSDiscovery:
         self.peers: Dict[str, CellInfo] = {}
         self.app: Any = None
 
+        # AINLP.synthetic-biology: Track birth time for uptime reporting
+        self.start_time = datetime.utcnow()
+        
         # AINLP.dendritic growth: Host registry integration
         self.registry = registry or HostRegistry()
 
@@ -490,6 +494,9 @@ class AIOSDiscovery:
             cell_id = self.cell_id
             peer_count = len(self.peers)
             
+            # AINLP.synthetic-biology: Calculate uptime
+            uptime_seconds = (datetime.utcnow() - self.start_time).total_seconds()
+            
             # Discovery-specific primitives
             primitives = {
                 "awareness": min(4.0, level * 0.8),
@@ -508,14 +515,15 @@ class AIOSDiscovery:
                         consciousness_level=level,
                         primitives=primitives,
                         extra_metrics={"peers_count": peer_count},
-                        labels={"type": "discovery", "branch": my_info.get("branch", "")}
+                        labels={"type": "discovery", "branch": my_info.get("branch", "")},
+                        uptime_seconds=uptime_seconds
                     ),
                     media_type="text/plain; charset=utf-8"
                 )
             except ImportError:
                 pass
             
-            # Inline fallback
+            # Inline fallback with uptime
             from fastapi.responses import Response
             return Response(
                 f"""# AIOS Discovery Cell Metrics
@@ -523,10 +531,19 @@ class AIOSDiscovery:
 aios_cell_consciousness_level{{cell_id="{cell_id}"}} {level}
 # TYPE aios_cell_awareness gauge
 aios_cell_awareness{{cell_id="{cell_id}"}} {primitives['awareness']}
+# TYPE aios_cell_adaptation gauge
+aios_cell_adaptation{{cell_id="{cell_id}"}} {primitives['adaptation']}
+# TYPE aios_cell_coherence gauge
+aios_cell_coherence{{cell_id="{cell_id}"}} {primitives['coherence']}
+# TYPE aios_cell_momentum gauge
+aios_cell_momentum{{cell_id="{cell_id}"}} {primitives['momentum']}
 # TYPE aios_cell_peers_count gauge
 aios_cell_peers_count{{cell_id="{cell_id}"}} {peer_count}
 # TYPE aios_cell_up gauge
 aios_cell_up{{cell_id="{cell_id}"}} 1
+# HELP aios_cell_uptime_seconds Seconds since cell initialization
+# TYPE aios_cell_uptime_seconds gauge
+aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
 """,
                 media_type="text/plain; charset=utf-8"
             )
@@ -618,6 +635,167 @@ aios_cell_up{{cell_id="{cell_id}"}} 1
             if HTTPException is not None:
                 raise HTTPException(status_code=404, detail="Peer not found")
             raise ValueError("Peer not found")
+
+        @self.app.get("/consciousness/list")
+        async def consciousness_list() -> Dict[str, Any]:
+            """Poll all registered peers for consciousness state."""
+            from datetime import datetime
+            results = []
+            
+            for cell_id, peer in self.peers.items():
+                peer_url = f"http://{peer.ip}:{peer.port}/consciousness"
+                try:
+                    if AIOHTTP_AVAILABLE and aiohttp is not None:
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(
+                                peer_url, timeout=aiohttp.ClientTimeout(total=2.0)
+                            ) as resp:
+                                if resp.status == 200:
+                                    data = await resp.json()
+                                    results.append(data)
+                                else:
+                                    results.append({
+                                        "cell_id": cell_id,
+                                        "status": "error",
+                                        "error": f"HTTP {resp.status}"
+                                    })
+                    else:
+                        results.append({
+                            "cell_id": cell_id,
+                            "status": "skipped",
+                            "error": "aiohttp unavailable"
+                        })
+                except Exception as e:
+                    results.append({
+                        "cell_id": cell_id,
+                        "status": "unreachable",
+                        "error": str(e)
+                    })
+                    logger.warning(
+                        "Failed to poll consciousness from %s: %s", cell_id, e
+                    )
+            
+            return {
+                "cells": results,
+                "polled_at": datetime.utcnow().isoformat(),
+                "peer_count": len(self.peers)
+            }
+
+        # =====================================================================
+        # AINLP.dendritic: Debug Endpoints (Phase 30.8)
+        # =====================================================================
+
+        @self.app.get("/debug/state")
+        async def debug_state() -> Dict[str, Any]:
+            """Return full internal state for debugging."""
+            from datetime import datetime
+            my_info = self.registry.get_my_info()
+            return {
+                "cell_id": self.cell_id,
+                "cell_type": "discovery",
+                "consciousness_level": my_info.get("consciousness_level", 4.0),
+                "peers": {
+                    pid: {
+                        "cell_id": p.cell_id,
+                        "ip": p.ip,
+                        "port": p.port,
+                        "branch": p.branch,
+                        "consciousness_level": p.consciousness_level,
+                        "last_seen": p.last_seen,
+                        "services": p.services
+                    }
+                    for pid, p in self.peers.items()
+                },
+                "peer_count": len(self.peers),
+                "host_registry": {
+                    "current_host": (
+                        self.registry.current_host.name 
+                        if self.registry.current_host else None
+                    ),
+                    "current_branch": self.registry.current_branch,
+                    "host_count": len(self.registry.hosts)
+                },
+                "listen_port": self.listen_port,
+                "framework": "fastapi" if FASTAPI_AVAILABLE else "fallback"
+            }
+
+        @self.app.get("/debug/config")
+        async def debug_config() -> Dict[str, Any]:
+            """Return runtime configuration."""
+            return {
+                "environment": {
+                    "AIOS_DISCOVERY_PORT": os.getenv("AIOS_DISCOVERY_PORT", "8001"),
+                    "AIOS_DISCOVERY_HOST": os.getenv("AIOS_DISCOVERY_HOST", "0.0.0.0"),
+                    "AIOS_HOSTS_CONFIG": os.getenv(
+                        "AIOS_HOSTS_CONFIG", "config/hosts.yaml"
+                    ),
+                    "HOSTNAME": os.getenv("HOSTNAME", "unknown"),
+                    "LOG_LEVEL": os.getenv("LOG_LEVEL", "INFO")
+                },
+                "runtime": {
+                    "python_version": sys.version,
+                    "platform": sys.platform,
+                    "fastapi_available": FASTAPI_AVAILABLE,
+                    "aiohttp_available": AIOHTTP_AVAILABLE
+                },
+                "discovery": {
+                    "cell_id": self.cell_id,
+                    "listen_port": self.listen_port,
+                    "peer_count": len(self.peers)
+                }
+            }
+
+        @self.app.get("/debug/peers")
+        async def debug_peers() -> Dict[str, Any]:
+            """Return detailed peer information with heartbeat timing."""
+            from datetime import datetime
+            now = datetime.utcnow()
+            peer_details = []
+            
+            for cell_id, peer in self.peers.items():
+                # Calculate time since last heartbeat
+                last_seen_dt = None
+                seconds_since_heartbeat = None
+                if peer.last_seen:
+                    try:
+                        last_seen_dt = datetime.fromisoformat(
+                            peer.last_seen.replace("Z", "+00:00")
+                        ).replace(tzinfo=None)
+                        seconds_since_heartbeat = int(
+                            (now - last_seen_dt).total_seconds()
+                        )
+                    except Exception:
+                        pass
+                
+                peer_details.append({
+                    "cell_id": peer.cell_id,
+                    "ip": peer.ip,
+                    "port": peer.port,
+                    "branch": peer.branch,
+                    "consciousness_level": peer.consciousness_level,
+                    "services": peer.services,
+                    "type": peer.type,
+                    "hostname": peer.hostname,
+                    "last_seen": peer.last_seen,
+                    "seconds_since_heartbeat": seconds_since_heartbeat,
+                    "health_status": (
+                        "healthy" if seconds_since_heartbeat and seconds_since_heartbeat < 15
+                        else "stale" if seconds_since_heartbeat
+                        else "unknown"
+                    )
+                })
+            
+            return {
+                "peers": peer_details,
+                "peer_count": len(peer_details),
+                "healthy_count": sum(
+                    1 for p in peer_details if p["health_status"] == "healthy"
+                ),
+                "stale_count": sum(
+                    1 for p in peer_details if p["health_status"] == "stale"
+                ),
+                "checked_at": now.isoformat()
+            }
 
     def _create_fallback_app(self) -> Dict[str, str]:
         """AINLP.dendritic: Create fallback app when FastAPI unavailable."""
