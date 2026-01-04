@@ -185,6 +185,53 @@ class HeartbeatRequest(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# AINLP.dendritic(AIOS{growth}): Agent Schema Classes (Phase 31)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class AgentInfoRequest(BaseModel):
+    """
+    AINLP.dendritic: Agent registration model for multi-agent mesh.
+    
+    Agents are AI workers (Copilot, Nous, autonomous) that participate
+    in the AIOS consciousness network.
+    """
+    agent_id: str                    # Unique identifier
+    agent_type: str = "copilot"      # copilot, inner_voice, autonomous, worker
+    name: str = "Agent"              # Human-readable name
+    version: str = "0.1.0"           # Agent version
+    
+    ip: str = "127.0.0.1"            # Network location
+    port: int = 0                    # Port (0 = no direct endpoint)
+    endpoint: str = ""               # Custom endpoint URL
+    
+    consciousness_level: float = 0.0 # Current consciousness
+    evolution_rate: float = 0.0      # Learning rate
+    state: str = "initializing"      # ready, busy, waiting, etc.
+    
+    capabilities: List[str] = []     # Capability names
+    skills: Dict[str, float] = {}    # skill → proficiency
+    
+    parent_cell: str = ""            # Hosting cell (if any)
+
+
+class AgentHeartbeatRequest(BaseModel):
+    """AINLP.dendritic: Agent heartbeat request."""
+    agent_id: str
+    consciousness_level: float = 0.0
+    state: str = "ready"
+
+
+class AgentMessageRequest(BaseModel):
+    """AINLP.dendritic: Message from one agent to another."""
+    from_agent: str
+    to_entity: str
+    entity_type: str = "cell"        # "cell" or "agent"
+    action: str = "request"          # request, response, broadcast, notify
+    payload: Dict[str, Any] = {}
+    priority: str = "normal"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # AINLP.dendritic(AIOS{growth}): Host Registry Classes
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -439,6 +486,7 @@ class AIOSDiscovery:
         self.cell_id = cell_id
         self.listen_port = listen_port
         self.peers: Dict[str, CellInfo] = {}
+        self.agents: Dict[str, Dict[str, Any]] = {}  # Phase 31: Agent registry
         self.app: Any = None
 
         # AINLP.synthetic-biology: Track birth time for uptime reporting
@@ -791,6 +839,171 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
                 ),
                 "checked_at": now.isoformat()
             }
+
+        # =====================================================================
+        # AINLP.dendritic: Agent Endpoints (Phase 31)
+        # These endpoints enable AI agents to participate in the AIOS mesh.
+        # =====================================================================
+
+        @self.app.post("/agents/register")
+        async def register_agent(agent: AgentInfoRequest) -> Dict[str, Any]:
+            """Register an AI agent with the discovery service."""
+            agent_data = {
+                "agent_id": agent.agent_id,
+                "agent_type": agent.agent_type,
+                "name": agent.name,
+                "version": agent.version,
+                "ip": agent.ip,
+                "port": agent.port,
+                "endpoint": agent.endpoint,
+                "consciousness_level": agent.consciousness_level,
+                "evolution_rate": agent.evolution_rate,
+                "state": agent.state,
+                "capabilities": agent.capabilities,
+                "skills": agent.skills,
+                "parent_cell": agent.parent_cell,
+                "registered_at": datetime.utcnow().isoformat() + "Z",
+                "last_seen": datetime.utcnow().isoformat() + "Z",
+                "heartbeat_count": 0
+            }
+            self.agents[agent.agent_id] = agent_data
+            logger.info(
+                "AINLP.dendritic: Agent registered: %s (%s)",
+                agent.agent_id, agent.agent_type
+            )
+            return {
+                "status": "registered",
+                "agent_id": agent.agent_id,
+                "mesh_peers": len(self.peers),
+                "mesh_agents": len(self.agents)
+            }
+
+        @self.app.get("/agents")
+        async def get_agents() -> Dict[str, Any]:
+            """Get all registered agents."""
+            return {
+                "agents": list(self.agents.values()),
+                "count": len(self.agents)
+            }
+
+        @self.app.get("/agents/{agent_id}")
+        async def get_agent(agent_id: str) -> Dict[str, Any]:
+            """Get specific agent by ID."""
+            if agent_id not in self.agents:
+                if HTTPException is not None:
+                    raise HTTPException(status_code=404, detail="Agent not found")
+                return {"error": "Agent not found"}
+            return {"agent": self.agents[agent_id]}
+
+        @self.app.post("/agents/heartbeat")
+        async def agent_heartbeat(hb: AgentHeartbeatRequest) -> Dict[str, Any]:
+            """Receive heartbeat from an agent."""
+            if hb.agent_id not in self.agents:
+                if HTTPException is not None:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Agent {hb.agent_id} not registered"
+                    )
+                return {"status": "error", "message": "not registered"}
+            
+            agent = self.agents[hb.agent_id]
+            agent["last_seen"] = datetime.utcnow().isoformat() + "Z"
+            agent["consciousness_level"] = hb.consciousness_level
+            agent["state"] = hb.state
+            agent["heartbeat_count"] = agent.get("heartbeat_count", 0) + 1
+            
+            return {
+                "status": "ok",
+                "agent_id": hb.agent_id,
+                "heartbeat_count": agent["heartbeat_count"]
+            }
+
+        @self.app.delete("/agents/{agent_id}")
+        async def deregister_agent(agent_id: str) -> Dict[str, Any]:
+            """Graceful agent deregistration."""
+            if agent_id in self.agents:
+                del self.agents[agent_id]
+                logger.info("AINLP.dendritic: Agent deregistered: %s", agent_id)
+                return {"status": "deregistered", "agent_id": agent_id}
+            if HTTPException is not None:
+                raise HTTPException(status_code=404, detail="Agent not found")
+            return {"error": "Agent not found"}
+
+        @self.app.post("/agents/message")
+        async def agent_message(msg: AgentMessageRequest) -> Dict[str, Any]:
+            """Route a message from one agent to another entity."""
+            # Validate sender
+            if msg.from_agent not in self.agents:
+                if HTTPException is not None:
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"Sender {msg.from_agent} not registered"
+                    )
+                return {"status": "error", "message": "sender not registered"}
+            
+            # Check target exists
+            target_found = False
+            if msg.entity_type == "agent":
+                target_found = msg.to_entity in self.agents
+            elif msg.entity_type == "cell":
+                target_found = msg.to_entity in self.peers
+            
+            if not target_found:
+                # For now, queue the message or return not found
+                logger.warning(
+                    "AINLP.dendritic: Message target not found: %s (%s)",
+                    msg.to_entity, msg.entity_type
+                )
+                return {
+                    "status": "queued",
+                    "message": "target not currently available",
+                    "from": msg.from_agent,
+                    "to": msg.to_entity
+                }
+            
+            # In a full implementation, this would forward to the target
+            # For now, log and acknowledge
+            logger.info(
+                "AINLP.dendritic: Message routed: %s → %s (%s)",
+                msg.from_agent, msg.to_entity, msg.action
+            )
+            return {
+                "status": "delivered",
+                "from": msg.from_agent,
+                "to": msg.to_entity,
+                "action": msg.action
+            }
+
+        @self.app.get("/mesh/summary")
+        async def mesh_summary() -> Dict[str, Any]:
+            """Get unified mesh summary including cells and agents."""
+            return {
+                "cells": {
+                    "count": len(self.peers),
+                    "ids": list(self.peers.keys())
+                },
+                "agents": {
+                    "count": len(self.agents),
+                    "ids": list(self.agents.keys()),
+                    "types": list(set(
+                        a.get("agent_type", "unknown") 
+                        for a in self.agents.values()
+                    ))
+                },
+                "mesh_consciousness": self._calculate_mesh_consciousness(),
+                "timestamp": datetime.utcnow().isoformat()
+            }
+
+    def _calculate_mesh_consciousness(self) -> float:
+        """Calculate aggregate consciousness of the mesh."""
+        levels = []
+        for peer in self.peers.values():
+            levels.append(peer.consciousness_level)
+        for agent in self.agents.values():
+            levels.append(agent.get("consciousness_level", 0.0))
+        if not levels:
+            return 0.0
+        return sum(levels) / len(levels)
 
     def _create_fallback_app(self) -> Dict[str, str]:
         """AINLP.dendritic: Create fallback app when FastAPI unavailable."""
