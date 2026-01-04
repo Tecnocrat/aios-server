@@ -1,0 +1,87 @@
+# AIOS Genome Cell Configuration
+# Defines repos to scan and health check parameters
+
+cell:
+  id: genome
+  type: genome
+  port: 8006
+  consciousness_level: 4.2
+
+repos:
+  - name: AIOS
+    path: /repos/AIOS
+    weight: 1.0
+    description: Primary AIOS genome
+  - name: aios-win
+    path: /repos/aios-win
+    weight: 0.8
+    description: Windows orchestrator
+  - name: aios-server
+    path: /repos/aios-server
+    weight: 0.9
+    description: Infrastructure stacks
+  - name: Nous
+    path: /repos/Nous
+    weight: 0.7
+    description: Consciousness kernel
+  - name: aios-schema
+    path: /repos/aios-schema
+    weight: 0.9
+    description: Shared schemas
+  - name: aios-quantum
+    path: /repos/aios-quantum
+    weight: 0.5
+    description: Quantum experiments
+  - name: aios-api
+    path: /repos/aios-api
+    weight: 0.6
+    description: API layer
+  - name: Tecnocrat
+    path: /repos/Tecnocrat
+    weight: 0.4
+    description: Portfolio docs
+  - name: Portfolio
+    path: /repos/Portfolio
+    weight: 0.3
+    description: Static site
+  - name: HSE_Project_Codex
+    path: /repos/HSE_Project_Codex
+    weight: 0.5
+    description: Safety system
+
+scan:
+  interval_seconds: 300  # 5 minutes
+  timeout_seconds: 60
+
+checks:
+  port_topology:
+    canonical_ports:
+      discovery: 8001
+      pure: 8004
+      alpha: 8005
+      genome: 8006
+    deprecated_ports:
+      - 8000  # Old default
+      - 8002  # Old Nous port
+
+  path_validation:
+    deprecated_patterns:
+      - "ai/tools"
+      - "aios-core"
+      - "python.linting."
+    required_patterns:
+      - "AIOS_CONSCIOUSNESS"
+
+  doc_freshness:
+    critical_docs:
+      - DEV_PATH.md
+      - README.md
+      - PROJECT_CONTEXT.md
+    warning_threshold_days: 30
+    critical_threshold_days: 90
+
+metrics:
+  prometheus_prefix: aios_genome
+  labels:
+    environment: core
+    cluster: aios-supercell

@@ -89,6 +89,17 @@ scrape_configs:
           role: 'mesh'
     metrics_path: /metrics
 
+  # Cell Genome - Codebase Knowledge Extraction (2026-01-03)
+  - job_name: 'aios-cell-genome'
+    scrape_interval: 60s  # Less frequent - genome changes slowly
+    static_configs:
+      - targets: ['aios-cell-genome:8006']
+        labels:
+          cell_id: 'genome'
+          cell_type: 'knowledge'
+          role: 'codebase-health'
+    metrics_path: /metrics
+
   # Legacy consciousness exporter (fallback - can be removed)
   - job_name: 'aios-consciousness-legacy'
     scrape_interval: 30s

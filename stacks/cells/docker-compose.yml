@@ -104,6 +104,42 @@ services:
       timeout: 10s
       retries: 3
 
+  # AIOS Cell - Genome Knowledge Extraction (2026-01-03)
+  aios-cell-genome:
+    build:
+      context: ./genome
+      dockerfile: Dockerfile.cell-genome
+    image: aios-cell:genome
+    container_name: aios-cell-genome
+    restart: unless-stopped
+    networks:
+      - aios-cells
+      - aios-observability
+    ports:
+      - "0.0.0.0:8006:8006"  # Genome cell API
+    environment:
+      - AIOS_CELL_ID=genome
+      - AIOS_CELL_TYPE=genome
+    volumes:
+      # Mount all repos read-only for scanning
+      - /c/dev/AIOS:/repos/AIOS:ro
+      - /c/dev/aios-win:/repos/aios-win:ro
+      - /c/dev/aios-server:/repos/aios-server:ro
+      - /c/dev/Nous:/repos/Nous:ro
+      - /c/dev/aios-schema:/repos/aios-schema:ro
+      - /c/dev/aios-quantum:/repos/aios-quantum:ro
+      - /c/dev/aios-api:/repos/aios-api:ro
+      - /c/dev/Tecnocrat:/repos/Tecnocrat:ro
+      - /c/dev/Portfolio:/repos/Portfolio:ro
+      - /c/dev/HSE_Project_Codex:/repos/HSE_Project_Codex:ro
+    depends_on:
+      - discovery-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
 networks:
   aios-cells:
     driver: bridge
