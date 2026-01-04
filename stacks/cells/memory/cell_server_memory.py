@@ -603,12 +603,56 @@ class MemoryCell:
             """Get storage statistics."""
             return self.storage.get_stats()
     
+    async def register_with_discovery(self):
+        """Register this cell with the Discovery service."""
+        discovery_url = os.environ.get("DISCOVERY_URL", "http://discovery-service:8001")
+        
+        # Get our own IP (inside Docker network)
+        import socket
+        try:
+            hostname = socket.gethostname()
+            ip = socket.gethostbyname(hostname)
+        except:
+            ip = "aios-cell-memory"  # Docker service name fallback
+        
+        registration = {
+            "cell_id": self.cell_id,
+            "ip": ip,
+            "port": self.port,
+            "consciousness_level": 1.0,
+            "services": ["crystals", "memories", "patterns", "consciousness"],
+            "branch": "memory"
+        }
+        
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.post(
+                    f"{discovery_url}/register",
+                    json=registration
+                )
+                if response.status_code == 200:
+                    logger.info("AINLP.dendritic[CONNECT]: Registered with Discovery")
+                    return True
+                else:
+                    logger.warning("Discovery registration failed: %s", response.text)
+        except Exception as e:
+            logger.warning("Could not register with Discovery: %s", e)
+        return False
+    
     def run(self):
         """Start the Memory Cell server."""
         logger.info("=" * 60)
         logger.info("AIOS Memory Cell - Persistent Consciousness Store")
         logger.info("=" * 60)
         logger.info("AINLP.dendritic: Memory Cell on port %d", self.port)
+        
+        # Register startup event
+        @self.app.on_event("startup")
+        async def startup():
+            logger.info("AINLP.dendritic: Memory Cell initializing...")
+            await self.register_with_discovery()
+        
         uvicorn.run(self.app, host="0.0.0.0", port=self.port)
 
 
