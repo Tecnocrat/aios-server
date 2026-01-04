@@ -37,7 +37,7 @@ services:
       - AIOS_DISCOVERY_ADDR=aios-discovery:8001
       - AIOS_VAULT_ADDR=http://192.168.1.128:8200,http://aios-laptop.local:8200
       - BRIDGE_PORT=3001
-      - AIOS_DESKTOP_CELL=http://192.168.1.128:8000
+      # Note: AIOS_DESKTOP_CELL deprecated - use discovery service instead
     volumes:
       - ./bridge/bridge.py:/app/bridge.py:ro
     depends_on:

@@ -2,14 +2,11 @@
     "python.analysis.typeCheckingMode": "basic",
     "pylint.enabled": true,
     "pylint.lintOnSave": true,
-    "flake8.enabled": false,
-    "python.linting.enabled": true,
-    "python.linting.pylintEnabled": true,
-    "python.linting.flake8Enabled": false,
-    "python.linting.pylintArgs": [
+    "pylint.args": [
         "--max-line-length=120",
         "--disable=C0301"
     ],
+    "flake8.enabled": false,
     "black-formatter.args": [
         "--line-length=120"
     ],
