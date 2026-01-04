@@ -1,0 +1,6 @@
+# Memory Cell Requirements
+# AINLP.dendritic: Dependencies for persistent consciousness storage
+
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0

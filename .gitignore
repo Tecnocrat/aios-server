@@ -22,3 +22,5 @@ Thumbs.db
 
 # Vault secrets - NEVER COMMIT
 stacks/secrets/.vault-init.json
+stacks/cells/memory/__pycache__/
+stacks/cells/memory/*.db

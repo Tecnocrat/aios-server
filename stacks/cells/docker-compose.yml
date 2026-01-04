@@ -140,6 +140,34 @@ services:
       timeout: 10s
       retries: 3
 
+  # AIOS Cell - Memory Persistent Storage (2026-01-04)
+  aios-cell-memory:
+    build:
+      context: .
+      dockerfile: memory/Dockerfile.memory
+    image: aios-cell:memory
+    container_name: aios-cell-memory
+    restart: unless-stopped
+    networks:
+      - aios-cells
+      - aios-observability
+    ports:
+      - "0.0.0.0:8007:8007"  # Memory cell API
+    environment:
+      - AIOS_CELL_ID=memory
+      - AIOS_CELL_TYPE=memory
+      - MEMORY_PORT=8007
+      - MEMORY_DB_PATH=/app/data/memory.db
+    volumes:
+      - memory-data:/app/data  # Persistent storage
+    depends_on:
+      - discovery-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   aios-cells:
     driver: bridge
@@ -150,3 +178,7 @@ networks:
     external: true
   aios-dendritic-mesh:
     external: true
+
+volumes:
+  memory-data:
+    driver: local
