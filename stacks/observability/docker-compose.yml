@@ -12,6 +12,7 @@ services:
       - aios-observability
       - aios-ingress
       - aios-dendritic-mesh  # AINLP.dendritic: Access cell metrics
+      - aios-multipotent-mesh  # AINLP.cellular: Access multipotent mesh metrics
     ports:
       - "0.0.0.0:9090:9090"
     command:
@@ -134,6 +135,9 @@ networks:
     external: true
   # AINLP.dendritic: Connect to cells network for direct metrics scraping
   aios-dendritic-mesh:
+    external: true
+  # AINLP.cellular: Connect to multipotent mesh for agentic DNA metrics
+  aios-multipotent-mesh:
     external: true
 
 volumes:

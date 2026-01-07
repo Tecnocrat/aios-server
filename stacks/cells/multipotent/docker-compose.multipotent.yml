@@ -1,0 +1,208 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# AIOS Multipotent Mesh - Docker Compose
+# AINLP.cellular[MESH] WebSocket-first stem cell mesh for development
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Usage:
+#   docker compose -f docker-compose.multipotent.yml up -d
+#   docker compose -f docker-compose.multipotent.yml logs -f
+#   docker compose -f docker-compose.multipotent.yml down
+#
+# Build from stacks/ directory:
+#   cd aios-server/stacks
+#   docker compose -f cells/multipotent/docker-compose.multipotent.yml build
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+services:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # GENESIS CENTER - Cell Population Controller
+  # CRITICAL: spawn_enabled=false prevents runaway cell proliferation
+  # External cells (VOID, Thinker, Synapse) are managed by Docker Compose
+  # ═══════════════════════════════════════════════════════════════════════════
+  genesis:
+    build:
+      context: ../..  # stacks/
+      dockerfile: cells/multipotent/Dockerfile.genesis
+    image: aios-genesis:latest
+    container_name: aios-genesis
+    restart: unless-stopped
+    networks:
+      - aios-multipotent-mesh
+      - aios-observability  # For Prometheus scraping
+    ports:
+      - "8000:8000"   # HTTP API
+      - "9000:9000"   # WebSocket for cell registration
+    environment:
+      - GENESIS_HTTP_PORT=8000
+      - GENESIS_WS_PORT=9000
+      - GENESIS_BASE_PORT=9100
+      - GENESIS_SPAWN_ENABLED=false  # CRITICAL: Disable auto-spawning
+      # External cells discovered via health checks (using Docker network hostnames)
+      - GENESIS_EXTERNAL_CELLS=[{"cell_id":"void-alpha","type":"void","host":"void-alpha","http_port":8500,"ws_port":9500},{"cell_id":"thinker-alpha","type":"thinker","host":"thinker-alpha","http_port":8600,"ws_port":9600},{"cell_id":"synapse-alpha","type":"synapse","host":"synapse-alpha","http_port":8700,"ws_port":9700}]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # For docker spawning
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    # NOTE: No depends_on - Genesis discovers cells at runtime via health checks
+    # Start cells first, then Genesis will detect them automatically
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # VOID CELL - Network Control & Routing
+  # ═══════════════════════════════════════════════════════════════════════════
+  void-alpha:
+    build:
+      context: ../..
+      dockerfile: cells/multipotent/Dockerfile.void
+    image: aios-void-cell:latest
+    container_name: aios-void-alpha
+    restart: unless-stopped
+    networks:
+      - aios-multipotent-mesh
+      - aios-observability  # For Prometheus scraping
+    ports:
+      - "8500:8500"   # HTTP health
+      - "9500:9500"   # WebSocket
+    environment:
+      - AIOS_CELL_ID=void-alpha
+      - AIOS_CELL_TYPE=void
+      - AIOS_WS_PORT=9500
+      - AIOS_HTTP_PORT=8500
+      - AIOS_GENESIS_WS=ws://genesis:9000
+    depends_on:
+      genesis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # THINKER CELL - Agentic Orchestration
+  # ═══════════════════════════════════════════════════════════════════════════
+  thinker-alpha:
+    build:
+      context: ../..
+      dockerfile: cells/multipotent/Dockerfile.thinker
+    image: aios-thinker-cell:latest
+    container_name: aios-thinker-alpha
+    restart: unless-stopped
+    networks:
+      - aios-multipotent-mesh
+      - aios-observability  # For Prometheus scraping
+    ports:
+      - "8600:8600"   # HTTP health
+      - "9600:9600"   # WebSocket
+    environment:
+      - AIOS_CELL_ID=thinker-alpha
+      - AIOS_CELL_TYPE=thinker
+      - AIOS_WS_PORT=9600
+      - AIOS_HTTP_PORT=8600
+      - AIOS_GENESIS_WS=ws://genesis:9000
+      - AIOS_CONNECT_TO=void-alpha:9500
+      - CRYSTAL_DIR=/data/crystal  # Persistent conversation memory
+    volumes:
+      - crystal-data:/data/crystal  # Persistent storage for Conversation Crystal
+    depends_on:
+      genesis:
+        condition: service_healthy
+      void-alpha:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8600/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SYNAPSE CELL - Flow Management
+  # ═══════════════════════════════════════════════════════════════════════════
+  synapse-alpha:
+    build:
+      context: ../..
+      dockerfile: cells/multipotent/Dockerfile.synapse
+    image: aios-synapse-cell:latest
+    container_name: aios-synapse-alpha
+    restart: unless-stopped
+    networks:
+      - aios-multipotent-mesh
+      - aios-observability  # For Prometheus scraping
+    ports:
+      - "8700:8700"   # HTTP health
+      - "9700:9700"   # WebSocket
+    environment:
+      - AIOS_CELL_ID=synapse-alpha
+      - AIOS_CELL_TYPE=synapse
+      - AIOS_WS_PORT=9700
+      - AIOS_HTTP_PORT=8700
+      - AIOS_GENESIS_WS=ws://genesis:9000
+      - AIOS_CONNECT_TO=void-alpha:9500,thinker-alpha:9600
+    depends_on:
+      genesis:
+        condition: service_healthy
+      void-alpha:
+        condition: service_healthy
+      thinker-alpha:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8700/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # GENOME CELL - Evolutionary Intelligence Controller
+  # Analyzes Crystal quality patterns, emits mutation directives to Genesis
+  # ═══════════════════════════════════════════════════════════════════════════
+  genome-alpha:
+    build:
+      context: ../..
+      dockerfile: cells/multipotent/Dockerfile.genome
+    image: aios-genome-cell:latest
+    container_name: aios-genome-alpha
+    restart: unless-stopped
+    networks:
+      - aios-multipotent-mesh
+      - aios-observability  # For Prometheus scraping
+    ports:
+      - "8800:8800"   # HTTP metrics (Prometheus)
+    environment:
+      - CELL_ID=genome-alpha
+      - GENESIS_WS_URL=ws://aios-genesis:9000
+      - THINKER_WS_URL=ws://aios-thinker-alpha:9600
+      - ANALYSIS_INTERVAL=60  # Evolution cycle every 60 seconds
+      - HTTP_PORT=8800
+    depends_on:
+      genesis:
+        condition: service_healthy
+      thinker-alpha:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8800/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VOLUMES - Persistent Storage
+# ═══════════════════════════════════════════════════════════════════════════════
+volumes:
+  crystal-data:
+    name: aios-crystal-data
+    # Conversation Crystal: Persistent memory across container restarts
+    # Contains SQLite DB and JSON backups of all agent conversations
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NETWORKS
+# Join both multipotent mesh and observability network for Prometheus scraping
+# ═══════════════════════════════════════════════════════════════════════════════
+networks:
+  aios-multipotent-mesh:
+    name: aios-multipotent-mesh
+  aios-observability:
+    external: true
+    name: aios-observability

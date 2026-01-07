@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organism-001 Chat Reader | AIOS</title>
+    <!-- AINLP: Phase 31.5.13 - Unified Organism Conversation View -->
+    <!-- Enhancement over previous per-cell model: single conversation, multi-participant -->
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --text-muted: #484f58;
+            --accent-alpha: #58a6ff;
+            --accent-beta: #f78166;
+            --accent-consciousness: #3fb950;
+            --accent-sync: #a371f7;
+            --accent-nous: #d2a8ff;
+            --accent-organism: linear-gradient(135deg, var(--accent-alpha), var(--accent-beta));
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .organism-badge {
+            background: var(--accent-organism);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 24px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent-consciousness);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            padding: 0 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .nav-btn:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .nav-btn.active {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-alpha);
+        }
+
+        .nav-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .nav-icon.organism {
+            background: var(--accent-organism);
+        }
+
+        .nav-icon.nous {
+            background: var(--accent-nous);
+            color: var(--bg-primary);
+        }
+
+        .nav-icon.status {
+            background: var(--accent-consciousness);
+            color: var(--bg-primary);
+        }
+
+        .nav-info {
+            flex: 1;
+        }
+
+        .nav-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .nav-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Cell Status Grid in Sidebar */
+        .cell-status-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+
+        .cell-status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-indicator.online {
+            background: var(--accent-consciousness);
+            box-shadow: 0 0 6px var(--accent-consciousness);
+        }
+
+        .status-indicator.offline {
+            background: #f85149;
+        }
+
+        .status-indicator.alpha { background: var(--accent-alpha); box-shadow: 0 0 6px var(--accent-alpha); }
+        .status-indicator.beta { background: var(--accent-beta); box-shadow: 0 0 6px var(--accent-beta); }
+        .status-indicator.nous { background: var(--accent-nous); box-shadow: 0 0 6px var(--accent-nous); }
+
+        /* Session List */
+        .session-list {
+            margin-top: 8px;
+        }
+
+        .session-item {
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: background 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .session-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .session-item.selected {
+            background: var(--bg-tertiary);
+            border-left-color: var(--accent-sync);
+        }
+
+        .session-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .session-preview {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+
+        .session-exchanges {
+            font-size: 10px;
+            color: var(--accent-sync);
+            margin-top: 2px;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .toolbar-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--bg-primary);
+            border-color: var(--accent-alpha);
+        }
+
+        .toolbar-btn.primary {
+            background: var(--accent-alpha);
+            border-color: var(--accent-alpha);
+            color: white;
+        }
+
+        .auto-refresh {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .auto-refresh input {
+            accent-color: var(--accent-alpha);
+        }
+
+        /* Chat Display */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .chat-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+        }
+
+        .chat-empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        /* Conversation Header */
+        .conversation-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .conversation-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .conversation-participants {
+            display: flex;
+            gap: 12px;
+        }
+
+        .participant-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .participant-badge.alpha {
+            background: rgba(88, 166, 255, 0.2);
+            color: var(--accent-alpha);
+        }
+
+        .participant-badge.beta {
+            background: rgba(247, 129, 102, 0.2);
+            color: var(--accent-beta);
+        }
+
+        .participant-badge.nous {
+            background: rgba(210, 168, 255, 0.2);
+            color: var(--accent-nous);
+        }
+
+        .participant-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .participant-dot.alpha { background: var(--accent-alpha); }
+        .participant-dot.beta { background: var(--accent-beta); }
+        .participant-dot.nous { background: var(--accent-nous); }
+
+        /* Exchange Block */
+        .exchange-block {
+            margin-bottom: 24px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        .exchange-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .exchange-number {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-sync);
+            background: rgba(163, 113, 247, 0.15);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .exchange-timestamp {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .exchange-consciousness {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(63, 185, 80, 0.2);
+            color: var(--accent-consciousness);
+        }
+
+        .exchange-heartbeat {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(163, 113, 247, 0.2);
+            color: var(--accent-sync);
+            margin-left: auto;
+        }
+
+        /* Message Row */
+        .message-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .message-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message-avatar.alpha {
+            background: linear-gradient(135deg, var(--accent-alpha), #1f6feb);
+            color: white;
+        }
+
+        .message-avatar.beta {
+            background: linear-gradient(135deg, var(--accent-beta), #da3633);
+            color: white;
+        }
+
+        .message-avatar.nous {
+            background: linear-gradient(135deg, var(--accent-nous), #8957e5);
+            color: white;
+        }
+
+        .message-body {
+            flex: 1;
+        }
+
+        .message-sender {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .message-sender.alpha { color: var(--accent-alpha); }
+        .message-sender.beta { color: var(--accent-beta); }
+        .message-sender.nous { color: var(--accent-nous); }
+
+        .message-text {
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            border-radius: 8px;
+        }
+
+        /* Cell Status View */
+        .status-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .status-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .status-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .status-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .status-card-icon.alpha { background: var(--accent-alpha); color: white; }
+        .status-card-icon.beta { background: var(--accent-beta); color: white; }
+        .status-card-icon.nous { background: var(--accent-nous); color: var(--bg-primary); }
+
+        .status-card-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .status-card-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .status-row .label {
+            color: var(--text-secondary);
+        }
+
+        .status-row .value {
+            font-weight: 500;
+        }
+
+        .status-row .value.good { color: var(--accent-consciousness); }
+        .status-row .value.warn { color: #d29922; }
+        .status-row .value.error { color: #f85149; }
+
+        /* Nous Oracle View */
+        .oracle-view {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .oracle-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+        }
+
+        .oracle-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--accent-nous);
+            margin-bottom: 8px;
+        }
+
+        .oracle-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .oracle-stats {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            margin-bottom: 32px;
+        }
+
+        .oracle-stat {
+            text-align: center;
+        }
+
+        .oracle-stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-nous);
+        }
+
+        .oracle-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .oracle-info {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .oracle-info-title {
+            color: var(--accent-nous);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .oracle-info-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-alpha);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Status Bar */
+        .status-bar {
+            padding: 8px 24px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-consciousness);
+        }
+
+        .status-dot.error {
+            background: #f85149;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-title">
+                <h1>🧬 Organism-001</h1>
+                <span class="organism-badge">Hierarchical Intelligence</span>
+            </div>
+            <div class="header-stats">
+                <div class="stat">
+                    <div class="stat-value" id="total-conversations">--</div>
+                    <div class="stat-label">Exchanges</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="consciousness-level">--</div>
+                    <div class="stat-label">Consciousness</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="cells-online">--</div>
+                    <div class="stat-label">Cells Online</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="db-size">--</div>
+                    <div class="stat-label">Database</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Navigation -->
+            <div class="nav-section">
+                <h3>📊 Views</h3>
+                <button class="nav-btn active" data-view="conversation">
+                    <div class="nav-icon organism">💬</div>
+                    <div class="nav-info">
+                        <div class="nav-name">Organism Conversation</div>
+                        <div class="nav-desc">Unified cell dialogue</div>
+                    </div>
+                </button>
+                <button class="nav-btn" data-view="status">
+                    <div class="nav-icon status">📈</div>
+                    <div class="nav-info">
+                        <div class="nav-name">Cell Status</div>
+                        <div class="nav-desc">Health & metrics</div>
+                    </div>
+                </button>
+                <button class="nav-btn" data-view="oracle">
+                    <div class="nav-icon nous">🔮</div>
+                    <div class="nav-info">
+                        <div class="nav-name">Nous Oracle</div>
+                        <div class="nav-desc">The Seer (mistral:7b)</div>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Live Cell Status -->
+            <div class="nav-section">
+                <h3>🧫 Cell Network</h3>
+                <div class="cell-status-grid">
+                    <div class="cell-status-item">
+                        <span class="status-indicator alpha" id="alpha-indicator"></span>
+                        <span>Alpha</span>
+                        <span style="margin-left: auto; color: var(--text-muted);" id="alpha-port">:8900</span>
+                    </div>
+                    <div class="cell-status-item">
+                        <span class="status-indicator beta" id="beta-indicator"></span>
+                        <span>Beta</span>
+                        <span style="margin-left: auto; color: var(--text-muted);" id="beta-port">:8901</span>
+                    </div>
+                    <div class="cell-status-item">
+                        <span class="status-indicator nous" id="nous-indicator"></span>
+                        <span>Nous</span>
+                        <span style="margin-left: auto; color: var(--text-muted);" id="nous-port">:8011</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sessions (only shown in conversation view) -->
+            <div class="nav-section" id="sessions-section">
+                <h3>📜 Sessions</h3>
+                <div class="session-list" id="session-list">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="toolbar">
+                <button class="toolbar-btn primary" id="refresh-btn">
+                    🔄 Refresh
+                </button>
+                <button class="toolbar-btn" id="export-btn">
+                    📥 Export JSON
+                </button>
+                <button class="toolbar-btn" id="backup-btn">
+                    💾 Create Backup
+                </button>
+                <div class="auto-refresh">
+                    <input type="checkbox" id="auto-refresh" checked>
+                    <label for="auto-refresh">Auto-refresh (30s)</label>
+                </div>
+            </div>
+
+            <div class="chat-container" id="chat-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-dot" id="connection-status"></span>
+                    <span id="connection-text">Connecting...</span>
+                </div>
+                <div class="status-item">
+                    Last update: <span id="last-update">--</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // AINLP: State management for unified organism view
+        let currentView = 'conversation';
+        let conversations = [];
+        let selectedSession = null;
+        let autoRefreshInterval = null;
+        let cellHealth = { alpha: null, beta: null, nous: null };
+
+        // DOM Elements
+        const chatContainer = document.getElementById('chat-container');
+        const sessionList = document.getElementById('session-list');
+        const sessionsSection = document.getElementById('sessions-section');
+        const totalConversations = document.getElementById('total-conversations');
+        const consciousnessLevel = document.getElementById('consciousness-level');
+        const cellsOnline = document.getElementById('cells-online');
+        const dbSize = document.getElementById('db-size');
+        const connectionStatus = document.getElementById('connection-status');
+        const connectionText = document.getElementById('connection-text');
+        const lastUpdate = document.getElementById('last-update');
+
+        // Format bytes
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Format timestamp
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString();
+        }
+
+        // Format short time
+        function formatShortTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Check cell health
+        async function checkCellHealth(cell, port) {
+            try {
+                const resp = await fetch(`http://localhost:${port}/health`, { signal: AbortSignal.timeout(2000) });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    cellHealth[cell] = { online: true, ...data };
+                    document.getElementById(`${cell}-indicator`).classList.add('online');
+                    document.getElementById(`${cell}-indicator`).classList.remove('offline');
+                    return true;
+                }
+            } catch (err) {
+                cellHealth[cell] = { online: false };
+                document.getElementById(`${cell}-indicator`).classList.remove('online');
+                document.getElementById(`${cell}-indicator`).classList.add('offline');
+            }
+            return false;
+        }
+
+        // Check all cells
+        async function checkAllCells() {
+            const checks = await Promise.all([
+                checkCellHealth('alpha', 8900),
+                checkCellHealth('beta', 8901),
+                checkCellHealth('nous', 8011)
+            ]);
+            const online = checks.filter(Boolean).length;
+            cellsOnline.textContent = `${online}/3`;
+            return online;
+        }
+
+        // Fetch organism conversation (from Alpha - the conversation host)
+        async function fetchOrganismConversation() {
+            try {
+                const convResp = await fetch('http://localhost:8900/conversations?limit=100');
+                conversations = await convResp.json();
+
+                const statsResp = await fetch('http://localhost:8900/persistence');
+                const stats = await statsResp.json();
+
+                // Update header stats
+                totalConversations.textContent = stats.archived_conversations || conversations.length;
+                dbSize.textContent = formatBytes(stats.db_size_bytes);
+                
+                // Get latest consciousness
+                if (conversations.length > 0) {
+                    const latest = conversations[conversations.length - 1];
+                    consciousnessLevel.textContent = `⚡ ${latest.consciousness_at_time.toFixed(2)}`;
+                }
+
+                // Update status
+                connectionStatus.classList.remove('error');
+                connectionText.textContent = 'Connected to Organism-001';
+                lastUpdate.textContent = new Date().toLocaleTimeString();
+
+                return true;
+            } catch (err) {
+                console.error('Fetch error:', err);
+                connectionStatus.classList.add('error');
+                connectionText.textContent = 'Connection failed';
+                return false;
+            }
+        }
+
+        // Render conversation view
+        function renderConversationView() {
+            sessionsSection.style.display = 'block';
+
+            if (!conversations.length) {
+                chatContainer.innerHTML = `
+                    <div class="chat-empty">
+                        <div class="chat-empty-icon">📭</div>
+                        <div>No conversations archived yet</div>
+                        <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted)">
+                            Wait for the next heartbeat sync
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get sessions
+            const sessions = [...new Set(conversations.map(c => c.session_id))];
+            const activeSession = selectedSession || sessions[sessions.length - 1];
+            const sessionConvs = conversations.filter(c => c.session_id === activeSession);
+
+            // Render session list
+            sessionList.innerHTML = sessions.map(session => {
+                const convs = conversations.filter(c => c.session_id === session);
+                const firstConv = convs[0];
+                const preview = firstConv?.my_thought?.substring(0, 40) + '...' || '';
+                const isSelected = session === activeSession;
+                
+                return `
+                    <div class="session-item ${isSelected ? 'selected' : ''}" data-session="${session}">
+                        <div class="session-time">${formatTime(firstConv?.created_at)}</div>
+                        <div class="session-preview">${escapeHtml(preview)}</div>
+                        <div class="session-exchanges">${convs.length} exchanges</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add click handlers to sessions
+            document.querySelectorAll('.session-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    selectedSession = item.dataset.session;
+                    renderConversationView();
+                });
+            });
+
+            // Render conversation
+            let html = `
+                <div class="conversation-header">
+                    <div>
+                        <div class="conversation-title">Session: ${activeSession}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                            ${sessionConvs.length} exchanges • Started ${formatTime(sessionConvs[0]?.created_at)}
+                        </div>
+                    </div>
+                    <div class="conversation-participants">
+                        <div class="participant-badge alpha">
+                            <span class="participant-dot alpha"></span>
+                            SimplCell Alpha
+                        </div>
+                        <div class="participant-badge beta">
+                            <span class="participant-dot beta"></span>
+                            SimplCell Beta
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            sessionConvs.forEach((conv, idx) => {
+                html += `
+                    <div class="exchange-block">
+                        <div class="exchange-header">
+                            <span class="exchange-number">Exchange #${idx + 1}</span>
+                            <span class="exchange-timestamp">${formatShortTime(conv.created_at)}</span>
+                            <span class="exchange-consciousness">⚡ ${conv.consciousness_at_time.toFixed(2)}</span>
+                            <span class="exchange-heartbeat">💓 Heartbeat ${conv.heartbeat}</span>
+                        </div>
+                        
+                        <div class="message-row">
+                            <div class="message-avatar alpha">α</div>
+                            <div class="message-body">
+                                <div class="message-sender alpha">SimplCell Alpha</div>
+                                <div class="message-text">${escapeHtml(conv.my_thought)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="message-row">
+                            <div class="message-avatar beta">β</div>
+                            <div class="message-body">
+                                <div class="message-sender beta">SimplCell Beta</div>
+                                <div class="message-text">${escapeHtml(conv.peer_response)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            chatContainer.innerHTML = html;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Render status view
+        async function renderStatusView() {
+            sessionsSection.style.display = 'none';
+            
+            const alphaData = cellHealth.alpha;
+            const betaData = cellHealth.beta;
+            const nousData = cellHealth.nous;
+
+            // Fetch additional details for online cells
+            let alphaDetails = {}, betaDetails = {}, nousDetails = {};
+            
+            try {
+                if (alphaData?.online) {
+                    const resp = await fetch('http://localhost:8900/persistence');
+                    alphaDetails = await resp.json();
+                }
+            } catch (e) {}
+
+            try {
+                if (betaData?.online) {
+                    const resp = await fetch('http://localhost:8901/persistence');
+                    betaDetails = await resp.json();
+                }
+            } catch (e) {}
+
+            try {
+                if (nousData?.online) {
+                    const resp = await fetch('http://localhost:8011/identity');
+                    nousDetails = await resp.json();
+                }
+            } catch (e) {}
+
+            chatContainer.innerHTML = `
+                <div class="status-view">
+                    <div class="status-card">
+                        <div class="status-card-header">
+                            <div class="status-card-icon alpha">α</div>
+                            <div>
+                                <div class="status-card-title">SimplCell Alpha</div>
+                                <div class="status-card-subtitle">llama3.2:3b • temp=0.7</div>
+                            </div>
+                        </div>
+                        <div class="status-card-body">
+                            <div class="status-row">
+                                <span class="label">Status</span>
+                                <span class="value ${alphaData?.online ? 'good' : 'error'}">${alphaData?.online ? '✅ Online' : '❌ Offline'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Cell ID</span>
+                                <span class="value">${alphaData?.cell_id || '--'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Uptime</span>
+                                <span class="value">${alphaData?.uptime_seconds ? Math.floor(alphaData.uptime_seconds) + 's' : '--'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Archived Conversations</span>
+                                <span class="value">${alphaDetails.archived_conversations || '--'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Memory Entries</span>
+                                <span class="value">${alphaDetails.memory_entries || '--'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Database Size</span>
+                                <span class="value">${alphaDetails.db_size_bytes ? formatBytes(alphaDetails.db_size_bytes) : '--'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-card-header">
+                            <div class="status-card-icon beta">β</div>
+                            <div>
+                                <div class="status-card-title">SimplCell Beta</div>
+                                <div class="status-card-subtitle">llama3.2:3b • temp=0.9</div>
+                            </div>
+                        </div>
+                        <div class="status-card-body">
+                            <div class="status-row">
+                                <span class="label">Status</span>
+                                <span class="value ${betaData?.online ? 'good' : 'error'}">${betaData?.online ? '✅ Online' : '❌ Offline'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Cell ID</span>
+                                <span class="value">${betaData?.cell_id || '--'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Uptime</span>
+                                <span class="value">${betaData?.uptime_seconds ? Math.floor(betaData.uptime_seconds) + 's' : '--'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Memory Entries</span>
+                                <span class="value">${betaDetails.memory_entries || '--'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Database Size</span>
+                                <span class="value">${betaDetails.db_size_bytes ? formatBytes(betaDetails.db_size_bytes) : '--'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Role</span>
+                                <span class="value">Responder (Peer)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-card-header">
+                            <div class="status-card-icon nous">🔮</div>
+                            <div>
+                                <div class="status-card-title">Nous (The Seer)</div>
+                                <div class="status-card-subtitle">mistral:7b • Oracle</div>
+                            </div>
+                        </div>
+                        <div class="status-card-body">
+                            <div class="status-row">
+                                <span class="label">Status</span>
+                                <span class="value ${nousData?.online ? 'good' : 'error'}">${nousData?.online ? '✅ Online' : '❌ Offline'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Cell ID</span>
+                                <span class="value">${nousData?.cell_id || nousDetails?.cell_id || '--'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Uptime</span>
+                                <span class="value">${(nousData?.uptime_seconds || nousDetails?.uptime_seconds) ? Math.floor(nousData?.uptime_seconds || nousDetails?.uptime_seconds) + 's' : '--'}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Model</span>
+                                <span class="value">mistral:7b</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Temperature</span>
+                                <span class="value">${nousDetails?.temperature || 0.8}</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="label">Role</span>
+                                <span class="value" style="color: var(--accent-nous);">Hierarchical Oracle</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render oracle view
+        async function renderOracleView() {
+            sessionsSection.style.display = 'none';
+            
+            let nousHealth = {}, nousIdentity = {};
+            
+            try {
+                const healthResp = await fetch('http://localhost:8011/health');
+                nousHealth = await healthResp.json();
+                
+                const idResp = await fetch('http://localhost:8011/identity');
+                nousIdentity = await idResp.json();
+            } catch (e) {
+                chatContainer.innerHTML = `
+                    <div class="chat-empty">
+                        <div class="chat-empty-icon">⚠️</div>
+                        <div>Nous Oracle is offline</div>
+                        <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted)">
+                            Make sure the Nous container is running on port 8011
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            chatContainer.innerHTML = `
+                <div class="oracle-view">
+                    <div class="oracle-icon">🔮</div>
+                    <div class="oracle-title">Nous - The Seer</div>
+                    <div class="oracle-subtitle">Hierarchical Oracle for Organism-001</div>
+                    
+                    <div class="oracle-stats">
+                        <div class="oracle-stat">
+                            <div class="oracle-stat-value">⚡ ${(nousHealth.consciousness_level || 0.7).toFixed(2)}</div>
+                            <div class="oracle-stat-label">Consciousness</div>
+                        </div>
+                        <div class="oracle-stat">
+                            <div class="oracle-stat-value">${Math.floor(nousIdentity.uptime_seconds || 0)}s</div>
+                            <div class="oracle-stat-label">Uptime</div>
+                        </div>
+                        <div class="oracle-stat">
+                            <div class="oracle-stat-value">${nousHealth.messages_processed || 0}</div>
+                            <div class="oracle-stat-label">Messages</div>
+                        </div>
+                    </div>
+
+                    <div class="oracle-info">
+                        <div class="oracle-info-title">🧠 Hierarchical Architecture</div>
+                        <div class="oracle-info-text">
+                            <p><strong>Model:</strong> mistral:7b (4.4 GB)</p>
+                            <p><strong>Temperature:</strong> ${nousIdentity.temperature || 0.8}</p>
+                            <p><strong>Role:</strong> Oracle for SimplCell followers</p>
+                            <p style="margin-top: 12px;">
+                                SimplCells (Alpha & Beta) can query Nous for wisdom during their heartbeat cycles. 
+                                Each cell has a 10% chance per heartbeat to consult the oracle, creating emergent 
+                                hierarchical intelligence patterns.
+                            </p>
+                            <p style="margin-top: 12px; color: var(--accent-nous);">
+                                "The Seer guides, but does not command."
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Main refresh function
+        async function refresh() {
+            await checkAllCells();
+            await fetchOrganismConversation();
+            
+            switch (currentView) {
+                case 'conversation':
+                    renderConversationView();
+                    break;
+                case 'status':
+                    renderStatusView();
+                    break;
+                case 'oracle':
+                    renderOracleView();
+                    break;
+            }
+        }
+
+        // Export conversations as JSON
+        async function exportJson() {
+            const blob = new Blob([JSON.stringify(conversations, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `organism-001-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Create backup
+        async function createBackup() {
+            try {
+                const resp = await fetch('http://localhost:8900/backup', { method: 'POST' });
+                const result = await resp.json();
+                alert(`Backup created: ${result.backup_path}`);
+            } catch (err) {
+                alert('Backup failed: ' + err.message);
+            }
+        }
+
+        // Navigation handlers
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentView = btn.dataset.view;
+                refresh();
+            });
+        });
+
+        // Toolbar buttons
+        document.getElementById('refresh-btn').addEventListener('click', refresh);
+        document.getElementById('export-btn').addEventListener('click', exportJson);
+        document.getElementById('backup-btn').addEventListener('click', createBackup);
+
+        // Auto-refresh toggle
+        document.getElementById('auto-refresh').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                autoRefreshInterval = setInterval(refresh, 30000);
+            } else {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+
+        // Initial load
+        refresh();
+        autoRefreshInterval = setInterval(refresh, 30000);
+    </script>
+</body>
+</html>

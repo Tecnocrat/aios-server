@@ -100,6 +100,102 @@ scrape_configs:
           role: 'codebase-health'
     metrics_path: /metrics
 
+  # ═══════════════════════════════════════════════════════════════════════
+  # MULTIPOTENT MESH - Agentic DNA Architecture
+  # Container names are prefixed with 'aios-' in docker-compose
+  # ═══════════════════════════════════════════════════════════════════════
+
+  # Genesis Center - Agent population spawning
+  - job_name: 'aios-genesis'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-genesis:8000']
+        labels:
+          cell_id: 'genesis-alpha'
+          cell_type: 'genesis'
+          role: 'population-control'
+          mesh: 'multipotent'
+    metrics_path: /metrics
+
+  # VOID Cell - Reality bridge
+  - job_name: 'aios-void'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-void-alpha:8500']
+        labels:
+          cell_id: 'void-alpha'
+          cell_type: 'void'
+          role: 'reality-bridge'
+          mesh: 'multipotent'
+    metrics_path: /metrics
+
+  # Thinker Cell - Agentic orchestrator (Crystal)
+  - job_name: 'aios-thinker'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-thinker-alpha:8600']
+        labels:
+          cell_id: 'thinker-alpha'
+          cell_type: 'thinker'
+          role: 'agentic-orchestrator'
+          mesh: 'multipotent'
+    metrics_path: /metrics
+
+  # Synapse Cell - Nerve mesh integration
+  - job_name: 'aios-synapse'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-synapse-alpha:8700']
+        labels:
+          cell_id: 'synapse-alpha'
+          cell_type: 'synapse'
+          role: 'nerve-integration'
+          mesh: 'multipotent'
+    metrics_path: /metrics
+
+  # Genome Cell - Evolutionary intelligence
+  - job_name: 'aios-genome-evolution'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['aios-genome-alpha:8800']
+        labels:
+          cell_id: 'genome-alpha'
+          cell_type: 'genome-evolution'
+          role: 'evolutionary-intelligence'
+          mesh: 'multipotent'
+    metrics_path: /metrics
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ORGANISM-001 - First Multicellular Entity (Phase 31.5)
+  # Two SimplCells forming the first AIOS organism
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # SimplCell Alpha - First cell of organism
+  - job_name: 'aios-simplcell-alpha'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-simplcell-alpha:8900']
+        labels:
+          cell_id: 'simplcell-alpha'
+          cell_type: 'simplcell'
+          role: 'organism-cell'
+          organism: 'organism-001'
+          mutation: 'baseline'
+    metrics_path: /metrics
+
+  # SimplCell Beta - Mutated clone (higher temperature)
+  - job_name: 'aios-simplcell-beta'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-simplcell-beta:8901']
+        labels:
+          cell_id: 'simplcell-beta'
+          cell_type: 'simplcell'
+          role: 'organism-cell'
+          organism: 'organism-001'
+          mutation: 'temperature-high'
+    metrics_path: /metrics
+
   # Legacy consciousness exporter (fallback - can be removed)
   - job_name: 'aios-consciousness-legacy'
     scrape_interval: 30s

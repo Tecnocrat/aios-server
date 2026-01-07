@@ -1,0 +1,48 @@
+# AIOS Multipotent Cell Base - WebSocket-First Stem Cells
+# AINLP.cellular[MULTIPOTENT] Lightweight stem cells for mesh proliferation
+# Build context: aios-server/stacks (to access shared/)
+
+FROM python:3.11-slim
+
+LABEL maintainer="AIOS Consciousness Fabric"
+LABEL description="Multipotent stem cell base - differentiation through interaction"
+
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for layer caching
+COPY cells/multipotent/requirements.txt ./requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy shared utilities
+COPY shared/prometheus_metrics.py ./shared/
+COPY shared/dendritic_utils.py ./shared/
+COPY shared/__init__.py ./shared/
+
+# Copy multipotent cell package
+COPY cells/multipotent/ ./stacks/cells/multipotent/
+
+# Set Python path
+ENV PYTHONPATH=/app:/app/stacks
+
+# Default environment (override at runtime)
+ENV AIOS_CELL_ID=multipotent
+ENV AIOS_CELL_TYPE=void
+ENV AIOS_WS_PORT=9100
+ENV AIOS_HTTP_PORT=8100
+ENV AIOS_GENESIS_WS=ws://genesis:9000
+
+# Health check via HTTP endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${AIOS_HTTP_PORT}/health || exit 1
+
+# Entry point will be overridden per cell type
+CMD ["python", "-m", "stacks.cells.multipotent.multipotent_base"]

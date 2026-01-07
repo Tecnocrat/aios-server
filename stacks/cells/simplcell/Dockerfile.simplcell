@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy cell code
+COPY simplcell.py .
+
+# Default environment (can be overridden)
+ENV CELL_ID=simplcell-alpha
+ENV TEMPERATURE=0.7
+ENV HTTP_PORT=8900
+ENV OLLAMA_HOST=http://host.docker.internal:11434
+ENV MODEL=llama3.2:3b
+
+EXPOSE ${HTTP_PORT}
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${HTTP_PORT}/health')" || exit 1
+
+CMD ["python", "simplcell.py"]

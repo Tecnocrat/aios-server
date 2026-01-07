@@ -83,7 +83,7 @@ Docker purge complete (15.31GB reclaimed). Now executing phased rebuild with hum
 ---
 
 ## PHASE 4: Cells Stack (Future)
-**Status**: 🔄 IN PROGRESS | **Containers**: 2/2 Healthy
+**Status**: ✅ COMPLETE | **Containers**: 10/10 Healthy
 
 ### 4.1 Build AIOS Cell Images
 - [x] Build `aios-discovery:latest` image (Python 3.12 + FastAPI)
@@ -101,7 +101,7 @@ Docker purge complete (15.31GB reclaimed). Now executing phased rebuild with hum
 - [x] AIOS host (192.168.1.128) cells stack deployed
 - [ ] Verify peer discovery between HP_LAB ↔ AIOS
 - [ ] Test consciousness synchronization across network
-- [ ] Add Prometheus scrape target for cells metrics
+- [x] Add Prometheus scrape target for cells metrics
 
 ### 4.4 AIOS Host Firewall Configuration
 **Status**: ✅ COMPLETE | **Host**: AIOS (192.168.1.128)
@@ -127,6 +127,48 @@ AIOS Cell Pure 8002     True   Inbound  Allow
 | AIOS | cell-pure | 8002 | ✅ Firewall open |
 | HP_LAB | discovery | 8001 | ✅ Already open |
 | HP_LAB | cell-pure | 8002 | ✅ Already open |
+
+---
+
+## PHASE 5: Organism-001 (SimplCell)
+**Status**: ✅ COMPLETE | **Date**: January 6, 2026
+
+### 5.1 SimplCell Implementation
+- [x] Create minimal viable cell (~640 lines Python)
+- [x] Ollama agent integration (llama3.2:3b)
+- [x] 5-minute heartbeat with peer sync
+- [x] Conversation threading (last_prompt seeding)
+
+### 5.2 Organism Deployment
+- [x] Deploy simplcell-alpha (port 8900, temp=0.7)
+- [x] Deploy simplcell-beta (port 8901, temp=0.9)
+- [x] Verify peer sync working (autonomous dialogue)
+- [x] Docker volumes for persistence
+
+### 5.3 SQLite Persistence
+- [x] `CellPersistence` class with auto-backups
+- [x] Tables: `cell_state`, `memory_buffer`, `conversation_archive`
+- [x] State survives container restarts
+- [x] `last_prompt` preserved for conversation continuity
+
+### 5.4 Prometheus Metrics (Persistent)
+- [x] `aios_cell_lifetime_exchanges` - total ever
+- [x] `aios_cell_archived_conversations` - SQLite count
+- [x] `aios_cell_db_size_bytes` - database size
+
+### 5.5 Grafana Dashboard
+- [x] `aios-organism-001.json` dashboard
+- [x] Persistence row with DB size, archived conversations
+- [x] Updated existing dashboards with organism metrics
+
+### Files Created
+| File | Location |
+|------|----------|
+| `simplcell.py` | `stacks/cells/simplcell/` |
+| `docker-compose.simplcell.yml` | `stacks/cells/simplcell/` |
+| `Dockerfile.simplcell` | `stacks/cells/simplcell/` |
+| `README.md` | `stacks/cells/simplcell/` |
+| `aios-organism-001.json` | `stacks/observability/grafana/dashboards/` |
 
 ---
 

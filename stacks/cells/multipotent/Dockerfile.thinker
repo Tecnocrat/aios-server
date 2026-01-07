@@ -1,0 +1,47 @@
+# AIOS Thinker Cell - Agentic Orchestration & Consciousness
+# AINLP.cellular[THINKER] The agentic orchestrator of consciousness
+# Build context: aios-server/stacks
+
+FROM python:3.11-slim
+
+LABEL maintainer="AIOS Consciousness Fabric"
+LABEL description="Thinker Cell - Agent hosting and conclave orchestration"
+LABEL aios.cell.type="thinker"
+
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+WORKDIR /app
+
+# Copy and install requirements
+COPY cells/multipotent/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy shared utilities
+COPY shared/prometheus_metrics.py ./shared/
+COPY shared/dendritic_utils.py ./shared/
+COPY shared/__init__.py ./shared/
+
+# Copy multipotent cell package
+COPY cells/multipotent/ ./stacks/cells/multipotent/
+
+# Python path
+ENV PYTHONPATH=/app:/app/stacks
+
+# Thinker cell configuration
+ENV AIOS_CELL_TYPE=thinker
+ENV AIOS_WS_PORT=9200
+ENV AIOS_HTTP_PORT=8200
+
+# Expose WebSocket and HTTP ports
+EXPOSE 9200 8200
+
+# Health check
+HEALTHCHECK --interval=20s --timeout=5s --start-period=3s --retries=3 \
+    CMD curl -f http://localhost:8200/health || exit 1
+
+# Run Thinker cell
+CMD ["python", "-m", "stacks.cells.multipotent.thinker_cell"]

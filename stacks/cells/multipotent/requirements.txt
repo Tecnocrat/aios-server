@@ -1,0 +1,22 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# AIOS Multipotent Cell Requirements
+# AINLP.cellular[MULTIPOTENT] WebSocket-first stem cell dependencies
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# [DENDRITIC] WebSocket Communication (Primary)
+websockets>=13.0.0
+aiohttp>=3.9.0
+
+# [MEMBRANE] Configuration
+pyyaml>=6.0.0
+python-dotenv>=1.0.0
+
+# [CYTOPLASM] Async Runtime
+asyncio-mqtt>=0.16.0;python_version<"3.12"
+
+# [METRICS] Observability (optional but recommended)
+prometheus-client>=0.19.0
+
+# [SHARED] Common utilities
+httpx>=0.27.0
+aiofiles>=24.1.0
