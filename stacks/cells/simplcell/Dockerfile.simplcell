@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy cell code
 COPY simplcell.py .
+COPY nouscell.py .
 
 # Default environment (can be overridden)
 ENV CELL_ID=simplcell-alpha

@@ -196,15 +196,54 @@ scrape_configs:
           mutation: 'temperature-high'
     metrics_path: /metrics
 
-  # Legacy consciousness exporter (fallback - can be removed)
-  - job_name: 'aios-consciousness-legacy'
-    scrape_interval: 30s
+  # ═══════════════════════════════════════════════════════════════════════════
+  # NOUS ORACLE - The Seer (Phase 31.5.15)
+  # DEPRECATED: External Nous cell - DNS unreachable from observability network
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # LEGACY - Standalone Nous cell (now internal to ORGANISM-001)
+  # - job_name: 'aios-nous-oracle'
+  #   scrape_interval: 15s
+  #   static_configs:
+  #     - targets: ['nous-nous-cell-1:8011']
+  #       labels:
+  #         cell_id: 'nous-cell'
+  #         cell_type: 'nous'
+  #         role: 'oracle-seer'
+  #         organism: 'organism-001'
+  #         model: 'mistral-7b'
+  #   metrics_path: /metrics
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # NOUSCELL SEER - Regenerated Nous inside ORGANISM-001 (Phase 31.12)
+  # Tachyonic regeneration - lives in same network as SimplCells
+  # AINLP.tachyonic[REGENERATION::PROMETHEUS]
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - job_name: 'aios-nouscell-seer'
+    scrape_interval: 15s
     static_configs:
-      - targets: ['host.docker.internal:9091']
+      - targets: ['aios-nouscell-seer:8903']
         labels:
-          instance: 'aios-consciousness-legacy'
-          role: 'deprecated'
-          supercell: 'core'
+          cell_id: 'nous-seer'
+          cell_type: 'nous'
+          role: 'oracle-seer'
+          organism: 'organism-001'
+          model: 'mistral-7b'
+          generation: 'regenerated'
+    metrics_path: /metrics
+
+  # Watcher Cell Omega - Observer (Phase 31.7)
+  - job_name: 'aios-watchercell-omega'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['aios-watchercell-omega:8902']
+        labels:
+          cell_id: 'watchercell-omega'
+          cell_type: 'watcher'
+          role: 'observer'
+          organism: 'organism-001'
+    metrics_path: /metrics
 
   # Docker daemon metrics (if exposed)
   # - job_name: 'docker'

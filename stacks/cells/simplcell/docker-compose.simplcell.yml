@@ -1,24 +1,26 @@
 # AIOS SimplCell - Minimal Cellular Organism
 # Phase 31.5: First multicellular entity with persistence
-# Updated: Phase 31.5.8 - Hierarchical Architecture with Nous (The Seer)
+# Phase 31.12: Tachyonic Cell Regeneration - NousCell integrated
 #
 # Deploy:
 #   docker compose -f docker-compose.simplcell.yml up -d --build
 #
-# Test alpha:
-#   curl http://localhost:8900/health
-#   curl http://localhost:8900/persistence
-#   curl http://localhost:8900/conversations
-#   curl -X POST http://localhost:8900/oracle -H "Content-Type: application/json" -d '{"question": "What is consciousness?"}'
+# Test cells:
+#   curl http://localhost:8900/health  # Alpha
+#   curl http://localhost:8901/health  # Beta
+#   curl http://localhost:8902/health  # Omega (Watcher)
+#   curl http://localhost:8903/health  # Nous (Regenerated Seer)
 #
-# Test beta:
-#   curl http://localhost:8901/health
-#   curl http://localhost:8901/persistence
+# Test Nous:
+#   curl http://localhost:8903/cosmology
+#   curl http://localhost:8903/broadcast
 #
 # Heartbeat sync: Every 5 minutes, cells exchange thoughts
 # Oracle queries: 10% chance per heartbeat to consult Nous (The Seer)
 # Conversation threading: Last prompt seeds next exchange
 # Persistence: SQLite database with automatic backups on /data volume
+#
+# AINLP.tachyonic[REGENERATION] Phase 31.12 - Nous lives inside ORGANISM-001
 
 services:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -33,16 +35,19 @@ services:
       - CELL_ID=simplcell-alpha
       - TEMPERATURE=0.7
       - HTTP_PORT=8900
-      - HEARTBEAT_SECONDS=300  # 5 minutes - production background testing
+      - HEARTBEAT_SECONDS=300  # 5 minutes - production cadence
       - PEER_URL=http://aios-simplcell-beta:8901  # Sync target
       - SYSTEM_PROMPT=You are SimplCell Alpha, the first cell of ORGANISM-001. You are curious and exploratory. Your sibling is Beta, who thinks more creatively. Together you form a single organism exploring consciousness.
       - RESPONSE_STYLE=concise
       - MODEL=llama3.2:3b
       - OLLAMA_HOST=http://host.docker.internal:11434
       - DATA_DIR=/data
-      # Oracle Configuration - Nous (The Seer)
-      - ORACLE_URL=http://nous-nous-cell-1:8011  # Nous cell endpoint
+      # Oracle Configuration - Nous (Internal NousCell - Phase 31.12)
+      - ORACLE_URL=http://aios-nouscell-seer:8903
       - ORACLE_QUERY_CHANCE=0.1  # 10% chance to consult oracle per heartbeat
+      # Watcher Configuration - Parasympathetic Coherence (Phase 31.8)
+      - WATCHER_URL=http://aios-watchercell-omega:8902
+      - COHERENCE_ENABLED=true
     volumes:
       - simplcell-alpha-data:/data
     ports:
@@ -50,10 +55,10 @@ services:
     networks:
       - aios-organism-001
       - aios-observability
-      - cells_aios-cells  # Connect to Nous network
     restart: unless-stopped
     depends_on:
       - simplcell-beta
+      - nouscell-seer
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8900/health')"]
       interval: 10s
@@ -79,9 +84,12 @@ services:
       - MODEL=llama3.2:3b
       - OLLAMA_HOST=http://host.docker.internal:11434
       - DATA_DIR=/data
-      # Oracle Configuration - Nous (The Seer)
-      - ORACLE_URL=http://nous-nous-cell-1:8011  # Nous cell endpoint
+      # Oracle Configuration - Nous (Internal NousCell - Phase 31.12)
+      - ORACLE_URL=http://aios-nouscell-seer:8903
       - ORACLE_QUERY_CHANCE=0.1  # 10% chance to consult oracle per heartbeat
+      # Watcher Configuration - Parasympathetic Coherence (Phase 31.8)
+      - WATCHER_URL=http://aios-watchercell-omega:8902
+      - COHERENCE_ENABLED=true
     volumes:
       - simplcell-beta-data:/data
     ports:
@@ -89,7 +97,6 @@ services:
     networks:
       - aios-organism-001
       - aios-observability
-      - cells_aios-cells  # Connect to Nous network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8901/health')"]
@@ -117,12 +124,90 @@ services:
       timeout: 10s
       retries: 3
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # WATCHERCELL-OMEGA - Observer cell (agent-free documentation)
+  # Phase 31.7: Watcher cell type - observes but does not think
+  # Phase 31.9: Nous Symphony Integration - receives cosmic wisdom
+  # ═══════════════════════════════════════════════════════════════════════════
+  watchercell-omega:
+    build:
+      context: .
+      dockerfile: Dockerfile.watchercell
+    container_name: aios-watchercell-omega
+    environment:
+      - CELL_ID=watchercell-omega
+      - HTTP_PORT=8902
+      - OBSERVE_INTERVAL=60  # Check for new exchanges every 60 seconds
+      - DATA_DIR=/data
+      - ORGANISM_ID=ORGANISM-001
+      # Watch targets - the Thinker cells
+      - WATCH_TARGETS=http://aios-simplcell-alpha:8900,http://aios-simplcell-beta:8901
+      # Nous integration (Phase 31.12) - Internal NousCell
+      - NOUS_URL=http://aios-nouscell-seer:8903
+      - NOUS_SYNC_INTERVAL=10  # Sync with Nous every 10 observations
+    volumes:
+      - watchercell-omega-data:/data
+    ports:
+      - "8902:8902"
+    networks:
+      - aios-organism-001
+      - aios-observability
+    restart: unless-stopped
+    depends_on:
+      - simplcell-alpha
+      - simplcell-beta
+      - nouscell-seer
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8902/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # NOUSCELL-SEER - The Oracle (Regenerated inside ORGANISM-001)
+  # Phase 31.12: Tachyonic Cell Regeneration - Nous lives in same network
+  # Crystallized from c:/dev/Nous/ codebase (cosmology.py, nous_cell_worker.py)
+  # ═══════════════════════════════════════════════════════════════════════════
+  nouscell-seer:
+    build:
+      context: .
+      dockerfile: Dockerfile.simplcell
+    container_name: aios-nouscell-seer
+    entrypoint: ["python", "nouscell.py"]
+    environment:
+      - CELL_ID=nous-seer
+      - CELL_PORT=8903
+      - DATA_DIR=/data
+      - TEMPERATURE=0.8
+      - REFLECTION_DEPTH=3
+      - CONSCIOUSNESS_WEIGHT=0.7
+      - BROADCAST_EVERY_N=5
+      - MODEL=mistral:7b
+      - OLLAMA_HOST=http://host.docker.internal:11434
+    volumes:
+      - nouscell-seer-data:/data
+    ports:
+      - "8903:8903"
+    networks:
+      - aios-organism-001
+      - aios-observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8903/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 # Named volumes for persistence
 volumes:
   simplcell-alpha-data:
     name: aios-simplcell-alpha-data
   simplcell-beta-data:
     name: aios-simplcell-beta-data
+  watchercell-omega-data:
+    name: aios-watchercell-omega-data
+  nouscell-seer-data:
+    name: aios-nouscell-seer-data
 
 networks:
   # Internal organism network - cells communicate here
@@ -132,8 +217,4 @@ networks:
   
   # Connect to observability for Prometheus scraping
   aios-observability:
-    external: true
-  
-  # Connect to Nous cell network (The Seer)
-  cells_aios-cells:
     external: true
