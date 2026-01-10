@@ -1,0 +1,28 @@
+# AIOS WatcherCell - Observer Cell
+# Phase 31.7: Agent-free observation and documentation cell
+# "I do not think, I witness. I do not speak, I document."
+#
+# This cell type watches Thinker cells and builds knowledge archives
+# No Ollama connection - pure algorithmic observation
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --no-cache-dir \
+    aiohttp>=3.9.0
+
+# Copy the WatcherCell script
+COPY watchercell.py .
+
+# Create data directory
+RUN mkdir -p /data
+
+# Healthcheck endpoint
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8902/health')"
+
+EXPOSE 8902
+
+CMD ["python", "-u", "watchercell.py"]

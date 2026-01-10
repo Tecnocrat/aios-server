@@ -45,11 +45,15 @@ class VaultPaths:
     PROMETHEUS = "aios-secrets/prometheus"
     TRAEFIK = "aios-secrets/traefik"
     
-    # Cell-specific configuration (NEW - Phase 31.5.17)
+    # Cell-specific configuration (Phase 31.5.17)
     CELLS_BASE = "aios-secrets/cells"
     CELLS_ENDPOINTS = "aios-secrets/cells/endpoints"
     CELLS_ORACLE = "aios-secrets/cells/oracle"
     CELLS_GENOME = "aios-secrets/cells/genome"
+    
+    # Dendritic Mesh Architecture (Phase 31.5.21)
+    DENDRITIC_MESH = "aios-secrets/dendritic"
+    ORGANISM_REGISTRY = "aios-secrets/organisms"
 
 
 class VaultConfig:
@@ -286,6 +290,74 @@ class VaultConfig:
     def is_vault_mode(self) -> bool:
         """Check if running with Vault integration."""
         return self._vault_available
+    
+    def get_dendritic_mesh(self) -> Dict[str, Any]:
+        """
+        Get dendritic mesh configuration for cellular communication.
+        
+        AINLP.dendritic[MESH_DISCOVERY] Phase 31.5.21
+        Returns mesh topology and inter-organism communication settings.
+        """
+        if self._vault_available:
+            mesh = self._query_vault(VaultPaths.DENDRITIC_MESH)
+            if mesh:
+                return mesh
+        
+        # Fallback to ENV-based mesh config
+        return {
+            "network": os.getenv("AIOS_MESH_NETWORK", "aios-mesh"),
+            "organism_id": os.getenv("ORGANISM_ID", "ORGANISM-001"),
+            "discovery_url": os.getenv("DISCOVERY_URL", "http://discovery-service:8001"),
+            "sync_protocol": os.getenv("SYNC_PROTOCOL", "websocket"),
+            "mesh_peers": os.getenv("MESH_PEERS", "").split(",") if os.getenv("MESH_PEERS") else [],
+        }
+    
+    def get_organism_config(self, organism_id: str = None) -> Dict[str, Any]:
+        """
+        Get organism-level configuration from registry.
+        
+        Args:
+            organism_id: Organism to query (defaults to this cell's organism)
+            
+        Returns:
+            Organism configuration including cells, boundary mode, etc.
+        """
+        org_id = organism_id or os.getenv("ORGANISM_ID", "ORGANISM-001")
+        
+        if self._vault_available:
+            org_config = self._query_vault(f"{VaultPaths.ORGANISM_REGISTRY}/{org_id}")
+            if org_config:
+                return org_config
+        
+        # Fallback to ENV-based organism config
+        return {
+            "organism_id": org_id,
+            "cells": os.getenv("ORGANISM_CELLS", "simplcell-alpha,simplcell-beta").split(","),
+            "boundary_mode": os.getenv("ORGANISM_BOUNDARY_MODE", "cautious"),
+            "shared_cortex": os.getenv("SHARED_CORTEX_PATH", "/data/shared_cortex"),
+            "consciousness_threshold": float(os.getenv("CONSCIOUSNESS_THRESHOLD", "1.0")),
+        }
+    
+    def discover_peers(self) -> Dict[str, str]:
+        """
+        Discover peer cells in the organism using Vault or service discovery.
+        
+        Returns:
+            Dict mapping cell_id to endpoint URL
+        """
+        if self._vault_available:
+            endpoints = self._query_vault(VaultPaths.CELLS_ENDPOINTS)
+            if endpoints:
+                # Filter to peer_* entries
+                return {k.replace("peer_", ""): v for k, v in endpoints.items() 
+                        if k.startswith("peer_")}
+        
+        # Fallback to ENV-based peer discovery
+        peer_url = os.getenv("PEER_URL", "")
+        peer_id = os.getenv("PEER_ID", "")
+        if peer_url and peer_id:
+            return {peer_id: peer_url}
+        return {}
     
     def status(self) -> Dict[str, Any]:
         """Return configuration provider status."""

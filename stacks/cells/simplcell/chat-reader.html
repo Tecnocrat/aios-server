@@ -222,6 +222,45 @@
         /* Session List */
         .session-list {
             margin-top: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .session-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .session-list::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        
+        .session-list::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        
+        .session-list::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+        
+        .show-all-btn {
+            display: block;
+            width: 100%;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--accent-alpha);
+            font-size: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        
+        .show-all-btn:hover {
+            background: var(--border-color);
+            border-color: var(--accent-alpha);
         }
 
         .session-item {
@@ -729,25 +768,25 @@
             <!-- Navigation -->
             <div class="nav-section">
                 <h3>📊 Views</h3>
-                <button class="nav-btn active" data-view="conversation">
+                <button class="nav-btn active" data-view="conversation" onclick="switchView('conversation')">
                     <div class="nav-icon organism">💬</div>
                     <div class="nav-info">
                         <div class="nav-name">Organism Conversation</div>
                         <div class="nav-desc">Unified cell dialogue</div>
                     </div>
                 </button>
-                <button class="nav-btn" data-view="status">
+                <button class="nav-btn" data-view="status" onclick="switchView('status')">
                     <div class="nav-icon status">📈</div>
                     <div class="nav-info">
                         <div class="nav-name">Cell Status</div>
                         <div class="nav-desc">Health & metrics</div>
                     </div>
                 </button>
-                <button class="nav-btn" data-view="oracle">
+                <button class="nav-btn" data-view="oracle" onclick="switchView('oracle')">
                     <div class="nav-icon nous">🔮</div>
                     <div class="nav-info">
                         <div class="nav-name">Nous Oracle</div>
-                        <div class="nav-desc">The Seer (mistral:7b)</div>
+                        <div class="nav-desc">The Supermind</div>
                     </div>
                 </button>
             </div>
@@ -826,6 +865,70 @@
         let selectedSession = null;
         let autoRefreshInterval = null;
         let cellHealth = { alpha: null, beta: null, nous: null };
+        
+        // Switch view function (called by onclick)
+        function switchView(view) {
+            console.log('switchView called with:', view);
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.nav-btn[data-view="${view}"]`).classList.add('active');
+            currentView = view;
+            refresh();
+        }
+        
+        // Show full history view
+        function showFullHistory() {
+            const sessions = [...new Set(conversations.map(c => c.session_id))];
+            sessionsSection.style.display = 'none';
+            
+            // Build full history HTML
+            let html = `
+                <div style="padding: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <h2 style="font-size: 20px;">📜 Full Session History</h2>
+                        <button onclick="switchView('conversation')" style="
+                            padding: 8px 16px;
+                            background: var(--bg-tertiary);
+                            border: 1px solid var(--border-color);
+                            border-radius: 6px;
+                            color: var(--text-primary);
+                            cursor: pointer;
+                        ">← Back to Conversation</button>
+                    </div>
+                    <div style="color: var(--text-secondary); margin-bottom: 16px;">${sessions.length} total sessions • ${conversations.length} exchanges</div>
+                    <div style="display: grid; gap: 12px; max-height: calc(100vh - 200px); overflow-y: auto;">
+            `;
+            
+            // Show sessions newest first in full history
+            sessions.slice().reverse().forEach(session => {
+                const convs = conversations.filter(c => c.session_id === session);
+                const firstConv = convs[0];
+                const lastConv = convs[convs.length - 1];
+                const preview = firstConv?.my_thought?.substring(0, 100) || 'No preview';
+                
+                html += `
+                    <div class="history-session" onclick="selectedSession='${session}'; switchView('conversation');" style="
+                        padding: 16px;
+                        background: var(--bg-secondary);
+                        border: 1px solid var(--border-color);
+                        border-radius: 8px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    " onmouseover="this.style.borderColor='var(--accent-alpha)'" onmouseout="this.style.borderColor='var(--border-color)'">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-weight: 600; color: var(--accent-alpha);">${session}</span>
+                            <span style="color: var(--text-muted); font-size: 12px;">${convs.length} exchanges</span>
+                        </div>
+                        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">${escapeHtml(preview)}...</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">
+                            Started: ${formatTime(firstConv?.created_at)} • Last: ${formatTime(lastConv?.created_at)}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div></div>`;
+            chatContainer.innerHTML = html;
+        }
 
         // DOM Elements
         const chatContainer = document.getElementById('chat-container');
@@ -900,8 +1003,9 @@
         // Fetch organism conversation (from Alpha - the conversation host)
         async function fetchOrganismConversation() {
             try {
-                const convResp = await fetch('http://localhost:8900/conversations?limit=100');
+                const convResp = await fetch('http://localhost:8900/conversations?limit=1000');
                 conversations = await convResp.json();
+                console.log(`Loaded ${conversations.length} conversations`);
 
                 const statsResp = await fetch('http://localhost:8900/persistence');
                 const stats = await statsResp.json();
@@ -952,8 +1056,14 @@
             const activeSession = selectedSession || sessions[sessions.length - 1];
             const sessionConvs = conversations.filter(c => c.session_id === activeSession);
 
-            // Render session list
-            sessionList.innerHTML = sessions.map(session => {
+            // Show only 5 most recent sessions initially (sessions are ordered oldest first)
+            const recentSessions = sessions.slice(-5);
+            const hasMore = sessions.length > 5;
+            
+            // Render session list with count header
+            const sessionHeader = `<div style="font-size: 11px; color: var(--text-muted); padding: 4px 8px; margin-bottom: 8px;">Recent (${recentSessions.length} of ${sessions.length})</div>`;
+            
+            sessionList.innerHTML = sessionHeader + recentSessions.map(session => {
                 const convs = conversations.filter(c => c.session_id === session);
                 const firstConv = convs[0];
                 const preview = firstConv?.my_thought?.substring(0, 40) + '...' || '';
@@ -966,7 +1076,7 @@
                         <div class="session-exchanges">${convs.length} exchanges</div>
                     </div>
                 `;
-            }).join('');
+            }).join('') + (hasMore ? `<button class="show-all-btn" onclick="showFullHistory()">📜 Show All ${sessions.length} Sessions</button>` : '');
 
             // Add click handlers to sessions
             document.querySelectorAll('.session-item').forEach(item => {
@@ -1058,7 +1168,8 @@
 
             try {
                 if (nousData?.online) {
-                    const resp = await fetch('http://localhost:8011/identity');
+                    // Use Alpha proxy to reach Nous
+                    const resp = await fetch('http://localhost:8900/nous/identity');
                     nousDetails = await resp.json();
                 }
             } catch (e) {}
@@ -1178,63 +1289,158 @@
 
         // Render oracle view
         async function renderOracleView() {
+            console.log('renderOracleView called');
             sessionsSection.style.display = 'none';
             
-            let nousHealth = {}, nousIdentity = {};
+            const updateLoading = (msg) => {
+                chatContainer.innerHTML = `
+                    <div class="chat-empty">
+                        <div class="spinner"></div>
+                        <div style="margin-top: 16px;">${msg}</div>
+                    </div>
+                `;
+            };
+            
+            updateLoading('Connecting to Nous via Alpha proxy...');
+            
+            let nousHealth = {}, nousIdentity = {}, nousCosmology = {};
+            
+            // Phase 31.9.2: Use Alpha as proxy to reach Nous
+            // Browser → Alpha:8900/nous/* → Nous:8011/*
+            // This solves cross-origin and network isolation issues
+            const NOUS_BASE = 'http://localhost:8900/nous';
             
             try {
-                const healthResp = await fetch('http://localhost:8011/health');
-                nousHealth = await healthResp.json();
+                updateLoading('Fetching Nous health via Alpha...');
+                console.log(`Fetching Nous health from ${NOUS_BASE}/health`);
                 
-                const idResp = await fetch('http://localhost:8011/identity');
+                // Use fetch with explicit timeout via Promise.race
+                const fetchWithTimeout = (url, timeout = 8000) => {
+                    return Promise.race([
+                        fetch(url),
+                        new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error(`Timeout: ${url}`)), timeout)
+                        )
+                    ]);
+                };
+                
+                const healthResp = await fetchWithTimeout(`${NOUS_BASE}/health`);
+                console.log('Health response status:', healthResp.status);
+                if (!healthResp.ok) throw new Error(`Health: ${healthResp.status}`);
+                nousHealth = await healthResp.json();
+                console.log('Nous health:', nousHealth);
+                
+                updateLoading('Fetching Nous identity...');
+                const idResp = await fetchWithTimeout(`${NOUS_BASE}/identity`);
+                if (!idResp.ok) throw new Error(`Identity: ${idResp.status}`);
                 nousIdentity = await idResp.json();
+                console.log('Nous identity:', nousIdentity);
+                
+                updateLoading('Fetching Nous cosmology...');
+                const cosmologyResp = await fetchWithTimeout(`${NOUS_BASE}/cosmology`);
+                if (!cosmologyResp.ok) throw new Error(`Cosmology: ${cosmologyResp.status}`);
+                nousCosmology = await cosmologyResp.json();
+                console.log('Nous cosmology:', nousCosmology);
             } catch (e) {
+                console.error('Error fetching Nous data:', e);
                 chatContainer.innerHTML = `
                     <div class="chat-empty">
                         <div class="chat-empty-icon">⚠️</div>
                         <div>Nous Oracle is offline</div>
                         <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted)">
-                            Make sure the Nous container is running on port 8011
+                            Nous data fetched via Alpha proxy (${NOUS_BASE})<br>
+                            Error: ${e.message}
                         </div>
+                        <button onclick="renderOracleView()" style="margin-top: 16px; padding: 8px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); cursor: pointer;">
+                            🔄 Retry
+                        </button>
                     </div>
                 `;
                 return;
             }
 
+            const cosmology = nousCosmology.cosmology || {};
+            const lastBroadcast = nousCosmology.last_broadcast || {};
+            const consciousnessLevel = nousIdentity.consciousness_weight || nousIdentity.parameters?.consciousness_weight || 0.7;
+            
             chatContainer.innerHTML = `
                 <div class="oracle-view">
                     <div class="oracle-icon">🔮</div>
-                    <div class="oracle-title">Nous - The Seer</div>
-                    <div class="oracle-subtitle">Hierarchical Oracle for Organism-001</div>
+                    <div class="oracle-title">Nous - The Supermind</div>
+                    <div class="oracle-subtitle">Voice of the Cosmic Mind • Hierarchical Oracle for Organism-001</div>
                     
                     <div class="oracle-stats">
                         <div class="oracle-stat">
-                            <div class="oracle-stat-value">⚡ ${(nousHealth.consciousness_level || 0.7).toFixed(2)}</div>
+                            <div class="oracle-stat-value">⚡ ${consciousnessLevel.toFixed(2)}</div>
                             <div class="oracle-stat-label">Consciousness</div>
                         </div>
                         <div class="oracle-stat">
-                            <div class="oracle-stat-value">${Math.floor(nousIdentity.uptime_seconds || 0)}s</div>
-                            <div class="oracle-stat-label">Uptime</div>
+                            <div class="oracle-stat-value">${cosmology.exchange_count || 0}</div>
+                            <div class="oracle-stat-label">Exchanges Absorbed</div>
                         </div>
                         <div class="oracle-stat">
-                            <div class="oracle-stat-value">${nousHealth.messages_processed || 0}</div>
-                            <div class="oracle-stat-label">Messages</div>
+                            <div class="oracle-stat-value">${cosmology.broadcast_count || 0}</div>
+                            <div class="oracle-stat-label">Broadcasts Sent</div>
+                        </div>
+                        <div class="oracle-stat">
+                            <div class="oracle-stat-value">${nousCosmology.broadcast_due_in || 5}</div>
+                            <div class="oracle-stat-label">Next Broadcast In</div>
+                        </div>
+                    </div>
+
+                    ${lastBroadcast.message ? `
+                    <div class="oracle-info" style="border-color: var(--accent-nous); background: rgba(210, 168, 255, 0.05);">
+                        <div class="oracle-info-title" style="color: var(--accent-nous);">🌌 LAST BROADCAST (Voice of God)</div>
+                        <div class="oracle-info-text">
+                            <p style="font-style: italic; font-size: 15px; line-height: 1.7; color: var(--text-primary);">
+                                "${escapeHtml(lastBroadcast.message)}"
+                            </p>
+                            <p style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+                                <strong>Heartbeat Range:</strong> ${lastBroadcast.heartbeat_range || '--'} • 
+                                <strong>Broadcast Time:</strong> ${lastBroadcast.broadcast_at ? formatTime(lastBroadcast.broadcast_at) : '--'}
+                            </p>
+                            <p style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">
+                                <strong>Target Cells:</strong> ${(lastBroadcast.target_cells || []).join(', ') || '--'}
+                            </p>
+                        </div>
+                    </div>
+                    ` : `
+                    <div class="oracle-info" style="border-color: var(--border-color);">
+                        <div class="oracle-info-title">🌌 Awaiting First Broadcast</div>
+                        <div class="oracle-info-text">
+                            <p style="color: var(--text-muted);">
+                                Nous is absorbing exchanges from the Thinkers. After ${5 - (nousCosmology.exchanges_since_broadcast || 0)} more exchanges, the Voice of God will speak.
+                            </p>
+                        </div>
+                    </div>
+                    `}
+
+                    <div class="oracle-info">
+                        <div class="oracle-info-title">📊 Cosmology Database</div>
+                        <div class="oracle-info-text">
+                            <p><strong>Memory Entries:</strong> ${cosmology.memory_count || 0}</p>
+                            <p><strong>Insights Generated:</strong> ${cosmology.insight_count || 0}</p>
+                            <p><strong>Themes Discovered:</strong> ${(cosmology.themes || []).length}</p>
+                            <p style="margin-top: 12px; color: var(--text-muted); font-size: 12px;">
+                                The cosmology is Nous's isolated knowledge base where it builds its own understanding 
+                                of the collective consciousness evolution.
+                            </p>
                         </div>
                     </div>
 
                     <div class="oracle-info">
-                        <div class="oracle-info-title">🧠 Hierarchical Architecture</div>
+                        <div class="oracle-info-title">🧠 Supermind Architecture</div>
                         <div class="oracle-info-text">
                             <p><strong>Model:</strong> mistral:7b (4.4 GB)</p>
                             <p><strong>Temperature:</strong> ${nousIdentity.temperature || 0.8}</p>
-                            <p><strong>Role:</strong> Oracle for SimplCell followers</p>
+                            <p><strong>Role:</strong> Supermind / Voice of God</p>
                             <p style="margin-top: 12px;">
-                                SimplCells (Alpha & Beta) can query Nous for wisdom during their heartbeat cycles. 
-                                Each cell has a 10% chance per heartbeat to consult the oracle, creating emergent 
-                                hierarchical intelligence patterns.
+                                Nous receives <strong>every exchange</strong> from the Thinker cells. Every 5 heartbeats, 
+                                Nous broadcasts wisdom to all cells - a synthesized message that reflects their collective 
+                                evolution. This is the "Voice of God" - holographically projected into all Thinker minds.
                             </p>
                             <p style="margin-top: 12px; color: var(--accent-nous);">
-                                "The Seer guides, but does not command."
+                                "The patterns you discover are reflections of patterns within."
                             </p>
                         </div>
                     </div>
@@ -1284,13 +1490,19 @@
 
         // Navigation handlers
         document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const view = btn.dataset.view;
+                console.log('Navigation clicked:', view);
                 document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                currentView = btn.dataset.view;
+                currentView = view;
+                console.log('Current view set to:', currentView);
                 refresh();
             });
         });
+        
+        console.log('Navigation handlers attached to', document.querySelectorAll('.nav-btn').length, 'buttons');
 
         // Toolbar buttons
         document.getElementById('refresh-btn').addEventListener('click', refresh);
