@@ -752,6 +752,7 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
             well_known_cells = [
                 ("simplcell-alpha", "host.docker.internal", 8900),
                 ("simplcell-beta", "host.docker.internal", 8901),
+                ("simplcell-gamma", "host.docker.internal", 8904),  # P2.1: Triad cell
             ]
             
             # Combine with any registered simplcell peers

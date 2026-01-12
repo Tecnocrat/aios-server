@@ -43,6 +43,7 @@ except ImportError:
 DEFAULT_ENDPOINTS = {
     "alpha": "http://localhost:8900",
     "beta": "http://localhost:8901",
+    "gamma": "http://localhost:8904",  # P2.1: Triad cell (optional)
     "organism": "http://localhost:8001",
     "nous": "http://localhost:8080",
 }
@@ -136,10 +137,13 @@ def extract_all_metrics() -> Dict[str, Any]:
         "summary": {},
     }
     
-    # Cell metrics
-    for cell_id, base_url in [("alpha", DEFAULT_ENDPOINTS["alpha"]), 
-                               ("beta", DEFAULT_ENDPOINTS["beta"])]:
-        metrics["cells"][cell_id] = extract_cell_metrics(cell_id, base_url)
+    # Cell metrics - try all configured cells
+    for cell_id in ["alpha", "beta", "gamma"]:
+        if cell_id in DEFAULT_ENDPOINTS:
+            cell_metrics = extract_cell_metrics(cell_id, DEFAULT_ENDPOINTS[cell_id])
+            # Only include if we got a response (gamma may not be running)
+            if cell_metrics.get("status") != "unknown" or cell_id in ["alpha", "beta"]:
+                metrics["cells"][cell_id] = cell_metrics
     
     # Organism metrics
     metrics["organism"] = extract_organism_metrics(DEFAULT_ENDPOINTS["organism"])

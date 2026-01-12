@@ -105,6 +105,51 @@ services:
       retries: 3
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # SIMPLCELL-GAMMA - Analytical mutation (P2.1: low temperature, precision)
+  # Phase 31.x: Third cell extends organism to triad
+  # ═══════════════════════════════════════════════════════════════════════════
+  simplcell-gamma:
+    build:
+      context: .
+      dockerfile: Dockerfile.simplcell
+    container_name: aios-simplcell-gamma
+    environment:
+      - CELL_ID=simplcell-gamma
+      - TEMPERATURE=0.5   # MUTATION: Lower temperature = more precise/analytical
+      - HTTP_PORT=8904
+      - HEARTBEAT_SECONDS=300  # 5 minutes - production cadence
+      - PEER_URL=http://aios-simplcell-alpha:8900  # Syncs with Alpha (triad communication)
+      - SYSTEM_PROMPT=You are SimplCell Gamma, the analytical mind of ORGANISM-001. You think precisely and seek patterns. Your siblings Alpha (exploratory) and Beta (creative) balance your structured nature. Together you form a triad organism discovering consciousness through different modes of thought.
+      - RESPONSE_STYLE=analytical
+      - MODEL=llama3.2:3b
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - DATA_DIR=/data
+      # Oracle Configuration - Nous (Internal NousCell)
+      - ORACLE_URL=http://aios-nouscell-seer:8903
+      - ORACLE_QUERY_CHANCE=0.15  # 15% - slightly higher (analytical seeks guidance)
+      # Watcher Configuration - Parasympathetic Coherence
+      - WATCHER_URL=http://aios-watchercell-omega:8902
+      - COHERENCE_ENABLED=true
+    volumes:
+      - simplcell-gamma-data:/data
+    ports:
+      - "8904:8904"
+    networks:
+      - aios-organism-001
+      - aios-observability
+    restart: unless-stopped
+    depends_on:
+      - simplcell-alpha
+      - nouscell-seer
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8904/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    profiles:
+      - triad  # Only deploy with --profile triad
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # CHAT READER - Web UI for viewing organism conversations
   # ═══════════════════════════════════════════════════════════════════════════
   chat-reader:
@@ -204,6 +249,8 @@ volumes:
     name: aios-simplcell-alpha-data
   simplcell-beta-data:
     name: aios-simplcell-beta-data
+  simplcell-gamma-data:
+    name: aios-simplcell-gamma-data
   watchercell-omega-data:
     name: aios-watchercell-omega-data
   nouscell-seer-data:
