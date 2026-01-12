@@ -747,12 +747,27 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
             cell_count = 0
             healthy_count = 0
             
+            # Build target list: registered peers + well-known SimplCell endpoints
+            # SimplCells run on host network, so use host.docker.internal or localhost
+            well_known_cells = [
+                ("simplcell-alpha", "host.docker.internal", 8900),
+                ("simplcell-beta", "host.docker.internal", 8901),
+            ]
+            
+            # Combine with any registered simplcell peers
+            targets = []
             for cell_id, peer in self.peers.items():
-                # Skip non-simplcell peers
-                if not cell_id.startswith("simplcell"):
-                    continue
-                    
-                cell_url = f"http://{peer.ip}:{peer.port}/health"
+                if cell_id.startswith("simplcell"):
+                    targets.append((cell_id, peer.ip, peer.port))
+            
+            # Add well-known cells not already in targets
+            registered_ids = {t[0] for t in targets}
+            for cell_id, ip, port in well_known_cells:
+                if cell_id not in registered_ids:
+                    targets.append((cell_id, ip, port))
+            
+            for cell_id, ip, port in targets:
+                cell_url = f"http://{ip}:{port}/health"
                 cell_info = {
                     "cell_id": cell_id,
                     "status": "unknown",
