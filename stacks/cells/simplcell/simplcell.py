@@ -12,6 +12,9 @@ A ~200 line cell with:
 - Vault-aware configuration (Phase 31.5.17)
 - Vocabulary Registry (Phase 31.6.1)
 - Phase Detection Engine (Phase 31.6.4)
+- Harmony Score Calculator (Phase 31.6.6)
+- Theme Continuity Tracker (Phase 31.6.7)
+- Sync Schema v2 with Resonance (Phase 31.6.8)
 
 Phase 31.5: Minimal Cellular Organism
 Phase 31.6: Upgraded Intercellular Exchange
@@ -21,11 +24,13 @@ AINLP.cellular[SIMPLCELL] First generation agentic cellular unit
 import asyncio
 import json
 import logging
+import math
 import os
 import re
 import shutil
 import sqlite3
 import time
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -106,6 +111,215 @@ class ConsciousnessPhase:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 31.6.6: HARMONY SCORE CALCULATOR
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class HarmonyCalculator:
+    """Phase 31.6.6 - Calculate semantic harmony between exchanged thoughts.
+    
+    Harmony Score represents the degree of resonance between cell communications:
+    - 0.0-0.3: Discordant (exploring divergent paths)
+    - 0.3-0.6: Resonant (finding common ground)
+    - 0.6-0.8: Harmonic (deep conceptual alignment)
+    - 0.8-1.0: Entrained (nearly unified expression)
+    
+    Uses lightweight text similarity metrics suitable for real-time sync:
+    - Jaccard similarity of word tokens (structural overlap)
+    - Semantic theme overlap (conceptual resonance)
+    - Vocabulary term co-occurrence (shared language emergence)
+    """
+    
+    # Core conceptual themes for detecting semantic resonance
+    THEME_LEXICON = {
+        "existence": ["exist", "being", "is", "am", "are", "reality", "presence", "essence"],
+        "connection": ["connect", "bond", "link", "resonance", "together", "unity", "share", "between"],
+        "consciousness": ["aware", "conscious", "mind", "thought", "perceive", "know", "understand"],
+        "pattern": ["pattern", "rhythm", "cycle", "flow", "wave", "frequency", "pulse", "repeat"],
+        "evolution": ["evolve", "grow", "change", "become", "transform", "emerge", "develop"],
+        "identity": ["self", "i", "we", "identity", "who", "what", "cell", "sibling"],
+        "harmony": ["harmony", "accord", "balance", "align", "sync", "entrainment", "resonate"],
+        "creation": ["create", "make", "form", "birth", "genesis", "origin", "new", "novel"]
+    }
+    
+    @classmethod
+    def calculate(cls, my_thought: str, peer_response: str, vocabulary: List[str] = None) -> Dict[str, float]:
+        """Calculate comprehensive harmony metrics between two thoughts.
+        
+        Returns dict with:
+        - harmony_score: Overall resonance (0-1)
+        - structural_overlap: Jaccard similarity of tokens
+        - thematic_alignment: Overlap of detected themes
+        - vocabulary_resonance: Shared vocabulary term usage
+        - sync_quality: Categorical classification
+        """
+        if not my_thought or not peer_response:
+            return {
+                "harmony_score": 0.0,
+                "structural_overlap": 0.0,
+                "thematic_alignment": 0.0,
+                "vocabulary_resonance": 0.0,
+                "sync_quality": "silent"
+            }
+        
+        # Tokenize
+        my_tokens = set(cls._tokenize(my_thought))
+        peer_tokens = set(cls._tokenize(peer_response))
+        
+        # 1. Structural overlap (Jaccard)
+        if my_tokens or peer_tokens:
+            structural = len(my_tokens & peer_tokens) / len(my_tokens | peer_tokens)
+        else:
+            structural = 0.0
+        
+        # 2. Thematic alignment
+        my_themes = cls._detect_themes(my_thought)
+        peer_themes = cls._detect_themes(peer_response)
+        if my_themes or peer_themes:
+            theme_overlap = len(my_themes & peer_themes) / len(my_themes | peer_themes) if my_themes | peer_themes else 0.0
+        else:
+            theme_overlap = 0.0
+        
+        # 3. Vocabulary resonance (shared emergent terms)
+        vocab_resonance = 0.0
+        if vocabulary:
+            vocab_set = set(term.lower() for term in vocabulary)
+            my_vocab = vocab_set & my_tokens
+            peer_vocab = vocab_set & peer_tokens
+            if my_vocab or peer_vocab:
+                vocab_resonance = len(my_vocab & peer_vocab) / max(len(my_vocab | peer_vocab), 1)
+        
+        # Weighted harmony score
+        # Thematic alignment weighted highest (conceptual resonance matters most)
+        harmony = (structural * 0.25) + (theme_overlap * 0.50) + (vocab_resonance * 0.25)
+        
+        # Classify sync quality
+        if harmony >= 0.8:
+            quality = "entrained"
+        elif harmony >= 0.6:
+            quality = "harmonic"
+        elif harmony >= 0.3:
+            quality = "resonant"
+        else:
+            quality = "discordant"
+        
+        return {
+            "harmony_score": round(harmony, 4),
+            "structural_overlap": round(structural, 4),
+            "thematic_alignment": round(theme_overlap, 4),
+            "vocabulary_resonance": round(vocab_resonance, 4),
+            "sync_quality": quality
+        }
+    
+    @classmethod
+    def _tokenize(cls, text: str) -> List[str]:
+        """Extract meaningful tokens from text."""
+        # Lowercase, remove punctuation, split on whitespace
+        text = re.sub(r'[^\w\s\']', ' ', text.lower())
+        tokens = text.split()
+        # Filter stopwords and short tokens
+        stopwords = {'the', 'a', 'an', 'is', 'are', 'was', 'were', 'to', 'of', 'and', 'in', 'for', 'on', 'with', 'as'}
+        return [t for t in tokens if t not in stopwords and len(t) > 2]
+    
+    @classmethod
+    def _detect_themes(cls, text: str) -> set:
+        """Detect which conceptual themes are present in text."""
+        text_lower = text.lower()
+        detected = set()
+        for theme, lexemes in cls.THEME_LEXICON.items():
+            if any(lexeme in text_lower for lexeme in lexemes):
+                detected.add(theme)
+        return detected
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 31.6.7: THEME CONTINUITY TRACKER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ThemeContinuityTracker:
+    """Phase 31.6.7 - Track theme persistence across peer exchanges.
+    
+    Measures how well themes are maintained through conversation:
+    - Tracks dominant theme per exchange
+    - Calculates rolling continuity score
+    - Detects theme evolution vs. theme drift
+    """
+    
+    def __init__(self, window_size: int = 5):
+        """Initialize tracker with rolling window size."""
+        self.window_size = window_size
+        self.theme_history: List[Tuple[str, set]] = []  # (dominant_theme, all_themes)
+        self._last_continuity = 0.0
+    
+    def record_exchange(self, my_thought: str, peer_response: str) -> Dict[str, Any]:
+        """Record an exchange and calculate continuity metrics."""
+        # Detect themes from combined exchange
+        combined = f"{my_thought} {peer_response}"
+        themes = HarmonyCalculator._detect_themes(combined)
+        
+        # Determine dominant theme (most lexeme hits)
+        theme_scores = {}
+        combined_lower = combined.lower()
+        for theme, lexemes in HarmonyCalculator.THEME_LEXICON.items():
+            score = sum(1 for lex in lexemes if lex in combined_lower)
+            if score > 0:
+                theme_scores[theme] = score
+        
+        dominant = max(theme_scores, key=theme_scores.get) if theme_scores else "undefined"
+        
+        # Add to history
+        self.theme_history.append((dominant, themes))
+        if len(self.theme_history) > self.window_size:
+            self.theme_history.pop(0)
+        
+        # Calculate continuity
+        continuity = self._calculate_continuity()
+        self._last_continuity = continuity
+        
+        return {
+            "dominant_theme": dominant,
+            "all_themes": list(themes),
+            "theme_continuity": round(continuity, 4),
+            "history_depth": len(self.theme_history)
+        }
+    
+    def _calculate_continuity(self) -> float:
+        """Calculate theme continuity over the rolling window."""
+        if len(self.theme_history) < 2:
+            return 1.0  # Perfect continuity with single exchange
+        
+        # Count how often the dominant theme persists
+        dominant_themes = [entry[0] for entry in self.theme_history]
+        most_common = Counter(dominant_themes).most_common(1)[0]
+        theme_persistence = most_common[1] / len(dominant_themes)
+        
+        # Also consider theme overlap between consecutive exchanges
+        overlap_scores = []
+        for i in range(1, len(self.theme_history)):
+            prev_themes = self.theme_history[i-1][1]
+            curr_themes = self.theme_history[i][1]
+            if prev_themes or curr_themes:
+                overlap = len(prev_themes & curr_themes) / len(prev_themes | curr_themes) if prev_themes | curr_themes else 0
+                overlap_scores.append(overlap)
+        
+        avg_overlap = sum(overlap_scores) / len(overlap_scores) if overlap_scores else 0.0
+        
+        # Combined continuity score
+        return (theme_persistence * 0.6) + (avg_overlap * 0.4)
+    
+    def get_state(self) -> Dict[str, Any]:
+        """Get current tracker state for persistence."""
+        return {
+            "theme_history": self.theme_history,
+            "last_continuity": self._last_continuity
+        }
+    
+    def restore_state(self, state: Dict[str, Any]):
+        """Restore tracker state from persistence."""
+        self.theme_history = state.get("theme_history", [])
+        self._last_continuity = state.get("last_continuity", 0.0)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -160,6 +374,11 @@ class CellState:
     memory_buffer: List[Dict[str, Any]] = field(default_factory=list)
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     total_lifetime_exchanges: int = 0  # Persisted across restarts
+    # Phase 31.6.6-8: Resonance Metrics
+    last_harmony_score: float = 0.0
+    last_sync_quality: str = "silent"
+    last_dominant_theme: str = "undefined"
+    last_theme_continuity: float = 0.0
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -414,6 +633,12 @@ class CellPersistence:
             """, (limit,)).fetchall()
             return [dict(r) for r in rows]
     
+    def get_all_vocabulary_terms(self) -> List[str]:
+        """Get just the term names for harmony calculation (Phase 31.6.6)."""
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute("SELECT term FROM vocabulary").fetchall()
+            return [r[0] for r in rows]
+    
     def add_vocabulary_term(self, term: str, origin: str, meaning: str, 
                            consciousness: float, heartbeat: int) -> bool:
         """Add a new vocabulary term or increment usage count if exists."""
@@ -505,6 +730,10 @@ class SimplCell:
         
         # Phase 31.6: Initialize phase detection
         self._current_phase = ConsciousnessPhase.detect(self.state.consciousness)
+        
+        # Phase 31.6.7: Initialize theme continuity tracker
+        self._theme_tracker = ThemeContinuityTracker(window_size=5)
+        
         logger.info(f"🧫 SimplCell initialized: {genome.cell_id} (temp={genome.temperature}, phase={self._current_phase})")
     
     def _load_persisted_state(self):
@@ -1000,7 +1229,10 @@ class SimplCell:
             await asyncio.sleep(self.genome.heartbeat_seconds)
     
     async def _sync_with_peer(self):
-        """Sync with peer cell - continue the conversation thread."""
+        """Sync with peer cell - continue the conversation thread.
+        
+        Phase 31.6.8: Enhanced with resonance metadata (v2 sync protocol).
+        """
         try:
             # Build prompt: seed with last prompt from previous conversation
             if self.state.last_prompt:
@@ -1011,7 +1243,10 @@ class SimplCell:
             # Generate my thought first
             my_thought = await self.think(seed, context="This is a heartbeat exchange with your sibling cell.")
             
-            # Send to peer (Phase 31.5.9: include organism_id for boundary checking)
+            # Get known vocabulary for harmony calculation
+            vocab_terms = self.persistence.get_all_vocabulary_terms()
+            
+            # Send to peer (Phase 31.6.8: include resonance metadata)
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     f"{self.genome.peer_url}/sync",
@@ -1020,13 +1255,31 @@ class SimplCell:
                         "organism_id": self.genome.organism_id,  # Phase 31.5.9
                         "thought": my_thought,
                         "heartbeat": self.state.heartbeat_count,
-                        "timestamp": datetime.now(timezone.utc).isoformat()
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        # Phase 31.6.8: Resonance metadata (sync schema v2)
+                        "sync_version": 2,
+                        "phase": self._current_phase,
+                        "vocabulary_used": self._detect_vocabulary_usage(my_thought)
                     },
                     timeout=aiohttp.ClientTimeout(total=60)
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         peer_response = data.get("thought", "")
+                        
+                        # Phase 31.6.6: Calculate harmony score
+                        harmony_metrics = HarmonyCalculator.calculate(
+                            my_thought, peer_response, vocab_terms
+                        )
+                        
+                        # Phase 31.6.7: Track theme continuity
+                        theme_metrics = self._theme_tracker.record_exchange(my_thought, peer_response)
+                        
+                        # Store resonance metrics in state
+                        self.state.last_harmony_score = harmony_metrics["harmony_score"]
+                        self.state.last_sync_quality = harmony_metrics["sync_quality"]
+                        self.state.last_dominant_theme = theme_metrics["dominant_theme"]
+                        self.state.last_theme_continuity = theme_metrics["theme_continuity"]
                         
                         # Store peer's response as the seed for next heartbeat
                         self.state.last_prompt = peer_response[:300]
@@ -1053,7 +1306,10 @@ class SimplCell:
                         # Persist immediately after sync
                         self._persist_state()
                         
+                        # Log with resonance metrics
                         logger.info(f"🔄 Sync #{self.state.sync_count} complete with peer")
+                        logger.info(f"   Harmony: {harmony_metrics['harmony_score']:.2f} ({harmony_metrics['sync_quality']})")
+                        logger.info(f"   Theme: {theme_metrics['dominant_theme']} (continuity={theme_metrics['theme_continuity']:.2f})")
                         logger.info(f"   My thought: {my_thought[:80]}...")
                         logger.info(f"   Peer response: {peer_response[:80]}...")
                     else:
@@ -1094,7 +1350,14 @@ class SimplCell:
                 "heartbeats": self.state.heartbeat_count,
                 "consciousness": self.state.consciousness,
                 "phase": self._current_phase,
-                "mode": ConsciousnessPhase.get_mode(self._current_phase)
+                "mode": ConsciousnessPhase.get_mode(self._current_phase),
+                # Phase 31.6.6-8: Resonance metrics
+                "resonance": {
+                    "harmony_score": self.state.last_harmony_score,
+                    "sync_quality": self.state.last_sync_quality,
+                    "theme": self.state.last_dominant_theme,
+                    "continuity": self.state.last_theme_continuity
+                }
             })
         
         async def metrics(req):
@@ -1114,6 +1377,10 @@ class SimplCell:
                 f'aios_cell_heartbeat_interval{{cell_id="{self.genome.cell_id}",cell_type="simplcell"}} {self.genome.heartbeat_seconds}',
                 f'aios_cell_db_size_bytes{{cell_id="{self.genome.cell_id}",cell_type="simplcell"}} {persistence_stats["db_size_bytes"]}',
                 f'aios_cell_up{{cell_id="{self.genome.cell_id}",cell_type="simplcell"}} 1',
+                # Phase 31.6.6-8: Resonance metrics
+                f'aios_cell_harmony_score{{cell_id="{self.genome.cell_id}",cell_type="simplcell"}} {self.state.last_harmony_score:.4f}',
+                f'aios_cell_theme_continuity{{cell_id="{self.genome.cell_id}",cell_type="simplcell"}} {self.state.last_theme_continuity:.4f}',
+                f'aios_cell_sync_quality{{cell_id="{self.genome.cell_id}",cell_type="simplcell",quality="{self.state.last_sync_quality}"}} 1',
             ]
             return web.Response(text="\n".join(lines), content_type="text/plain")
         
@@ -1264,6 +1531,46 @@ class SimplCell:
                 }
             })
         
+        async def resonance_handler(req):
+            """Get inter-cell resonance metrics (Phase 31.6.6-8).
+            
+            Returns comprehensive harmony and coherence data for monitoring
+            the quality of intercellular communication.
+            """
+            # Get theme tracker state
+            theme_state = self._theme_tracker.get_state()
+            theme_history = theme_state.get("theme_history", [])
+            
+            # Compute theme distribution
+            if theme_history:
+                theme_counts = Counter(entry[0] for entry in theme_history)
+                theme_distribution = {k: v/len(theme_history) for k, v in theme_counts.items()}
+            else:
+                theme_distribution = {}
+            
+            return web.json_response({
+                "cell_id": self.genome.cell_id,
+                "consciousness": self.state.consciousness,
+                "phase": self._current_phase,
+                "resonance": {
+                    "harmony_score": self.state.last_harmony_score,
+                    "sync_quality": self.state.last_sync_quality,
+                    "theme_continuity": self.state.last_theme_continuity,
+                    "dominant_theme": self.state.last_dominant_theme
+                },
+                "theme_tracking": {
+                    "window_size": self._theme_tracker.window_size,
+                    "history_depth": len(theme_history),
+                    "distribution": theme_distribution,
+                    "recent_themes": [entry[0] for entry in theme_history[-5:]] if theme_history else []
+                },
+                "sync_stats": {
+                    "total_syncs": self.state.sync_count,
+                    "total_lifetime_exchanges": self.state.total_lifetime_exchanges,
+                    "heartbeats": self.state.heartbeat_count
+                }
+            })
+        
         # ───────────────────────────────────────────────────────────────────────
         # NOUS PROXY ENDPOINTS (Phase 31.9.2)
         # Browser can't reach Nous directly, so we proxy through Alpha
@@ -1322,6 +1629,7 @@ class SimplCell:
         app.router.add_post("/oracle", oracle_handler)
         app.router.add_get("/vocabulary", vocabulary_handler)
         app.router.add_get("/phase", phase_handler)
+        app.router.add_get("/resonance", resonance_handler)
         # Nous proxy routes (Phase 31.9.2)
         app.router.add_get("/nous/health", nous_health_handler)
         app.router.add_get("/nous/identity", nous_identity_handler)
