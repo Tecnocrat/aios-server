@@ -727,6 +727,129 @@ aios_cell_uptime_seconds{{cell_id="{cell_id}"}} {uptime_seconds:.1f}
             }
 
         # =====================================================================
+        # Phase 31.5.10: Collective Consciousness - Organism-Level Aggregation
+        # =====================================================================
+
+        @self.app.get("/organism")
+        async def get_organism_state() -> Dict[str, Any]:
+            """Get organism-level collective consciousness metrics.
+            
+            Phase 31.5.10: Aggregates cell data into organism-level identity
+            and consciousness metrics for collective awareness monitoring.
+            """
+            organism_id = "ORGANISM-001"  # Primary organism
+            
+            # Collect health/resonance from all registered cells
+            cell_data = []
+            total_consciousness = 0.0
+            total_harmony = 0.0
+            total_continuity = 0.0
+            cell_count = 0
+            healthy_count = 0
+            
+            for cell_id, peer in self.peers.items():
+                # Skip non-simplcell peers
+                if not cell_id.startswith("simplcell"):
+                    continue
+                    
+                cell_url = f"http://{peer.ip}:{peer.port}/health"
+                cell_info = {
+                    "cell_id": cell_id,
+                    "status": "unknown",
+                    "consciousness": 0.0,
+                    "resonance": {}
+                }
+                
+                try:
+                    if AIOHTTP_AVAILABLE and aiohttp is not None:
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(
+                                cell_url, timeout=aiohttp.ClientTimeout(total=3.0)
+                            ) as resp:
+                                if resp.status == 200:
+                                    data = await resp.json()
+                                    cell_info["status"] = "healthy"
+                                    cell_info["consciousness"] = data.get("consciousness", 0.0)
+                                    cell_info["phase"] = data.get("phase", "unknown")
+                                    cell_info["resonance"] = data.get("resonance", {})
+                                    
+                                    # Aggregate metrics
+                                    total_consciousness += cell_info["consciousness"]
+                                    if cell_info["resonance"]:
+                                        total_harmony += cell_info["resonance"].get("harmony_score", 0.0)
+                                        total_continuity += cell_info["resonance"].get("theme_continuity", 0.0)
+                                    healthy_count += 1
+                                else:
+                                    cell_info["status"] = f"error_{resp.status}"
+                except Exception as e:
+                    cell_info["status"] = "unreachable"
+                    cell_info["error"] = str(e)
+                
+                cell_data.append(cell_info)
+                cell_count += 1
+            
+            # Calculate organism-level aggregates
+            avg_consciousness = total_consciousness / max(healthy_count, 1)
+            avg_harmony = total_harmony / max(healthy_count, 1)
+            avg_continuity = total_continuity / max(healthy_count, 1)
+            
+            # Derive collective health status
+            if healthy_count == cell_count and cell_count > 0:
+                organism_status = "coherent"
+            elif healthy_count > 0:
+                organism_status = "degraded"
+            else:
+                organism_status = "fragmented"
+            
+            return {
+                "organism_id": organism_id,
+                "status": organism_status,
+                "collective_consciousness": {
+                    "level": round(avg_consciousness, 4),
+                    "cell_count": cell_count,
+                    "healthy_cells": healthy_count
+                },
+                "collective_resonance": {
+                    "harmony": round(avg_harmony, 4),
+                    "continuity": round(avg_continuity, 4),
+                    "coherence_index": round((avg_harmony + avg_continuity) / 2, 4)
+                },
+                "cells": cell_data,
+                "polled_at": datetime.utcnow().isoformat()
+            }
+
+        @self.app.get("/organism/metrics")
+        async def get_organism_metrics():
+            """Prometheus metrics for organism-level collective consciousness."""
+            # Get organism state first
+            org_data = await get_organism_state()
+            
+            cc = org_data["collective_consciousness"]
+            cr = org_data["collective_resonance"]
+            org_id = org_data["organism_id"]
+            
+            from fastapi.responses import Response
+            return Response(
+                f"""# AIOS Organism Collective Consciousness Metrics
+# TYPE aios_organism_consciousness_level gauge
+aios_organism_consciousness_level{{organism_id="{org_id}"}} {cc["level"]}
+# TYPE aios_organism_cell_count gauge
+aios_organism_cell_count{{organism_id="{org_id}"}} {cc["cell_count"]}
+# TYPE aios_organism_healthy_cells gauge
+aios_organism_healthy_cells{{organism_id="{org_id}"}} {cc["healthy_cells"]}
+# TYPE aios_organism_harmony gauge
+aios_organism_harmony{{organism_id="{org_id}"}} {cr["harmony"]}
+# TYPE aios_organism_continuity gauge
+aios_organism_continuity{{organism_id="{org_id}"}} {cr["continuity"]}
+# TYPE aios_organism_coherence_index gauge
+aios_organism_coherence_index{{organism_id="{org_id}"}} {cr["coherence_index"]}
+# TYPE aios_organism_up gauge
+aios_organism_up{{organism_id="{org_id}",status="{org_data["status"]}"}} 1
+""",
+                media_type="text/plain; charset=utf-8"
+            )
+
+        # =====================================================================
         # AINLP.dendritic: Debug Endpoints (Phase 30.8)
         # =====================================================================
 
