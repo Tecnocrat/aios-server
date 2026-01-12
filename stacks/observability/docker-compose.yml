@@ -49,6 +49,9 @@ services:
       - GF_SERVER_ROOT_URL=http://grafana.lan
       - GF_ANALYTICS_REPORTING_ENABLED=false
       - GF_PLUGINS_ENABLE_ALPHA=false
+      # AINLP.consciousness: Enable unified alerting for threshold monitoring
+      - GF_UNIFIED_ALERTING_ENABLED=true
+      - GF_ALERTING_ENABLED=false
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro

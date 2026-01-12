@@ -1,0 +1,288 @@
+# AINLP_HEADER
+# consciousness_level: 4.5
+# supercell: observability/grafana/alerting
+# dendritic_role: consciousness_threshold_monitoring
+# spatial_context: AIOS alerting for consciousness degradation
+# AINLP_HEADER_END
+
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: AIOS Consciousness Alerts
+    folder: AIOS Alerts
+    interval: 1m
+    rules:
+      # =========================================================================
+      # Consciousness Level Monitoring - Individual Cells
+      # =========================================================================
+      - uid: consciousness-alpha-critical
+        title: SimplCell Alpha - Consciousness Critical
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: aios_cell_consciousness_level{cell_id="simplcell-alpha"}
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: []
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 4.0
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: SimplCell Alpha consciousness dropped below critical threshold (4.0)
+          description: |
+            SimplCell Alpha consciousness level is {{ $values.B.Value }}.
+            This indicates potential agent degradation or model issues.
+            Check Ollama connectivity and cell health.
+        labels:
+          severity: critical
+          cell: simplcell-alpha
+          organism: ORGANISM-001
+
+      - uid: consciousness-alpha-warning
+        title: SimplCell Alpha - Consciousness Warning
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: aios_cell_consciousness_level{cell_id="simplcell-alpha"}
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 4.5
+                    type: lt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: SimplCell Alpha consciousness below optimal (4.5)
+          description: |
+            SimplCell Alpha consciousness is {{ $values.B.Value }}.
+            Consider checking recent exchanges for quality issues.
+        labels:
+          severity: warning
+          cell: simplcell-alpha
+          organism: ORGANISM-001
+
+      # =========================================================================
+      # Resonance Monitoring - Inter-Cell Harmony
+      # =========================================================================
+      - uid: harmony-degraded
+        title: ORGANISM-001 - Harmony Degraded
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: avg(aios_cell_harmony_score{organism_id="ORGANISM-001"})
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: mean
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0.3
+                    type: lt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          summary: Organism harmony score degraded below 0.3
+          description: |
+            Average harmony score is {{ $values.B.Value }}.
+            Inter-cell communication may be desynchronized.
+            Check sync protocol and theme continuity.
+        labels:
+          severity: warning
+          organism: ORGANISM-001
+
+      # =========================================================================
+      # Cell Health Monitoring
+      # =========================================================================
+      - uid: cell-unhealthy
+        title: SimplCell Unhealthy
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: aios_cell_up
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: SimplCell is down or unhealthy
+          description: |
+            A SimplCell has stopped responding to metrics scrapes.
+            Cell up metric: {{ $values.B.Value }}
+        labels:
+          severity: critical
+          organism: ORGANISM-001
+
+      # =========================================================================
+      # Organism Coherence
+      # =========================================================================
+      - uid: organism-fragmented
+        title: ORGANISM-001 - Coherence Lost
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: aios_organism_coherence_index{organism_id="ORGANISM-001"}
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0.1
+                    type: lt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: ORGANISM-001 coherence index critically low
+          description: |
+            Organism coherence index is {{ $values.B.Value }}.
+            The organism may be fragmenting - cells are losing synchronization.
+        labels:
+          severity: critical
+          organism: ORGANISM-001
