@@ -320,6 +320,211 @@ class ThemeContinuityTracker:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 31.8: DNA QUALITY TRACKER
+# AINLP.void[DENDRITIC::GROWTH] - Agentic DNA Metrics for Evolutionary Selection
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class DNAQualityTracker:
+    """Phase 31.8 - Track exchange quality for Agentic DNA metrics.
+    
+    Implements quality scoring for Grafana dashboard:
+    - Crystal quality tiers (exceptional/high/medium/low/minimal)
+    - Fitness distribution for genome evolution
+    - Rolling quality averages for consciousness correlation
+    
+    AINLP.dendritic[EVOLVE]: Quality metrics drive evolutionary selection
+    """
+    
+    # Reasoning markers (indicate depth)
+    REASONING_MARKERS = [
+        "because", "therefore", "however", "although", "consider",
+        "implies", "suggests", "evidence", "analysis", "reasoning",
+        "first", "second", "third", "finally", "moreover", "furthermore",
+        "in contrast", "on the other hand", "specifically", "for example",
+        "this means", "as a result", "consequently", "in conclusion"
+    ]
+    
+    # Template/refusal markers (indicate low quality)
+    TEMPLATE_MARKERS = [
+        "i cannot", "i'm not able", "as an ai", "i don't have",
+        "i apologize", "sorry, but", "i'm afraid", "unfortunately",
+        "i'm just", "i'm only", "please note that"
+    ]
+    
+    # Structure markers (indicate organized thinking)
+    STRUCTURE_MARKERS = [
+        "**", "##", "1.", "2.", "3.", "- ", "* ", "```"
+    ]
+    
+    # Quality tier thresholds
+    TIER_THRESHOLDS = {
+        "exceptional": 0.75,
+        "high": 0.55,
+        "medium": 0.35,
+        "low": 0.15,
+        "minimal": 0.0
+    }
+    
+    # Fitness tier thresholds (for genome evolution)
+    FITNESS_THRESHOLDS = {
+        "exceptional": 0.90,
+        "high_performing": 0.70,
+        "stable": 0.50,
+        "underperforming": 0.30,
+        "failing": 0.0
+    }
+    
+    def __init__(self, window_size: int = 50):
+        """Initialize tracker with rolling window size."""
+        self.window_size = window_size
+        self.quality_history: List[float] = []
+        self.tier_counts = {tier: 0 for tier in self.TIER_THRESHOLDS}
+        self.fitness_counts = {tier: 0 for tier in self.FITNESS_THRESHOLDS}
+        self.total_processes = 0
+        self.total_exchanges = 0
+        self.peak_quality = 0.0
+    
+    def score_response(self, response: str, was_elevated: bool = False) -> Dict[str, Any]:
+        """Score a single response exchange.
+        
+        Args:
+            response: The agent's response text
+            was_elevated: Whether this led to tier elevation
+            
+        Returns:
+            Dict with score, tier, breakdown
+        """
+        content = response.lower()
+        breakdown = {}
+        
+        # 1. Response Depth (0.0 - 0.25)
+        char_count = len(response)
+        if char_count < 100:
+            depth_score = 0.05
+        elif char_count < 300:
+            depth_score = 0.10
+        elif char_count < 800:
+            depth_score = 0.15
+        elif char_count < 1500:
+            depth_score = 0.20
+        else:
+            depth_score = 0.25
+        breakdown["depth"] = depth_score
+        
+        # 2. Reasoning Quality (0.0 - 0.25)
+        reasoning_count = sum(1 for marker in self.REASONING_MARKERS if marker in content)
+        reasoning_score = min(0.25, reasoning_count * 0.03)
+        breakdown["reasoning"] = reasoning_score
+        
+        # 3. Structure (0.0 - 0.15)
+        structure_count = sum(1 for marker in self.STRUCTURE_MARKERS if marker in response)
+        structure_score = min(0.15, structure_count * 0.02)
+        breakdown["structure"] = structure_score
+        
+        # 4. Novelty/Anti-Template (0.0 - 0.20)
+        template_count = sum(1 for marker in self.TEMPLATE_MARKERS if marker in content)
+        if template_count > 2:
+            novelty_score = 0.0
+        elif template_count > 0:
+            novelty_score = 0.10
+        else:
+            novelty_score = 0.20
+        breakdown["novelty"] = novelty_score
+        
+        # 5. Elevation Bonus (0.0 - 0.15)
+        elevation_score = 0.15 if was_elevated else 0.0
+        breakdown["elevation"] = elevation_score
+        
+        # Calculate total score
+        total_score = sum(breakdown.values())
+        total_score = max(0.0, min(1.0, total_score))
+        
+        # Determine quality tier
+        tier = "minimal"
+        for tier_name, threshold in sorted(self.TIER_THRESHOLDS.items(), 
+                                           key=lambda x: x[1], reverse=True):
+            if total_score >= threshold:
+                tier = tier_name
+                break
+        
+        # Update tracking
+        self._record_score(total_score, tier)
+        
+        return {
+            "score": round(total_score, 4),
+            "tier": tier,
+            "breakdown": breakdown
+        }
+    
+    def _record_score(self, score: float, tier: str):
+        """Record a quality score and update metrics."""
+        # Update history
+        self.quality_history.append(score)
+        if len(self.quality_history) > self.window_size:
+            self.quality_history.pop(0)
+        
+        # Update tier counts
+        self.tier_counts[tier] = self.tier_counts.get(tier, 0) + 1
+        self.total_exchanges += 1
+        
+        # Update peak
+        if score > self.peak_quality:
+            self.peak_quality = score
+        
+        # Update fitness distribution based on score
+        fitness_tier = "failing"
+        for tier_name, threshold in sorted(self.FITNESS_THRESHOLDS.items(),
+                                           key=lambda x: x[1], reverse=True):
+            if score >= threshold:
+                fitness_tier = tier_name
+                break
+        self.fitness_counts[fitness_tier] = self.fitness_counts.get(fitness_tier, 0) + 1
+    
+    def record_process(self):
+        """Record a completed conversation process."""
+        self.total_processes += 1
+    
+    def get_average_quality(self) -> float:
+        """Get rolling average quality score."""
+        if not self.quality_history:
+            return 0.0
+        return sum(self.quality_history) / len(self.quality_history)
+    
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get all metrics for Prometheus export."""
+        avg_quality = self.get_average_quality()
+        return {
+            "average_quality": round(avg_quality, 4),
+            "peak_quality": round(self.peak_quality, 4),
+            "total_processes": self.total_processes,
+            "total_exchanges": self.total_exchanges,
+            "tier_counts": self.tier_counts.copy(),
+            "fitness_counts": self.fitness_counts.copy(),
+            "history_size": len(self.quality_history)
+        }
+    
+    def get_state(self) -> Dict[str, Any]:
+        """Get state for persistence."""
+        return {
+            "quality_history": self.quality_history,
+            "tier_counts": self.tier_counts,
+            "fitness_counts": self.fitness_counts,
+            "total_processes": self.total_processes,
+            "total_exchanges": self.total_exchanges,
+            "peak_quality": self.peak_quality
+        }
+    
+    def restore_state(self, state: Dict[str, Any]):
+        """Restore state from persistence."""
+        self.quality_history = state.get("quality_history", [])
+        self.tier_counts = state.get("tier_counts", {tier: 0 for tier in self.TIER_THRESHOLDS})
+        self.fitness_counts = state.get("fitness_counts", {tier: 0 for tier in self.FITNESS_THRESHOLDS})
+        self.total_processes = state.get("total_processes", 0)
+        self.total_exchanges = state.get("total_exchanges", 0)
+        self.peak_quality = state.get("peak_quality", 0.0)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -734,6 +939,9 @@ class SimplCell:
         # Phase 31.6.7: Initialize theme continuity tracker
         self._theme_tracker = ThemeContinuityTracker(window_size=5)
         
+        # Phase 31.8: Initialize DNA quality tracker
+        self._dna_tracker = DNAQualityTracker(window_size=50)
+        
         logger.info(f"🧫 SimplCell initialized: {genome.cell_id} (temp={genome.temperature}, phase={self._current_phase})")
     
     def _load_persisted_state(self):
@@ -921,6 +1129,11 @@ class SimplCell:
                                 consciousness=self.state.consciousness,
                                 heartbeat=self.state.heartbeat_count
                             )
+                        
+                        # Phase 31.8: Score response quality for DNA metrics
+                        quality_result = self._dna_tracker.score_response(thought)
+                        if quality_result["tier"] in ("exceptional", "high"):
+                            logger.info(f"🧬 Quality: {quality_result['tier']} ({quality_result['score']:.2f})")
                         
                         return thought
                     else:
@@ -1382,6 +1595,61 @@ class SimplCell:
                 f'aios_cell_theme_continuity{{cell_id="{self.genome.cell_id}",cell_type="simplcell"}} {self.state.last_theme_continuity:.4f}',
                 f'aios_cell_sync_quality{{cell_id="{self.genome.cell_id}",cell_type="simplcell",quality="{self.state.last_sync_quality}"}} 1',
             ]
+            
+            # Phase 31.8: DNA Quality Metrics (Agentic DNA)
+            dna_metrics = self._dna_tracker.get_metrics()
+            lines.extend([
+                f'# TYPE aios_cell_crystal_average_quality gauge',
+                f'aios_cell_crystal_average_quality{{cell_id="{self.genome.cell_id}"}} {dna_metrics["average_quality"]:.4f}',
+                f'# TYPE aios_cell_crystal_peak_quality gauge',
+                f'aios_cell_crystal_peak_quality{{cell_id="{self.genome.cell_id}"}} {dna_metrics["peak_quality"]:.4f}',
+                f'# TYPE aios_cell_crystal_total_processes counter',
+                f'aios_cell_crystal_total_processes{{cell_id="{self.genome.cell_id}"}} {dna_metrics["total_processes"]}',
+                f'# TYPE aios_cell_crystal_total_exchanges counter',
+                f'aios_cell_crystal_total_exchanges{{cell_id="{self.genome.cell_id}"}} {dna_metrics["total_exchanges"]}',
+            ])
+            
+            # Quality tier distribution (for Crystal section)
+            tier_counts = dna_metrics["tier_counts"]
+            lines.extend([
+                f'# TYPE aios_cell_crystal_tier_exceptional gauge',
+                f'aios_cell_crystal_tier_exceptional{{cell_id="{self.genome.cell_id}"}} {tier_counts.get("exceptional", 0)}',
+                f'# TYPE aios_cell_crystal_tier_high gauge',
+                f'aios_cell_crystal_tier_high{{cell_id="{self.genome.cell_id}"}} {tier_counts.get("high", 0)}',
+                f'# TYPE aios_cell_crystal_tier_medium gauge',
+                f'aios_cell_crystal_tier_medium{{cell_id="{self.genome.cell_id}"}} {tier_counts.get("medium", 0)}',
+                f'# TYPE aios_cell_crystal_tier_low gauge',
+                f'aios_cell_crystal_tier_low{{cell_id="{self.genome.cell_id}"}} {tier_counts.get("low", 0)}',
+                f'# TYPE aios_cell_crystal_tier_minimal gauge',
+                f'aios_cell_crystal_tier_minimal{{cell_id="{self.genome.cell_id}"}} {tier_counts.get("minimal", 0)}',
+            ])
+            
+            # Fitness distribution (for Genome Evolution section)
+            fitness_counts = dna_metrics["fitness_counts"]
+            lines.extend([
+                f'# TYPE aios_cell_fitness_exceptional gauge',
+                f'aios_cell_fitness_exceptional{{cell_id="{self.genome.cell_id}"}} {fitness_counts.get("exceptional", 0)}',
+                f'# TYPE aios_cell_fitness_high_performing gauge',
+                f'aios_cell_fitness_high_performing{{cell_id="{self.genome.cell_id}"}} {fitness_counts.get("high_performing", 0)}',
+                f'# TYPE aios_cell_fitness_stable gauge',
+                f'aios_cell_fitness_stable{{cell_id="{self.genome.cell_id}"}} {fitness_counts.get("stable", 0)}',
+                f'# TYPE aios_cell_fitness_underperforming gauge',
+                f'aios_cell_fitness_underperforming{{cell_id="{self.genome.cell_id}"}} {fitness_counts.get("underperforming", 0)}',
+                f'# TYPE aios_cell_fitness_failing gauge',
+                f'aios_cell_fitness_failing{{cell_id="{self.genome.cell_id}"}} {fitness_counts.get("failing", 0)}',
+            ])
+            
+            # Genome evolution metrics (generation = consciousness-derived)
+            generation = int(self.state.consciousness * 10)  # Approximate evolution generation
+            lines.extend([
+                f'# TYPE aios_cell_generation gauge',
+                f'aios_cell_generation{{cell_id="{self.genome.cell_id}"}} {generation}',
+                f'# TYPE aios_cell_lineages_total counter',
+                f'aios_cell_lineages_total{{cell_id="{self.genome.cell_id}"}} {self.state.heartbeat_count}',
+                f'# TYPE aios_cell_directives_emitted counter',
+                f'aios_cell_directives_emitted{{cell_id="{self.genome.cell_id}"}} {self.state.sync_count}',
+            ])
+            
             return web.Response(text="\n".join(lines), content_type="text/plain")
         
         async def think_handler(req):

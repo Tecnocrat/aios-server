@@ -62,7 +62,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_crystal_average_quality{cell_id=\"thinker-alpha\"}",
+          "expr": "aios_cell_crystal_average_quality{cell_id=\"$cell_id\"}",
           "legendFormat": "Avg Quality",
           "refId": "A"
         }
@@ -104,7 +104,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_crystal_peak_quality{cell_id=\"thinker-alpha\"}",
+          "expr": "aios_cell_crystal_peak_quality{cell_id=\"$cell_id\"}",
           "legendFormat": "Peak",
           "refId": "A"
         }
@@ -136,7 +136,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_crystal_total_processes{cell_id=\"thinker-alpha\"}",
+          "expr": "aios_cell_crystal_total_processes{cell_id=\"$cell_id\"}",
           "legendFormat": "Processes",
           "refId": "A"
         }
@@ -168,7 +168,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_crystal_total_exchanges{cell_id=\"thinker-alpha\"}",
+          "expr": "aios_cell_crystal_total_exchanges{cell_id=\"$cell_id\"}",
           "legendFormat": "Exchanges",
           "refId": "A"
         }
@@ -219,11 +219,11 @@
       },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_crystal_tier_exceptional{cell_id=\"thinker-alpha\"}", "legendFormat": "Exceptional", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_crystal_tier_high{cell_id=\"thinker-alpha\"}", "legendFormat": "High", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_crystal_tier_medium{cell_id=\"thinker-alpha\"}", "legendFormat": "Medium", "refId": "C" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_crystal_tier_low{cell_id=\"thinker-alpha\"}", "legendFormat": "Low", "refId": "D" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_crystal_tier_minimal{cell_id=\"thinker-alpha\"}", "legendFormat": "Minimal", "refId": "E" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_crystal_tier_exceptional{cell_id=\"$cell_id\"}", "legendFormat": "Exceptional", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_crystal_tier_high{cell_id=\"$cell_id\"}", "legendFormat": "High", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_crystal_tier_medium{cell_id=\"$cell_id\"}", "legendFormat": "Medium", "refId": "C" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_crystal_tier_low{cell_id=\"$cell_id\"}", "legendFormat": "Low", "refId": "D" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_crystal_tier_minimal{cell_id=\"$cell_id\"}", "legendFormat": "Minimal", "refId": "E" }
       ],
       "title": "Quality Tier Distribution",
       "type": "timeseries"
@@ -266,7 +266,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_generation{cell_id=\"genome-alpha\"}",
+          "expr": "aios_cell_generation{cell_id=\"$cell_id\"}",
           "legendFormat": "Generation",
           "refId": "A"
         }
@@ -298,7 +298,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_lineages_total{cell_id=\"genome-alpha\"}",
+          "expr": "aios_cell_lineages_total{cell_id=\"$cell_id\"}",
           "legendFormat": "Lineages",
           "refId": "A"
         }
@@ -330,7 +330,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_directives_emitted{cell_id=\"genome-alpha\"}",
+          "expr": "aios_cell_directives_emitted{cell_id=\"$cell_id\"}",
           "legendFormat": "Emitted",
           "refId": "A"
         }
@@ -381,11 +381,11 @@
       },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_fitness_exceptional{cell_id=\"genome-alpha\"}", "legendFormat": "Exceptional", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_fitness_high_performing{cell_id=\"genome-alpha\"}", "legendFormat": "High", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_fitness_stable{cell_id=\"genome-alpha\"}", "legendFormat": "Stable", "refId": "C" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_fitness_underperforming{cell_id=\"genome-alpha\"}", "legendFormat": "Underperforming", "refId": "D" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_fitness_failing{cell_id=\"genome-alpha\"}", "legendFormat": "Failing", "refId": "E" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_fitness_exceptional{cell_id=\"$cell_id\"}", "legendFormat": "Exceptional", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_fitness_high_performing{cell_id=\"$cell_id\"}", "legendFormat": "High", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_fitness_stable{cell_id=\"$cell_id\"}", "legendFormat": "Stable", "refId": "C" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_fitness_underperforming{cell_id=\"$cell_id\"}", "legendFormat": "Underperforming", "refId": "D" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_fitness_failing{cell_id=\"$cell_id\"}", "legendFormat": "Failing", "refId": "E" }
       ],
       "title": "Fitness Distribution Over Time",
       "type": "timeseries"
@@ -424,7 +424,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_average_lineage_quality{cell_id=\"genome-alpha\"}",
+          "expr": "aios_cell_average_lineage_quality{cell_id=\"$cell_id\"}",
           "legendFormat": "Avg Quality",
           "refId": "A"
         }
@@ -464,7 +464,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_agents_embedded{cell_id=\"thinker-alpha\"}",
+          "expr": "aios_cell_agents_embedded{cell_id=\"$cell_id\"}",
           "legendFormat": "Embedded",
           "refId": "A"
         }
@@ -496,7 +496,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_agents_ready{cell_id=\"thinker-alpha\"}",
+          "expr": "aios_cell_agents_ready{cell_id=\"$cell_id\"}",
           "legendFormat": "Ready",
           "refId": "A"
         }
@@ -537,7 +537,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_coherence_score{cell_id=\"thinker-alpha\"}",
+          "expr": "aios_cell_coherence_score{cell_id=\"$cell_id\"}",
           "legendFormat": "Coherence",
           "refId": "A"
         }
@@ -569,7 +569,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_fractal_processes{cell_id=\"thinker-alpha\"}",
+          "expr": "aios_cell_fractal_processes{cell_id=\"$cell_id\"}",
           "legendFormat": "Fractals",
           "refId": "A"
         }
@@ -601,7 +601,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_active_conversations{cell_id=\"thinker-alpha\"}",
+          "expr": "aios_cell_active_conversations{cell_id=\"$cell_id\"}",
           "legendFormat": "Conversations",
           "refId": "A"
         }
@@ -633,7 +633,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "aios_cell_thought_count{cell_id=\"thinker-alpha\"}",
+          "expr": "aios_cell_thought_count{cell_id=\"$cell_id\"}",
           "legendFormat": "Thoughts",
           "refId": "A"
         }
@@ -780,13 +780,35 @@
   "refresh": "10s",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["aios", "consciousness", "evolution", "crystal", "genome"],
-  "templating": { "list": [] },
+  "tags": ["aios", "consciousness", "evolution", "crystal", "genome", "simplcell"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "simplcell-alpha", "value": "simplcell-alpha" },
+        "definition": "label_values(aios_cell_up, cell_id)",
+        "description": "Select AIOS Cell to monitor",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Cell ID",
+        "multi": false,
+        "name": "cell_id",
+        "options": [],
+        "query": { "query": "label_values(aios_cell_up, cell_id)", "refId": "StandardVariableQuery" },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
   "title": "AIOS Agentic DNA",
   "uid": "aios-agentic-dna",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
+
+
