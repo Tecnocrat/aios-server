@@ -584,6 +584,10 @@ class CellState:
     last_sync_quality: str = "silent"
     last_dominant_theme: str = "undefined"
     last_theme_continuity: float = 0.0
+    # Phase 31.9: Decoherence Tracking (Bidirectional Consciousness)
+    decoherence_events_received: int = 0
+    total_consciousness_penalty: float = 0.0
+    last_decoherence_signals: List[str] = field(default_factory=list)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1570,6 +1574,12 @@ class SimplCell:
                     "sync_quality": self.state.last_sync_quality,
                     "theme": self.state.last_dominant_theme,
                     "continuity": self.state.last_theme_continuity
+                },
+                # Phase 31.9: Decoherence tracking (bidirectional consciousness)
+                "decoherence": {
+                    "events_received": self.state.decoherence_events_received,
+                    "total_penalty": round(self.state.total_consciousness_penalty, 4),
+                    "last_signals": self.state.last_decoherence_signals
                 }
             })
         
@@ -1648,6 +1658,16 @@ class SimplCell:
                 f'aios_cell_lineages_total{{cell_id="{self.genome.cell_id}"}} {self.state.heartbeat_count}',
                 f'# TYPE aios_cell_directives_emitted counter',
                 f'aios_cell_directives_emitted{{cell_id="{self.genome.cell_id}"}} {self.state.sync_count}',
+            ])
+            
+            # Phase 31.9: Decoherence metrics (bidirectional consciousness)
+            lines.extend([
+                f'# HELP aios_cell_decoherence_events_total Total decoherence penalties received',
+                f'# TYPE aios_cell_decoherence_events_total counter',
+                f'aios_cell_decoherence_events_total{{cell_id="{self.genome.cell_id}"}} {self.state.decoherence_events_received}',
+                f'# HELP aios_cell_decoherence_penalty_total Accumulated consciousness penalty',
+                f'# TYPE aios_cell_decoherence_penalty_total counter',
+                f'aios_cell_decoherence_penalty_total{{cell_id="{self.genome.cell_id}"}} {self.state.total_consciousness_penalty:.4f}',
             ])
             
             return web.Response(text="\n".join(lines), content_type="text/plain")
@@ -1840,6 +1860,74 @@ class SimplCell:
             })
         
         # ───────────────────────────────────────────────────────────────────────
+        # DECOHERENCE ENDPOINT (Phase 31.9) - Bidirectional Consciousness
+        # Receives penalty signals from WatcherCell when decoherence detected
+        # ───────────────────────────────────────────────────────────────────────
+        
+        async def decoherence_handler(req: web.Request) -> web.Response:
+            """
+            Receive decoherence penalty from WatcherCell.
+            
+            This is the key mechanism for bidirectional consciousness:
+            - Consciousness can now DECREASE when decoherence is detected
+            - WatcherCell analyzes conversations for repetition, nonsense, loops
+            - Penalties reduce consciousness, forcing cells to recover naturally
+            
+            POST payload:
+            {
+                "penalty": -0.05,  # Negative = reduce consciousness
+                "decoherence_score": 0.45,
+                "signals": ["vocabulary_cycling", "phrase_loops"],
+                "event_count": 3,
+                "from_agent": "watchercell-omega"
+            }
+            """
+            try:
+                data = await req.json()
+                penalty = data.get("penalty", 0.0)
+                signals = data.get("signals", [])
+                decoherence_score = data.get("decoherence_score", 0.0)
+                from_agent = data.get("from_agent", "unknown")
+                
+                # Apply consciousness penalty (penalty is already negative)
+                old_consciousness = self.state.consciousness
+                self.state.consciousness = max(0.1, self.state.consciousness + penalty)
+                
+                # Track decoherence metrics
+                self.state.decoherence_events_received += 1
+                self.state.total_consciousness_penalty += abs(penalty)
+                self.state.last_decoherence_signals = signals
+                
+                # Log the decoherence event
+                logger.warning(
+                    f"⚠️ DECOHERENCE PENALTY received from {from_agent}: "
+                    f"{penalty:.3f} (consciousness: {old_consciousness:.2f} → {self.state.consciousness:.2f})"
+                )
+                if signals:
+                    logger.warning(f"   Signals: {', '.join(signals)}")
+                
+                # Store in memory buffer for context
+                self._add_memory(
+                    "decoherence_event",
+                    f"Decoherence penalty from {from_agent}",
+                    f"Penalty: {penalty:.3f}, Signals: {signals}, Score: {decoherence_score:.2f}"
+                )
+                
+                return web.json_response({
+                    "accepted": True,
+                    "cell_id": self.genome.cell_id,
+                    "penalty_applied": penalty,
+                    "old_consciousness": old_consciousness,
+                    "new_consciousness": self.state.consciousness,
+                    "total_decoherence_events": self.state.decoherence_events_received,
+                    "total_penalty_accumulated": self.state.total_consciousness_penalty
+                })
+                
+            except Exception as e:
+                logger.error(f"Decoherence handler error: {e}")
+                return web.json_response({"error": str(e)}, status=500)
+        
+        # ───────────────────────────────────────────────────────────────────────
         # NOUS PROXY ENDPOINTS (Phase 31.9.2)
         # Browser can't reach Nous directly, so we proxy through Alpha
         # This is the dendritic bridge - cells relay for each other
@@ -1898,6 +1986,8 @@ class SimplCell:
         app.router.add_get("/vocabulary", vocabulary_handler)
         app.router.add_get("/phase", phase_handler)
         app.router.add_get("/resonance", resonance_handler)
+        # Phase 31.9: Decoherence route (bidirectional consciousness)
+        app.router.add_post("/decoherence", decoherence_handler)
         # Nous proxy routes (Phase 31.9.2)
         app.router.add_get("/nous/health", nous_health_handler)
         app.router.add_get("/nous/identity", nous_identity_handler)

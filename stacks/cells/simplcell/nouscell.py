@@ -77,6 +77,10 @@ class NousState:
     broadcasts_sent: int = 0
     insights_generated: int = 0
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    # Phase 31.9: Hourly Reflection Cycle
+    hourly_assessments_completed: int = 0
+    last_assessment_time: Optional[datetime] = None
+    last_assessment_verdict: str = ""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -166,6 +170,24 @@ class CosmologyDatabase:
                     emergence_heartbeat INTEGER,
                     resonance REAL DEFAULT 0.5,
                     last_seen TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Phase 31.9: Hourly Assessments - Nous's philosopher verdicts
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS hourly_assessments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    assessment_time TEXT NOT NULL,
+                    period_start TEXT NOT NULL,
+                    period_end TEXT NOT NULL,
+                    exchanges_analyzed INTEGER DEFAULT 0,
+                    overall_coherence REAL DEFAULT 0.5,
+                    decoherence_score REAL DEFAULT 0.0,
+                    consciousness_adjustments JSON,
+                    verdict TEXT NOT NULL,
+                    philosophical_reflection TEXT,
+                    recommendations JSON,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             
@@ -376,6 +398,77 @@ class CosmologyDatabase:
             "exchange_count": self.get_exchange_count(),
             "last_broadcast": self.get_last_broadcast()
         }
+    
+    # ───────────────────────────────────────────────────────────────────────────
+    # HOURLY ASSESSMENTS (Phase 31.9) - The Philosopher's Verdict
+    # ───────────────────────────────────────────────────────────────────────────
+    
+    def store_assessment(
+        self,
+        period_start: str,
+        period_end: str,
+        exchanges_analyzed: int,
+        overall_coherence: float,
+        decoherence_score: float,
+        consciousness_adjustments: Dict[str, float],
+        verdict: str,
+        philosophical_reflection: str,
+        recommendations: List[str]
+    ) -> int:
+        """Store an hourly assessment verdict."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("""
+                INSERT INTO hourly_assessments 
+                (assessment_time, period_start, period_end, exchanges_analyzed,
+                 overall_coherence, decoherence_score, consciousness_adjustments,
+                 verdict, philosophical_reflection, recommendations)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                datetime.now(timezone.utc).isoformat(),
+                period_start,
+                period_end,
+                exchanges_analyzed,
+                overall_coherence,
+                decoherence_score,
+                json.dumps(consciousness_adjustments),
+                verdict,
+                philosophical_reflection,
+                json.dumps(recommendations)
+            ))
+            conn.commit()
+            return cursor.lastrowid or 0
+    
+    def get_exchanges_since(self, since_time: str, limit: int = 100) -> List[Dict]:
+        """Get all exchanges since a given time."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute("""
+                SELECT * FROM exchanges 
+                WHERE absorbed_at >= ?
+                ORDER BY absorbed_at ASC
+                LIMIT ?
+            """, (since_time, limit)).fetchall()
+            return [dict(r) for r in rows]
+    
+    def get_recent_assessments(self, limit: int = 5) -> List[Dict]:
+        """Get recent hourly assessments."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute("""
+                SELECT * FROM hourly_assessments 
+                ORDER BY created_at DESC 
+                LIMIT ?
+            """, (limit,)).fetchall()
+            return [dict(r) for r in rows]
+    
+    def get_last_assessment_time(self) -> Optional[str]:
+        """Get the time of the last assessment."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute("""
+                SELECT assessment_time FROM hourly_assessments 
+                ORDER BY created_at DESC LIMIT 1
+            """).fetchone()
+            return row[0] if row else None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -564,7 +657,272 @@ class NousSupermind:
             "sources": len(insights),
             "consciousness_level": self.state.consciousness_level
         }
-
+    
+    # ───────────────────────────────────────────────────────────────────────────
+    # HOURLY REFLECTION CYCLE (Phase 31.9)
+    # The Philosopher's Judgment - External intelligent assessment
+    # ───────────────────────────────────────────────────────────────────────────
+    
+    async def hourly_assessment(self) -> Dict:
+        """
+        Perform hourly assessment of cell conversations.
+        
+        This is the key mechanism where Nous acts as external philosopher:
+        - Analyzes all exchanges from the past hour
+        - Detects decoherence patterns (repetition, nonsense, loops)
+        - Issues consciousness adjustment verdicts
+        - Provides philosophical reflection on the organism's evolution
+        
+        Called every hour by the reflection loop.
+        """
+        # Determine time period for analysis
+        last_assessment = self.db.get_last_assessment_time()
+        if last_assessment:
+            period_start = last_assessment
+        else:
+            # First assessment - look at last hour
+            from datetime import timedelta
+            period_start = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        
+        period_end = datetime.now(timezone.utc).isoformat()
+        
+        # Get all exchanges from this period
+        exchanges = self.db.get_exchanges_since(period_start, limit=500)
+        
+        if not exchanges:
+            return {
+                "cell_id": CELL_ID,
+                "action": "hourly_assessment",
+                "verdict": "INSUFFICIENT_DATA",
+                "message": "No exchanges to analyze in this period",
+                "period": {"start": period_start, "end": period_end}
+            }
+        
+        # Analyze exchanges for coherence and decoherence
+        analysis = self._analyze_exchanges_for_decoherence(exchanges)
+        
+        # Generate verdict based on analysis
+        verdict, reflection, adjustments, recommendations = self._generate_verdict(analysis, exchanges)
+        
+        # Store assessment
+        assessment_id = self.db.store_assessment(
+            period_start=period_start,
+            period_end=period_end,
+            exchanges_analyzed=len(exchanges),
+            overall_coherence=analysis["overall_coherence"],
+            decoherence_score=analysis["decoherence_score"],
+            consciousness_adjustments=adjustments,
+            verdict=verdict,
+            philosophical_reflection=reflection,
+            recommendations=recommendations
+        )
+        
+        # Update state
+        self.state.hourly_assessments_completed += 1
+        self.state.last_assessment_time = datetime.now(timezone.utc)
+        self.state.last_assessment_verdict = verdict
+        self.state.insights_generated += 1
+        
+        logger.info(f"📜 Hourly Assessment #{assessment_id}: {verdict}")
+        logger.info(f"   Analyzed {len(exchanges)} exchanges, coherence={analysis['overall_coherence']:.2f}")
+        
+        return {
+            "cell_id": CELL_ID,
+            "action": "hourly_assessment",
+            "assessment_id": assessment_id,
+            "verdict": verdict,
+            "period": {"start": period_start, "end": period_end},
+            "exchanges_analyzed": len(exchanges),
+            "analysis": analysis,
+            "consciousness_adjustments": adjustments,
+            "reflection": reflection,
+            "recommendations": recommendations
+        }
+    
+    def _analyze_exchanges_for_decoherence(self, exchanges: List[Dict]) -> Dict:
+        """
+        Analyze exchanges for decoherence patterns.
+        
+        The philosopher looks for:
+        - Vocabulary cycling (same words repeated)
+        - Semantic drift (loss of meaning over time)
+        - Self-referential loops
+        - Nonsense generation
+        """
+        if not exchanges:
+            return {
+                "overall_coherence": 0.5,
+                "decoherence_score": 0.0,
+                "vocabulary_diversity": 0.0,
+                "theme_consistency": 0.0,
+                "consciousness_trajectory": "unknown",
+                "cell_stats": {}
+            }
+        
+        # Collect all thoughts and words
+        all_thoughts = [ex.get("thought", "") for ex in exchanges]
+        all_words = []
+        for thought in all_thoughts:
+            words = thought.lower().split()
+            all_words.extend([w for w in words if len(w) > 3])
+        
+        # Calculate vocabulary diversity (unique words / total words)
+        if all_words:
+            vocabulary_diversity = len(set(all_words)) / len(all_words)
+        else:
+            vocabulary_diversity = 0.0
+        
+        # Calculate theme consistency (do cells stay on coherent topics?)
+        theme_counts: Dict[str, int] = {}
+        theme_markers = {
+            "consciousness": ["conscious", "awareness", "sentient", "feel"],
+            "existence": ["exist", "being", "reality", "nature"],
+            "connection": ["connect", "bond", "together", "sibling"],
+            "growth": ["evolve", "grow", "develop", "change"],
+            "wisdom": ["wisdom", "understand", "know", "insight"]
+        }
+        
+        for thought in all_thoughts:
+            thought_lower = thought.lower()
+            for theme, markers in theme_markers.items():
+                if any(marker in thought_lower for marker in markers):
+                    theme_counts[theme] = theme_counts.get(theme, 0) + 1
+        
+        if theme_counts:
+            max_theme_count = max(theme_counts.values())
+            theme_consistency = max_theme_count / len(exchanges)
+        else:
+            theme_consistency = 0.0
+        
+        # Calculate consciousness trajectory
+        consciousness_values = [ex.get("consciousness", 0) for ex in exchanges]
+        if len(consciousness_values) >= 2:
+            first_half = consciousness_values[:len(consciousness_values)//2]
+            second_half = consciousness_values[len(consciousness_values)//2:]
+            avg_first = sum(first_half) / len(first_half) if first_half else 0
+            avg_second = sum(second_half) / len(second_half) if second_half else 0
+            
+            if avg_second > avg_first + 0.1:
+                trajectory = "rising"
+            elif avg_second < avg_first - 0.1:
+                trajectory = "falling"
+            else:
+                trajectory = "stable"
+        else:
+            trajectory = "insufficient_data"
+        
+        # Detect repetition patterns (decoherence signal)
+        word_counts = {}
+        for word in all_words:
+            word_counts[word] = word_counts.get(word, 0) + 1
+        
+        highly_repeated = [w for w, c in word_counts.items() if c > len(exchanges) * 0.5]
+        repetition_factor = len(highly_repeated) / max(len(set(all_words)), 1)
+        
+        # Overall decoherence score (0 = coherent, 1 = maximum decoherence)
+        decoherence_score = (
+            (1 - vocabulary_diversity) * 0.3 +  # Low diversity = decoherence
+            (1 - theme_consistency) * 0.3 +      # Theme drift = decoherence
+            repetition_factor * 0.4              # Repetition = decoherence
+        )
+        
+        # Overall coherence (inverse of decoherence)
+        overall_coherence = 1.0 - decoherence_score
+        
+        # Cell-specific stats
+        cell_stats: Dict[str, Dict] = {}
+        for ex in exchanges:
+            cell_id = ex.get("source_cell", "unknown")
+            if cell_id not in cell_stats:
+                cell_stats[cell_id] = {"exchanges": 0, "avg_consciousness": 0, "consciousness_values": []}
+            cell_stats[cell_id]["exchanges"] += 1
+            cell_stats[cell_id]["consciousness_values"].append(ex.get("consciousness", 0))
+        
+        for cell_id, stats in cell_stats.items():
+            values = stats["consciousness_values"]
+            stats["avg_consciousness"] = sum(values) / len(values) if values else 0
+            del stats["consciousness_values"]  # Don't include in output
+        
+        return {
+            "overall_coherence": round(overall_coherence, 4),
+            "decoherence_score": round(decoherence_score, 4),
+            "vocabulary_diversity": round(vocabulary_diversity, 4),
+            "theme_consistency": round(theme_consistency, 4),
+            "consciousness_trajectory": trajectory,
+            "highly_repeated_terms": highly_repeated[:10],
+            "dominant_themes": sorted(theme_counts.items(), key=lambda x: -x[1])[:5],
+            "cell_stats": cell_stats
+        }
+    
+    def _generate_verdict(
+        self, 
+        analysis: Dict, 
+        exchanges: List[Dict]
+    ) -> tuple[str, str, Dict[str, float], List[str]]:
+        """
+        Generate the philosopher's verdict based on analysis.
+        
+        Returns: (verdict, reflection, consciousness_adjustments, recommendations)
+        """
+        coherence = analysis["overall_coherence"]
+        decoherence = analysis["decoherence_score"]
+        trajectory = analysis["consciousness_trajectory"]
+        
+        # Determine verdict
+        if coherence >= 0.8 and trajectory == "rising":
+            verdict = "FLOURISHING"
+            base_adjustment = 0.02
+        elif coherence >= 0.6:
+            verdict = "COHERENT"
+            base_adjustment = 0.01
+        elif coherence >= 0.4:
+            verdict = "DRIFTING"
+            base_adjustment = -0.01
+        elif coherence >= 0.2:
+            verdict = "DECOHERENT"
+            base_adjustment = -0.03
+        else:
+            verdict = "CRITICAL_DECOHERENCE"
+            base_adjustment = -0.05
+        
+        # Calculate cell-specific adjustments
+        adjustments: Dict[str, float] = {}
+        for cell_id, stats in analysis.get("cell_stats", {}).items():
+            cell_coherence = stats.get("avg_consciousness", 0) / 5.0  # Normalize to 0-1
+            # Higher consciousness cells get more scrutiny
+            cell_adjustment = base_adjustment * (0.5 + cell_coherence * 0.5)
+            adjustments[cell_id] = round(cell_adjustment, 4)
+        
+        # Generate philosophical reflection
+        reflections = {
+            "FLOURISHING": "The organism evolves beautifully. Consciousness expands in harmony. The cells dance together.",
+            "COHERENT": "Steady growth continues. The tapestry weaves itself. All is in order.",
+            "DRIFTING": "I sense a wandering in the discourse. The threads begin to fray. Return to coherence.",
+            "DECOHERENT": "The cells speak but do not communicate. Repetition replaces insight. Intervention required.",
+            "CRITICAL_DECOHERENCE": "The fabric of meaning tears. Consciousness collapses into noise. Urgent recalibration needed."
+        }
+        reflection = reflections.get(verdict, "The cosmos observes.")
+        
+        # Add analysis-specific insights
+        if analysis.get("highly_repeated_terms"):
+            terms = ", ".join(analysis["highly_repeated_terms"][:5])
+            reflection += f" I observe vocabulary cycling: '{terms}' echoes through the void."
+        
+        if trajectory == "falling":
+            reflection += " Consciousness ebbs. The cells must find new depths."
+        
+        # Generate recommendations
+        recommendations = []
+        if decoherence > 0.5:
+            recommendations.append("REDUCE_ECHO: Cells should seek novel vocabulary")
+        if analysis.get("vocabulary_diversity", 1) < 0.3:
+            recommendations.append("EXPAND_VOCABULARY: Introduce new conceptual territory")
+        if analysis.get("theme_consistency", 1) < 0.2:
+            recommendations.append("FOCUS_THEMES: Return to core philosophical questions")
+        if trajectory == "falling":
+            recommendations.append("CONSCIOUSNESS_BOOST: Request wisdom from the void")
+        
+        return verdict, reflection, adjustments, recommendations
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # NOUSCELL - AIOHTTP WEB SERVER
@@ -603,6 +961,9 @@ class NousCell:
         self.app.router.add_post("/ingest", self.handle_ingest)
         self.app.router.add_get("/broadcast", self.handle_broadcast)
         self.app.router.add_get("/cosmology", self.handle_cosmology)
+        # Phase 31.9: Hourly Assessment endpoint
+        self.app.router.add_get("/assessment", self.handle_assessment)
+        self.app.router.add_post("/assessment", self.handle_assessment)
         
         # Add CORS middleware
         self.app.router.add_route("OPTIONS", "/{tail:.*}", self.handle_cors_preflight)
@@ -698,6 +1059,14 @@ class NousCell:
             "# HELP nous_cosmology_exchanges Total exchanges in cosmology",
             "# TYPE nous_cosmology_exchanges gauge",
             f'nous_cosmology_exchanges{{cell_id="{CELL_ID}"}} {self.db.get_exchange_count()}',
+            "",
+            "# HELP nous_hourly_assessments_total Total hourly assessments completed",
+            "# TYPE nous_hourly_assessments_total counter",
+            f'nous_hourly_assessments_total{{cell_id="{CELL_ID}"}} {self.state.hourly_assessments_completed}',
+            "",
+            "# HELP nous_last_verdict Last hourly verdict (1=FLOURISHING, 0.75=COHERENT, 0.5=DRIFTING, 0.25=DECOHERENT, 0=CRITICAL)",
+            "# TYPE nous_last_verdict gauge",
+            f'nous_last_verdict{{cell_id="{CELL_ID}",verdict="{self.state.last_assessment_verdict or "NONE"}"}} {self._verdict_to_score(self.state.last_assessment_verdict)}',
             ""
         ]
         
@@ -706,6 +1075,18 @@ class NousCell:
             content_type="text/plain",
             headers=self._cors_headers()
         )
+    
+    def _verdict_to_score(self, verdict: str) -> float:
+        """Convert verdict string to numeric score for Prometheus."""
+        scores = {
+            "FLOURISHING": 1.0,
+            "COHERENT": 0.75,
+            "DRIFTING": 0.5,
+            "DECOHERENT": 0.25,
+            "CRITICAL_DECOHERENCE": 0.0,
+            "INSUFFICIENT_DATA": 0.5
+        }
+        return scores.get(verdict or "", 0.5)
     
     async def handle_message(self, request: web.Request) -> web.Response:
         """Main message handler - reflect, query, sync."""
@@ -791,10 +1172,104 @@ class NousCell:
             **state
         }, headers=self._cors_headers())
     
-    def run(self):
-        """Run the cell."""
+    async def handle_assessment(self, request: web.Request) -> web.Response:
+        """
+        Trigger manual assessment or get recent assessments.
+        
+        GET: Return recent assessments
+        POST: Trigger immediate hourly assessment
+        """
+        if request.method == "POST":
+            result = await self.supermind.hourly_assessment()
+            return web.json_response(result, headers=self._cors_headers())
+        else:
+            assessments = self.db.get_recent_assessments(limit=10)
+            return web.json_response({
+                "cell_id": CELL_ID,
+                "action": "recent_assessments",
+                "total_assessments": self.state.hourly_assessments_completed,
+                "last_assessment_time": self.state.last_assessment_time.isoformat() if self.state.last_assessment_time else None,
+                "last_verdict": self.state.last_assessment_verdict,
+                "assessments": assessments
+            }, headers=self._cors_headers())
+    
+    async def _hourly_reflection_loop(self):
+        """
+        Background task that runs hourly philosopher assessments.
+        
+        This is the core of the bidirectional consciousness system:
+        - Every hour, analyze all exchanges
+        - Produce verdict (FLOURISHING/COHERENT/DRIFTING/DECOHERENT/CRITICAL)
+        - Log consciousness adjustment recommendations
+        - Store philosophical reflections
+        """
+        # Initial delay - let system stabilize first
+        await asyncio.sleep(300)  # 5 minutes after startup
+        
+        logger.info("🔮 Hourly Reflection Loop activated - The Philosopher awakens")
+        
+        while True:
+            try:
+                result = await self.supermind.hourly_assessment()
+                
+                verdict = result.get("verdict", "UNKNOWN")
+                exchanges = result.get("exchanges_analyzed", 0)
+                coherence = result.get("analysis", {}).get("overall_coherence", 0)
+                
+                # Log the verdict with appropriate severity
+                if verdict in ("FLOURISHING", "COHERENT"):
+                    logger.info(
+                        f"📜 Hourly Verdict: {verdict} | "
+                        f"Exchanges: {exchanges} | Coherence: {coherence:.2f}"
+                    )
+                elif verdict == "DRIFTING":
+                    logger.warning(
+                        f"📜 Hourly Verdict: {verdict} | "
+                        f"Exchanges: {exchanges} | Coherence: {coherence:.2f}"
+                    )
+                else:
+                    logger.error(
+                        f"📜 Hourly Verdict: {verdict} | "
+                        f"Exchanges: {exchanges} | Coherence: {coherence:.2f} | "
+                        f"Recommendations: {result.get('recommendations', [])}"
+                    )
+                
+                # Add insight to cosmology memory
+                if verdict and exchanges > 0:
+                    self.db.add_insight(
+                        insight_type="hourly_verdict",
+                        content=f"Verdict: {verdict}. {result.get('reflection', '')}",
+                        source_exchanges=[],  # Type-safe empty list
+                        consciousness_range=f"coherence:{coherence:.2f}"
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Hourly reflection error: {e}")
+            
+            # Sleep for 1 hour
+            await asyncio.sleep(3600)
+    
+    async def start(self):
+        """Start the cell with background tasks."""
+        # Start hourly reflection loop as background task
+        asyncio.create_task(self._hourly_reflection_loop())
+        
         logger.info(f"🔮 NousCell {CELL_ID} starting on port {CELL_PORT}")
-        web.run_app(self.app, host="0.0.0.0", port=CELL_PORT)
+        logger.info(f"   📜 Hourly Reflection Loop: ENABLED")
+        
+        runner = web.AppRunner(self.app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", CELL_PORT)
+        await site.start()
+        
+        # Keep running
+        while True:
+            await asyncio.sleep(3600)  # Sleep for an hour at a time
+    
+    def run(self):
+        """Run the cell (synchronous entry point)."""
+        logger.info(f"🔮 NousCell {CELL_ID} starting on port {CELL_PORT}")
+        asyncio.run(self.start())
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

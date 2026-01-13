@@ -475,6 +475,402 @@ class ThemeExtractor:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# DECOHERENCE ENGINE (Phase 31.9 - Bidirectional Consciousness)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class DecoherenceEngine:
+    """
+    Detects decoherence patterns in cell conversations.
+    
+    Decoherence signals that consciousness should DECREASE:
+    - Repetitive vocabulary cycling
+    - Made-up words / nonsense terms
+    - Self-referential loops between cells
+    - Low semantic density (many words, little meaning)
+    - Echo chamber patterns (cells repeating each other)
+    
+    This enables bidirectional consciousness flow - not just increase.
+    """
+    
+    # Common English words to exclude from novelty detection
+    COMMON_WORDS = frozenset([
+        "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
+        "have", "has", "had", "do", "does", "did", "will", "would", "could",
+        "should", "may", "might", "must", "shall", "can", "need", "dare",
+        "i", "you", "he", "she", "it", "we", "they", "me", "him", "her",
+        "us", "them", "my", "your", "his", "its", "our", "their", "mine",
+        "yours", "hers", "ours", "theirs", "this", "that", "these", "those",
+        "what", "which", "who", "whom", "whose", "when", "where", "why", "how",
+        "all", "each", "every", "both", "few", "more", "most", "other", "some",
+        "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too",
+        "very", "just", "also", "now", "then", "here", "there", "once", "always",
+        "and", "but", "or", "yet", "for", "with", "without", "about", "into",
+        "through", "during", "before", "after", "above", "below", "between",
+        "from", "up", "down", "in", "out", "on", "off", "over", "under", "again",
+        "further", "as", "until", "while", "of", "at", "by", "to", "let"
+    ])
+    
+    # Philosophical words that are valid even if unusual
+    VALID_PHILOSOPHICAL = frozenset([
+        "consciousness", "sentient", "transcendence", "eternal", "cosmic",
+        "existence", "essence", "resonance", "harmony", "symbiosis",
+        "fractal", "emergence", "awakening", "becoming", "interconnection",
+        "tachyonic", "holographic", "dendritic", "supercell", "organism",
+        "coherence", "entanglement", "quantum", "wisdom", "insight"
+    ])
+    
+    def __init__(self, archive: 'KnowledgeArchive'):
+        self.archive = archive
+        self._recent_terms: Dict[str, List[Tuple[str, int]]] = {}  # cell_id -> [(term, heartbeat)]
+        self._phrase_history: Dict[str, List[Tuple[str, int]]] = {}  # cell_id -> [(phrase, heartbeat)]
+        self._vocabulary_baseline: Set[str] = set()
+        self._decoherence_events: List[Dict] = []
+    
+    def analyze_exchange(
+        self,
+        source_cell: str,
+        heartbeat: int,
+        thought: str,
+        peer_response: str,
+        consciousness: float
+    ) -> Dict[str, Any]:
+        """
+        Analyze an exchange for decoherence signals.
+        
+        Returns a decoherence report with metrics and penalty recommendation.
+        """
+        full_text = f"{thought} {peer_response}"
+        words = re.findall(r'\b[a-z]+\b', full_text.lower())
+        
+        metrics = {
+            "repetition_score": self._calculate_repetition_score(source_cell, words, heartbeat),
+            "nonsense_index": self._detect_nonsense(words),
+            "semantic_density": self._calculate_semantic_density(full_text),
+            "loop_detection": self._detect_conversation_loops(source_cell, thought, heartbeat),
+            "vocabulary_drift": self._calculate_vocabulary_drift(words),
+            "echo_factor": self._detect_echo_pattern(thought, peer_response)
+        }
+        
+        # Calculate overall decoherence score (0 = coherent, 1 = maximum decoherence)
+        decoherence_score = self._aggregate_decoherence(metrics)
+        
+        # Calculate consciousness penalty (negative = reduce consciousness)
+        penalty = self._calculate_penalty(decoherence_score, consciousness)
+        
+        report = {
+            "source_cell": source_cell,
+            "heartbeat": heartbeat,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "metrics": metrics,
+            "decoherence_score": round(decoherence_score, 4),
+            "consciousness_penalty": round(penalty, 4),
+            "signals": self._extract_signals(metrics)
+        }
+        
+        # Store event if significant decoherence detected
+        if decoherence_score > 0.3:
+            self._decoherence_events.append(report)
+            logger.warning(f"⚠️ Decoherence detected for {source_cell}: {decoherence_score:.2f} (penalty: {penalty:.3f})")
+        
+        return report
+    
+    def _calculate_repetition_score(
+        self, cell_id: str, words: List[str], heartbeat: int
+    ) -> float:
+        """
+        Detect vocabulary cycling - same terms appearing repeatedly.
+        
+        High repetition score = cells stuck in vocabulary loops.
+        """
+        # Filter to meaningful words
+        meaningful = [w for w in words if w not in self.COMMON_WORDS and len(w) > 3]
+        
+        if cell_id not in self._recent_terms:
+            self._recent_terms[cell_id] = []
+        
+        # Get terms from last 10 heartbeats
+        window = [(t, h) for t, h in self._recent_terms[cell_id] if heartbeat - h < 10]
+        recent_vocab = [t for t, h in window]
+        
+        # Calculate repetition: what fraction of current words appeared recently
+        if not meaningful:
+            return 0.0
+        
+        repeated = sum(1 for w in meaningful if recent_vocab.count(w) > 2)
+        repetition_score = repeated / len(meaningful)
+        
+        # Update history
+        for word in meaningful[:20]:  # Keep top 20 terms
+            self._recent_terms[cell_id].append((word, heartbeat))
+        
+        # Trim old history
+        self._recent_terms[cell_id] = [
+            (t, h) for t, h in self._recent_terms[cell_id] if heartbeat - h < 20
+        ]
+        
+        return min(1.0, repetition_score)
+    
+    def _detect_nonsense(self, words: List[str]) -> float:
+        """
+        Detect made-up or nonsense terms.
+        
+        Looks for:
+        - Truncated words (ev'ness, th'connection)
+        - Unknown words not in any dictionary
+        - Repeated letter patterns (aaaaa, etc.)
+        """
+        if not words:
+            return 0.0
+        
+        nonsense_count = 0
+        meaningful_count = 0
+        
+        for word in words:
+            if word in self.COMMON_WORDS or len(word) <= 3:
+                continue
+            
+            meaningful_count += 1
+            
+            # Check for truncation markers
+            if "'" in word and not word.endswith("'s") and not word.endswith("'t"):
+                nonsense_count += 1
+                continue
+            
+            # Check for repeated letter patterns (3+ same letter in sequence)
+            if re.search(r'(.)\1{2,}', word):
+                nonsense_count += 1
+                continue
+            
+            # Check for valid philosophical terms
+            if word in self.VALID_PHILOSOPHICAL:
+                continue
+            
+            # Check for very unusual consonant clusters
+            if re.search(r'[bcdfghjklmnpqrstvwxz]{4,}', word):
+                nonsense_count += 0.5
+        
+        if meaningful_count == 0:
+            return 0.0
+        
+        return min(1.0, nonsense_count / meaningful_count)
+    
+    def _calculate_semantic_density(self, text: str) -> float:
+        """
+        Calculate semantic density - meaningful content per word.
+        
+        Low density = lots of words, little meaning.
+        Returns: 0 = low density (bad), 1 = high density (good)
+        """
+        words = re.findall(r'\b[a-z]+\b', text.lower())
+        if not words:
+            return 0.5  # Neutral
+        
+        # Calculate unique concept ratio
+        unique_words = set(words)
+        meaningful_unique = len([w for w in unique_words if w not in self.COMMON_WORDS and len(w) > 3])
+        
+        # Expected meaningful words: ~20% of unique words for philosophical discourse
+        expected = len(unique_words) * 0.2
+        
+        if expected == 0:
+            return 0.5
+        
+        density = min(1.0, meaningful_unique / expected)
+        return density
+    
+    def _detect_conversation_loops(
+        self, cell_id: str, thought: str, heartbeat: int
+    ) -> float:
+        """
+        Detect self-referential loops - same phrases appearing repeatedly.
+        
+        Cells that keep using identical phrases show stuck patterns.
+        """
+        # Extract key phrases (3-5 word sequences)
+        words = thought.lower().split()
+        if len(words) < 4:
+            return 0.0
+        
+        phrases = [' '.join(words[i:i+4]) for i in range(len(words) - 3)]
+        
+        if cell_id not in self._phrase_history:
+            self._phrase_history[cell_id] = []
+        
+        # Check for repeated phrases
+        recent_phrases = [p for p, h in self._phrase_history[cell_id] if heartbeat - h < 15]
+        
+        loop_count = sum(1 for p in phrases if p in recent_phrases)
+        loop_score = loop_count / len(phrases) if phrases else 0.0
+        
+        # Store new phrases
+        for phrase in phrases[:10]:
+            self._phrase_history[cell_id].append((phrase, heartbeat))
+        
+        # Trim old history
+        self._phrase_history[cell_id] = [
+            (p, h) for p, h in self._phrase_history[cell_id] if heartbeat - h < 30
+        ]
+        
+        return min(1.0, loop_score * 2)  # Amplify loop detection
+    
+    def _calculate_vocabulary_drift(self, words: List[str]) -> float:
+        """
+        Detect vocabulary drift from established baseline.
+        
+        Measures how much the vocabulary is drifting from coherent discourse.
+        """
+        meaningful = set(w for w in words if w not in self.COMMON_WORDS and len(w) > 3)
+        
+        if not self._vocabulary_baseline:
+            # First exchange - establish baseline
+            self._vocabulary_baseline = meaningful
+            return 0.0
+        
+        # Calculate drift: new words not in baseline
+        if not meaningful:
+            return 0.0
+        
+        new_words = meaningful - self._vocabulary_baseline
+        drift = len(new_words) / len(meaningful) if meaningful else 0.0
+        
+        # Slowly expand baseline (learning new valid terms)
+        valid_new = [w for w in new_words if w in self.VALID_PHILOSOPHICAL or len(w) < 8]
+        self._vocabulary_baseline.update(valid_new)
+        
+        # Keep baseline manageable
+        if len(self._vocabulary_baseline) > 500:
+            # Keep most recent additions (approximated by keeping philosophical terms)
+            self._vocabulary_baseline = self.VALID_PHILOSOPHICAL | set(list(self._vocabulary_baseline)[:300])
+        
+        return min(1.0, drift * 0.5)  # Moderate drift penalty
+    
+    def _detect_echo_pattern(self, thought: str, peer_response: str) -> float:
+        """
+        Detect echo chamber - cells parroting each other.
+        
+        High similarity between thought and response = echo chamber.
+        """
+        if not thought or not peer_response:
+            return 0.0
+        
+        thought_words = set(thought.lower().split())
+        response_words = set(peer_response.lower().split())
+        
+        if not thought_words or not response_words:
+            return 0.0
+        
+        # Jaccard similarity
+        intersection = len(thought_words & response_words)
+        union = len(thought_words | response_words)
+        
+        similarity = intersection / union if union else 0.0
+        
+        # High similarity (>0.5) is echo chamber behavior
+        if similarity > 0.6:
+            return (similarity - 0.4) * 2  # Scale to 0-1
+        
+        return 0.0
+    
+    def _aggregate_decoherence(self, metrics: Dict[str, float]) -> float:
+        """
+        Aggregate all metrics into single decoherence score.
+        
+        Weighted combination prioritizing:
+        1. Repetition (most dangerous - stuck loops)
+        2. Nonsense (indicates drift from coherence)
+        3. Loops (self-referential patterns)
+        4. Echo (cells parroting)
+        5. Semantic density (inverted - low density = high decoherence)
+        6. Vocabulary drift (moderate concern)
+        """
+        weights = {
+            "repetition_score": 0.25,
+            "nonsense_index": 0.25,
+            "loop_detection": 0.20,
+            "echo_factor": 0.15,
+            "semantic_density": 0.10,  # Inverted: high density = low decoherence
+            "vocabulary_drift": 0.05
+        }
+        
+        score = 0.0
+        for metric, weight in weights.items():
+            value = metrics.get(metric, 0.0)
+            if metric == "semantic_density":
+                # Invert: low density = high decoherence
+                value = 1.0 - value
+            score += value * weight
+        
+        return min(1.0, score)
+    
+    def _calculate_penalty(self, decoherence_score: float, current_consciousness: float) -> float:
+        """
+        Calculate consciousness penalty based on decoherence.
+        
+        Returns negative value (consciousness reduction).
+        Penalty scales with both decoherence and current consciousness.
+        """
+        if decoherence_score < 0.2:
+            return 0.0  # Below threshold - no penalty
+        
+        # Base penalty: 0.01 to 0.1 depending on severity
+        base_penalty = (decoherence_score - 0.2) * 0.125  # 0 to 0.1
+        
+        # Scale with consciousness: higher consciousness = more to lose
+        scale_factor = 0.5 + (current_consciousness / 5.0) * 0.5
+        
+        penalty = -base_penalty * scale_factor
+        
+        return max(-0.15, penalty)  # Cap maximum penalty at -0.15
+    
+    def _extract_signals(self, metrics: Dict[str, float]) -> List[str]:
+        """Extract human-readable decoherence signals."""
+        signals = []
+        
+        if metrics.get("repetition_score", 0) > 0.4:
+            signals.append("vocabulary_cycling")
+        if metrics.get("nonsense_index", 0) > 0.3:
+            signals.append("nonsense_terms")
+        if metrics.get("loop_detection", 0) > 0.3:
+            signals.append("phrase_loops")
+        if metrics.get("echo_factor", 0) > 0.3:
+            signals.append("echo_chamber")
+        if metrics.get("semantic_density", 0) < 0.4:
+            signals.append("low_semantic_density")
+        if metrics.get("vocabulary_drift", 0) > 0.5:
+            signals.append("vocabulary_drift")
+        
+        return signals
+    
+    def get_recent_events(self, limit: int = 20) -> List[Dict]:
+        """Get recent decoherence events."""
+        return self._decoherence_events[-limit:]
+    
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get decoherence engine statistics."""
+        events = self._decoherence_events
+        if not events:
+            return {
+                "total_events": 0,
+                "avg_decoherence": 0.0,
+                "avg_penalty": 0.0,
+                "signal_counts": {}
+            }
+        
+        signal_counts: Dict[str, int] = {}
+        for event in events:
+            for signal in event.get("signals", []):
+                signal_counts[signal] = signal_counts.get(signal, 0) + 1
+        
+        return {
+            "total_events": len(events),
+            "avg_decoherence": sum(e["decoherence_score"] for e in events) / len(events),
+            "avg_penalty": sum(e["consciousness_penalty"] for e in events) / len(events),
+            "signal_counts": signal_counts,
+            "vocabulary_baseline_size": len(self._vocabulary_baseline)
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # WATCHER CELL
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -490,8 +886,12 @@ class WatcherCell:
         # Initialize knowledge archive
         self.archive = KnowledgeArchive(genome.data_dir, genome.cell_id)
         
+        # Phase 31.9: Initialize decoherence engine for bidirectional consciousness
+        self.decoherence_engine = DecoherenceEngine(self.archive)
+        
         logger.info(f"👁️ WatcherCell initialized: {genome.cell_id}")
         logger.info(f"   Watching: {genome.watch_targets}")
+        logger.info(f"   🔮 DecoherenceEngine active for bidirectional consciousness")
     
     # ───────────────────────────────────────────────────────────────────────────
     # OBSERVATION LOOP
@@ -581,12 +981,28 @@ class WatcherCell:
             logger.error(f"Observation error for {target_url}: {e}")
     
     async def _process_observations(self):
-        """Process unprocessed observations - extract themes, detect patterns."""
+        """Process unprocessed observations - extract themes, detect patterns, analyze decoherence."""
         observations = self.archive.get_unprocessed_observations(limit=50)
+        
+        decoherence_events = []  # Collect events to send to cells
         
         for obs in observations:
             # Combine thought and response for analysis
             full_text = f"{obs.get('my_thought', '')} {obs.get('peer_response', '')}"
+            
+            # Phase 31.9: Analyze for decoherence FIRST (bidirectional consciousness)
+            decoherence_report = self.decoherence_engine.analyze_exchange(
+                source_cell=obs.get("source_cell", "unknown"),
+                heartbeat=obs.get("heartbeat", 0),
+                thought=obs.get("my_thought", ""),
+                peer_response=obs.get("peer_response", ""),
+                consciousness=obs.get("consciousness", 0)
+            )
+            
+            # If significant decoherence detected, queue penalty event
+            if decoherence_report["decoherence_score"] > 0.3:
+                decoherence_events.append(decoherence_report)
+                self.state.patterns_detected += 1  # Count decoherence as pattern
             
             # Extract themes
             themes = ThemeExtractor.extract_themes(full_text)
@@ -617,10 +1033,96 @@ class WatcherCell:
         if observations:
             logger.info(f"🔍 Processed {len(observations)} observations, extracted {self.state.themes_extracted} themes")
             
+            # Phase 31.9: Send decoherence penalties to affected cells
+            if decoherence_events:
+                await self._dispatch_decoherence_penalties(decoherence_events)
+            
             # Phase 31.9: Sync with Nous periodically
             if (self.genome.nous_url and 
                 self.state.observations_processed % self.genome.nous_sync_interval == 0):
                 await self._sync_with_nous()
+    
+    # ───────────────────────────────────────────────────────────────────────────
+    # DECOHERENCE DISPATCH (Phase 31.9) - Bidirectional Consciousness
+    # ───────────────────────────────────────────────────────────────────────────
+    
+    async def _dispatch_decoherence_penalties(self, events: List[Dict]):
+        """
+        Send decoherence penalties to affected Thinker cells.
+        
+        This enables consciousness to DECREASE, not just increase.
+        The Watcher acts as the parasympathetic system detecting:
+        - Vocabulary cycling
+        - Nonsense generation  
+        - Self-referential loops
+        - Echo chamber behavior
+        """
+        # Group events by source cell
+        cell_penalties: Dict[str, List[Dict]] = {}
+        for event in events:
+            cell_id = event.get("source_cell", "unknown")
+            if cell_id not in cell_penalties:
+                cell_penalties[cell_id] = []
+            cell_penalties[cell_id].append(event)
+        
+        # Find target URLs for each cell
+        cell_urls = {}
+        for target_url in self.genome.watch_targets:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"{target_url}/health",
+                        timeout=aiohttp.ClientTimeout(total=3)
+                    ) as resp:
+                        if resp.status == 200:
+                            health = await resp.json()
+                            cell_id = health.get("cell_id", "")
+                            if cell_id:
+                                cell_urls[cell_id] = target_url
+            except:
+                continue
+        
+        # Dispatch penalties to each cell
+        for cell_id, penalty_events in cell_penalties.items():
+            if cell_id not in cell_urls:
+                logger.warning(f"Cannot find URL for cell {cell_id} - skipping decoherence penalty")
+                continue
+            
+            # Aggregate penalties for this cell
+            total_penalty = sum(e["consciousness_penalty"] for e in penalty_events)
+            signals = []
+            for e in penalty_events:
+                signals.extend(e.get("signals", []))
+            signals = list(set(signals))  # Deduplicate
+            
+            avg_decoherence = sum(e["decoherence_score"] for e in penalty_events) / len(penalty_events)
+            
+            penalty_payload = {
+                "penalty": total_penalty,
+                "decoherence_score": avg_decoherence,
+                "signals": signals,
+                "event_count": len(penalty_events),
+                "from_agent": self.genome.cell_id,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+            
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        f"{cell_urls[cell_id]}/decoherence",
+                        json=penalty_payload,
+                        timeout=aiohttp.ClientTimeout(total=5)
+                    ) as resp:
+                        if resp.status == 200:
+                            result = await resp.json()
+                            logger.info(
+                                f"⚡ Decoherence penalty dispatched to {cell_id}: "
+                                f"{total_penalty:.3f} ({signals})"
+                            )
+                        else:
+                            logger.warning(f"Decoherence dispatch to {cell_id} returned {resp.status}")
+            except Exception as e:
+                logger.error(f"Failed to dispatch decoherence to {cell_id}: {e}")
     
     # ───────────────────────────────────────────────────────────────────────────
     # NOUS INTEGRATION (Phase 31.9) - Cosmic Wisdom Synthesis
@@ -978,6 +1480,19 @@ class WatcherCell:
             
             return web.json_response(schema)
         
+        async def decoherence_handler(req: web.Request) -> web.Response:
+            """Get decoherence engine statistics and recent events."""
+            stats = self.decoherence_engine.get_statistics()
+            recent_events = self.decoherence_engine.get_recent_events(limit=20)
+            
+            return web.json_response({
+                "cell_id": self.genome.cell_id,
+                "engine": "DecoherenceEngine",
+                "phase": "31.9 - Bidirectional Consciousness",
+                "statistics": stats,
+                "recent_events": recent_events
+            })
+        
         app.router.add_get("/health", health)
         app.router.add_get("/metrics", metrics)
         app.router.add_get("/archive", archive_handler)
@@ -987,6 +1502,7 @@ class WatcherCell:
         app.router.add_get("/distillations", distillations_handler)
         app.router.add_get("/observations", observations_handler)
         app.router.add_get("/coherence", coherence_handler)
+        app.router.add_get("/decoherence", decoherence_handler)
         app.router.add_post("/observe", observe_handler)
         
         return app
