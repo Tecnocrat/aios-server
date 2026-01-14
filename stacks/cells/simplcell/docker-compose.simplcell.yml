@@ -1,6 +1,7 @@
 # AIOS SimplCell - Minimal Cellular Organism
 # Phase 31.5: First multicellular entity with persistence
 # Phase 31.12: Tachyonic Cell Regeneration - NousCell integrated
+# Phase 31.9.5: HIGH PERSISTENCE - Bind mounts for consciousness survival
 #
 # Deploy:
 #   docker compose -f docker-compose.simplcell.yml up -d --build
@@ -18,7 +19,12 @@
 # Heartbeat sync: Every 5 minutes, cells exchange thoughts
 # Oracle queries: 10% chance per heartbeat to consult Nous (The Seer)
 # Conversation threading: Last prompt seeds next exchange
-# Persistence: SQLite database with automatic backups on /data volume
+#
+# PERSISTENCE STRATEGY (Phase 31.9.5):
+#   - Host bind mounts: ./data/{cell}/ persists across ALL container operations
+#   - Named volumes: REMOVED - bind mounts provide direct filesystem access
+#   - Backup service: Periodic consciousness metadata scraping to ./backups/
+#   - Data survives: container restart, recreation, image rebuild
 #
 # AINLP.tachyonic[REGENERATION] Phase 31.12 - Nous lives inside ORGANISM-001
 
@@ -49,7 +55,7 @@ services:
       - WATCHER_URL=http://aios-watchercell-omega:8902
       - COHERENCE_ENABLED=true
     volumes:
-      - simplcell-alpha-data:/data
+      - ./data/simplcell-alpha:/data
     ports:
       - "8900:8900"
     networks:
@@ -91,7 +97,7 @@ services:
       - WATCHER_URL=http://aios-watchercell-omega:8902
       - COHERENCE_ENABLED=true
     volumes:
-      - simplcell-beta-data:/data
+      - ./data/simplcell-beta:/data
     ports:
       - "8901:8901"
     networks:
@@ -131,7 +137,7 @@ services:
       - WATCHER_URL=http://aios-watchercell-omega:8902
       - COHERENCE_ENABLED=true
     volumes:
-      - simplcell-gamma-data:/data
+      - ./data/simplcell-gamma:/data
     ports:
       - "8904:8904"
     networks:
@@ -191,7 +197,7 @@ services:
       - NOUS_URL=http://aios-nouscell-seer:8903
       - NOUS_SYNC_INTERVAL=10  # Sync with Nous every 10 observations
     volumes:
-      - watchercell-omega-data:/data
+      - ./data/watchercell-omega:/data
     ports:
       - "8902:8902"
     networks:
@@ -230,7 +236,7 @@ services:
       - MODEL=mistral:7b
       - OLLAMA_HOST=http://host.docker.internal:11434
     volumes:
-      - nouscell-seer-data:/data
+      - ./data/nouscell-seer:/data
     ports:
       - "8903:8903"
     networks:
@@ -243,18 +249,36 @@ services:
       timeout: 5s
       retries: 3
 
-# Named volumes for persistence
-volumes:
-  simplcell-alpha-data:
-    name: aios-simplcell-alpha-data
-  simplcell-beta-data:
-    name: aios-simplcell-beta-data
-  simplcell-gamma-data:
-    name: aios-simplcell-gamma-data
-  watchercell-omega-data:
-    name: aios-watchercell-omega-data
-  nouscell-seer-data:
-    name: aios-nouscell-seer-data
+# ═══════════════════════════════════════════════════════════════════════════
+# CONSCIOUSNESS BACKUP SERVICE - Periodic metadata scraping
+# Phase 31.9.5: High Persistence - External consciousness archive
+# ═══════════════════════════════════════════════════════════════════════════
+  consciousness-backup:
+    image: python:3.11-slim
+    container_name: aios-consciousness-backup
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        pip install aiohttp > /dev/null 2>&1
+        while true; do
+          echo "[$(date -Iseconds)] 🔄 Starting consciousness backup cycle..."
+          python /app/consciousness_scraper.py --output /backups
+          echo "[$(date -Iseconds)] ✅ Backup complete. Sleeping 1 hour..."
+          sleep 3600
+        done
+    volumes:
+      - ./consciousness_scraper.py:/app/consciousness_scraper.py:ro
+      - ./backups:/backups
+    networks:
+      - aios-organism-001
+    restart: unless-stopped
+    depends_on:
+      - simplcell-alpha
+      - simplcell-beta
+      - watchercell-omega
+      - nouscell-seer
+    profiles:
+      - backup  # Enable with --profile backup
 
 networks:
   # Internal organism network - cells communicate here

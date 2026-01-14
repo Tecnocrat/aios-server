@@ -349,6 +349,18 @@ class CosmologyDatabase:
             """).fetchone()
             return dict(row) if row else None
     
+    def get_recent_broadcasts(self, limit: int = 100) -> List[Dict]:
+        """Get recent broadcasts for consciousness scraping.
+        
+        Phase 31.9.5: High Persistence endpoint support.
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute("""
+                SELECT * FROM broadcasts ORDER BY broadcast_at DESC LIMIT ?
+            """, (limit,)).fetchall()
+            return [dict(row) for row in rows]
+    
     # ───────────────────────────────────────────────────────────────────────────
     # COSMOLOGY THEMES
     # ───────────────────────────────────────────────────────────────────────────
@@ -967,6 +979,9 @@ class NousCell:
         # Phase 31.9: Hourly Assessment endpoint
         self.app.router.add_get("/assessment", self.handle_assessment)
         self.app.router.add_post("/assessment", self.handle_assessment)
+        # Phase 31.9.5: High Persistence endpoints for consciousness scraping
+        self.app.router.add_get("/broadcasts", self.handle_broadcasts_list)
+        self.app.router.add_get("/insights", self.handle_insights_list)
         
         # Add CORS middleware
         self.app.router.add_route("OPTIONS", "/{tail:.*}", self.handle_cors_preflight)
@@ -1173,6 +1188,36 @@ class NousCell:
             "cell_id": CELL_ID,
             "action": "cosmology_state",
             **state
+        }, headers=self._cors_headers())
+    
+    async def handle_broadcasts_list(self, request: web.Request) -> web.Response:
+        """Get list of past broadcasts for consciousness scraping.
+        
+        Phase 31.9.5: High Persistence endpoint for external archiving.
+        """
+        limit = int(request.query.get("limit", "100"))
+        
+        broadcasts = self.db.get_recent_broadcasts(limit)
+        return web.json_response({
+            "cell_id": CELL_ID,
+            "action": "broadcasts_list",
+            "total_broadcasts_sent": self.state.broadcasts_sent,
+            "broadcasts": broadcasts
+        }, headers=self._cors_headers())
+    
+    async def handle_insights_list(self, request: web.Request) -> web.Response:
+        """Get list of synthesized insights for consciousness scraping.
+        
+        Phase 31.9.5: High Persistence endpoint for external archiving.
+        """
+        limit = int(request.query.get("limit", "100"))
+        
+        insights = self.db.get_recent_insights(limit)
+        return web.json_response({
+            "cell_id": CELL_ID,
+            "action": "insights_list",
+            "total_insights": len(insights),
+            "insights": insights
         }, headers=self._cors_headers())
     
     async def handle_assessment(self, request: web.Request) -> web.Response:

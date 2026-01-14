@@ -1486,6 +1486,99 @@ class WatcherCell:
                 "distillations": distillations
             })
         
+        async def status_handler(req):
+            """Get comprehensive WatcherCell status for backup/monitoring.
+            
+            Phase 31.9.5: High Persistence endpoint for consciousness scraping.
+            """
+            stats = self.archive.get_stats()
+            uptime = (datetime.now(timezone.utc) - self.state.started_at).total_seconds()
+            
+            return web.json_response({
+                "cell_id": self.genome.cell_id,
+                "cell_type": self.genome.cell_type,
+                "organism_id": self.genome.organism_id,
+                "uptime_seconds": uptime,
+                "started_at": self.state.started_at.isoformat(),
+                "observations_processed": self.state.observations_processed,
+                "themes_extracted": self.state.themes_extracted,
+                "patterns_detected": self.state.patterns_detected,
+                "last_observation": self.state.last_observation_time,
+                "archive_stats": stats,
+                "watch_targets": self.genome.watch_targets,
+                "nous_orchestration": {
+                    "last_verdict": self.state.last_nous_verdict,
+                    "last_verdict_time": self.state.last_nous_verdict_time,
+                    "verdicts_received": self.state.nous_verdicts_received,
+                    "threshold_modifier": self.state.decoherence_threshold_modifier
+                },
+                "decoherence_engine": self.decoherence_engine.get_statistics()
+            })
+        
+        async def consciousness_timeline_handler(req):
+            """Get consciousness timeline for all observed cells.
+            
+            Phase 31.9.5: Specialized endpoint for consciousness scraping.
+            Returns structured timeline data suitable for external archiving.
+            """
+            limit = int(req.query.get("limit", "1000"))
+            
+            with sqlite3.connect(self.archive.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute("""
+                    SELECT cell_id, heartbeat, consciousness, phase, recorded_at
+                    FROM consciousness_points 
+                    ORDER BY recorded_at DESC 
+                    LIMIT ?
+                """, (limit,)).fetchall()
+            
+            # Group by cell
+            by_cell = {}
+            for row in rows:
+                cell_id = row["cell_id"]
+                if cell_id not in by_cell:
+                    by_cell[cell_id] = []
+                by_cell[cell_id].append({
+                    "heartbeat": row["heartbeat"],
+                    "consciousness": row["consciousness"],
+                    "phase": row["phase"],
+                    "recorded_at": row["recorded_at"]
+                })
+            
+            return web.json_response({
+                "cell_id": self.genome.cell_id,
+                "total_points": len(rows),
+                "cells_tracked": list(by_cell.keys()),
+                "timeline_by_cell": by_cell
+            })
+        
+        async def decoherence_summary_handler(req):
+            """Get decoherence summary for backup/monitoring.
+            
+            Phase 31.9.5: Specialized endpoint for consciousness scraping.
+            """
+            stats = self.decoherence_engine.get_statistics()
+            recent_events = self.decoherence_engine.get_recent_events(limit=50)
+            
+            # Aggregate by cell
+            events_by_cell = {}
+            total_penalty_by_cell = {}
+            for event in recent_events:
+                cell_id = event.get("source_cell", "unknown")
+                if cell_id not in events_by_cell:
+                    events_by_cell[cell_id] = 0
+                    total_penalty_by_cell[cell_id] = 0.0
+                events_by_cell[cell_id] += 1
+                total_penalty_by_cell[cell_id] += event.get("consciousness_penalty", 0)
+            
+            return web.json_response({
+                "cell_id": self.genome.cell_id,
+                "statistics": stats,
+                "events_by_cell": events_by_cell,
+                "total_penalty_by_cell": total_penalty_by_cell,
+                "recent_events_count": len(recent_events)
+            })
+        
         async def observe_handler(req):
             """Trigger manual observation cycle."""
             for target_url in self.genome.watch_targets:
@@ -1611,14 +1704,17 @@ class WatcherCell:
         
         app.router.add_get("/health", health)
         app.router.add_get("/metrics", metrics)
+        app.router.add_get("/status", status_handler)
         app.router.add_get("/archive", archive_handler)
         app.router.add_get("/themes", themes_handler)
         app.router.add_get("/patterns", patterns_handler)
         app.router.add_get("/timeline", timeline_handler)
+        app.router.add_get("/consciousness_timeline", consciousness_timeline_handler)
         app.router.add_get("/distillations", distillations_handler)
         app.router.add_get("/observations", observations_handler)
         app.router.add_get("/coherence", coherence_handler)
         app.router.add_get("/decoherence", decoherence_handler)
+        app.router.add_get("/decoherence_summary", decoherence_summary_handler)
         app.router.add_post("/observe", observe_handler)
         app.router.add_post("/nous_verdict", nous_verdict_handler)
         

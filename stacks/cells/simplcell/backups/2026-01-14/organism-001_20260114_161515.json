@@ -1,0 +1,104 @@
+{
+  "organism_id": "ORGANISM-001",
+  "scraped_at": "2026-01-14T15:15:09.498288+00:00",
+  "scraper_version": "31.9.5",
+  "full_export": false,
+  "cells": {
+    "simplcell-alpha": {
+      "cell_id": "simplcell-alpha",
+      "cell_type": "thinker",
+      "scraped_at": "2026-01-14T15:15:09.498452+00:00",
+      "endpoints": {
+        "health": {
+          "error": "Cannot connect to host aios-simplcell-alpha:8900 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-simplcell-alpha:8900/health"
+        },
+        "metadata": {
+          "error": "Cannot connect to host aios-simplcell-alpha:8900 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-simplcell-alpha:8900/metadata"
+        },
+        "conversations": {
+          "error": "Cannot connect to host aios-simplcell-alpha:8900 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-simplcell-alpha:8900/conversations?limit=500"
+        },
+        "persistence": {
+          "error": "Cannot connect to host aios-simplcell-alpha:8900 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-simplcell-alpha:8900/persistence"
+        }
+      }
+    },
+    "simplcell-beta": {
+      "cell_id": "simplcell-beta",
+      "cell_type": "thinker",
+      "scraped_at": "2026-01-14T15:15:09.503163+00:00",
+      "endpoints": {
+        "health": {
+          "error": "Cannot connect to host aios-simplcell-beta:8901 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-simplcell-beta:8901/health"
+        },
+        "metadata": {
+          "error": "Cannot connect to host aios-simplcell-beta:8901 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-simplcell-beta:8901/metadata"
+        },
+        "conversations": {
+          "error": "Cannot connect to host aios-simplcell-beta:8901 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-simplcell-beta:8901/conversations?limit=500"
+        },
+        "persistence": {
+          "error": "Cannot connect to host aios-simplcell-beta:8901 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-simplcell-beta:8901/persistence"
+        }
+      }
+    },
+    "watchercell-omega": {
+      "cell_id": "watchercell-omega",
+      "cell_type": "watcher",
+      "scraped_at": "2026-01-14T15:15:09.503571+00:00",
+      "endpoints": {
+        "health": {
+          "error": "Cannot connect to host aios-watchercell-omega:8902 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-watchercell-omega:8902/health"
+        },
+        "status": {
+          "error": "Cannot connect to host aios-watchercell-omega:8902 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-watchercell-omega:8902/status"
+        },
+        "themes": {
+          "error": "Cannot connect to host aios-watchercell-omega:8902 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-watchercell-omega:8902/themes?limit=500"
+        },
+        "consciousness_timeline": {
+          "error": "Cannot connect to host aios-watchercell-omega:8902 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-watchercell-omega:8902/consciousness_timeline"
+        },
+        "decoherence_summary": {
+          "error": "Cannot connect to host aios-watchercell-omega:8902 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-watchercell-omega:8902/decoherence_summary"
+        }
+      }
+    },
+    "nouscell-seer": {
+      "cell_id": "nouscell-seer",
+      "cell_type": "supermind",
+      "scraped_at": "2026-01-14T15:15:09.503914+00:00",
+      "endpoints": {
+        "health": {
+          "error": "Cannot connect to host aios-nouscell-seer:8903 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-nouscell-seer:8903/health"
+        },
+        "cosmology": {
+          "error": "Cannot connect to host aios-nouscell-seer:8903 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-nouscell-seer:8903/cosmology"
+        },
+        "broadcasts": {
+          "error": "Cannot connect to host aios-nouscell-seer:8903 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-nouscell-seer:8903/broadcasts?limit=100"
+        },
+        "insights": {
+          "error": "Cannot connect to host aios-nouscell-seer:8903 ssl:default [getaddrinfo failed]",
+          "url": "http://aios-nouscell-seer:8903/insights?limit=100"
+        }
+      }
+    }
+  }
+}

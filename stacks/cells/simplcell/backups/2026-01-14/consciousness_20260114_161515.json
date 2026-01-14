@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-01-14T15:15:09.498288+00:00",
+  "cells": {
+    "simplcell-alpha": {
+      "type": "thinker",
+      "consciousness": "N/A",
+      "heartbeats": 0,
+      "phase": "unknown",
+      "conversations": 2,
+      "decoherence": {},
+      "resonance": {}
+    },
+    "simplcell-beta": {
+      "type": "thinker",
+      "consciousness": "N/A",
+      "heartbeats": 0,
+      "phase": "unknown",
+      "conversations": 2,
+      "decoherence": {},
+      "resonance": {}
+    },
+    "watchercell-omega": {
+      "type": "watcher",
+      "consciousness": "N/A",
+      "heartbeats": 0,
+      "phase": "unknown",
+      "themes_count": 2,
+      "decoherence_summary": {
+        "error": "Cannot connect to host aios-watchercell-omega:8902 ssl:default [getaddrinfo failed]",
+        "url": "http://aios-watchercell-omega:8902/decoherence_summary"
+      }
+    },
+    "nouscell-seer": {
+      "type": "supermind",
+      "consciousness": "N/A",
+      "heartbeats": 0,
+      "phase": "unknown",
+      "exchanges_absorbed": 0,
+      "insights_generated": 0,
+      "broadcasts_sent": 0
+    }
+  }
+}
