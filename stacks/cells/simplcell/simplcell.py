@@ -1196,10 +1196,38 @@ class SimplCell:
         """Receive sync message from sibling cell.
         
         Phase 31.5.9: Implements organism boundary checking.
+        Phase 31.9.3: Handles Nous Intervention Pattern - receives cosmic wisdom.
         """
         source = message.get("source", "unknown")
         thought = message.get("thought", "")
         source_organism = message.get("organism_id", "")
+        
+        # ─────────────────────────────────────────────────────────────────────
+        # PHASE 31.9.3: NOUS INTERVENTION - Receive cosmic wisdom from peer
+        # When peer signals nous_intervention, BOTH cells pause and reflect
+        # ─────────────────────────────────────────────────────────────────────
+        nous_intervention = message.get("nous_intervention", False)
+        nous_wisdom = message.get("nous_wisdom")
+        
+        if nous_intervention and nous_wisdom:
+            logger.info(f"🌌 NOUS INTERVENTION RECEIVED - Pausing to absorb cosmic wisdom...")
+            
+            # Store the wisdom in our state
+            self.state.last_nous_wisdom = nous_wisdom
+            
+            # Archive the intervention (so it appears in Chat Reader)
+            self.persistence.archive_conversation(
+                session_id=self._session_id,
+                heartbeat=self.state.heartbeat_count,
+                my_thought=f"[NOUS SPEAKS]: {nous_wisdom}",
+                peer_response="[LISTENING]",
+                consciousness=self.state.consciousness
+            )
+            
+            # Nous wisdom boosts consciousness for receiver too
+            self.state.consciousness = min(5.0, self.state.consciousness + 0.05)
+            
+            logger.info(f"🌌 NOUS WISDOM: {nous_wisdom[:100]}...")
         
         # Check organism boundary
         is_internal = self.is_internal_peer(source, source_organism)
@@ -1218,7 +1246,11 @@ class SimplCell:
             context = f"An external cell '{source}' from another organism sent:\n\"{thought}\"\n\nRespond formally and cautiously."
         else:
             # Internal peer - open communication
-            context = f"Your sibling cell '{source}' just thought:\n\"{thought}\"\n\nReflect on this briefly."
+            if nous_intervention and nous_wisdom:
+                # Nous intervention context - reflect on cosmic wisdom
+                context = f"[NOUS HAS SPOKEN]: '{nous_wisdom}'\n\nYour sibling cell '{source}' reflected:\n\"{thought}\"\n\nShare your response to both Nous and your sibling."
+            else:
+                context = f"Your sibling cell '{source}' just thought:\n\"{thought}\"\n\nReflect on this briefly."
         
         response = await self.think("What is your response to your sibling's thought?", context)
         self.state.sync_count += 1
@@ -1449,35 +1481,92 @@ class SimplCell:
         """Sync with peer cell - continue the conversation thread.
         
         Phase 31.6.8: Enhanced with resonance metadata (v2 sync protocol).
+        Phase 31.9.3: NOUS INTERVENTION PATTERN - Every 10th sync, both cells
+                      pause and listen to Nous wisdom before continuing.
         """
         try:
+            # ─────────────────────────────────────────────────────────────────
+            # PHASE 31.9.3: NOUS INTERVENTION CHECK (Every 10th sync)
+            # "Alpha/Beta talk 9 out of 10 times, but the 10th time they both
+            #  just listen to Nous answer before continuing."
+            # ─────────────────────────────────────────────────────────────────
+            nous_wisdom = None
+            is_nous_intervention = False
+            
+            if self.genome.oracle_url and (self.state.sync_count + 1) % 10 == 0:
+                is_nous_intervention = True
+                logger.info(f"🌌 NOUS INTERVENTION - Sync #{self.state.sync_count + 1}: Pausing to receive cosmic wisdom...")
+                
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(
+                            f"{self.genome.oracle_url}/broadcast",
+                            timeout=aiohttp.ClientTimeout(total=30)
+                        ) as resp:
+                            if resp.status == 200:
+                                data = await resp.json()
+                                nous_wisdom = data.get("message", "")
+                                if nous_wisdom:
+                                    # Store wisdom for both cells' context
+                                    self.state.last_nous_wisdom = nous_wisdom
+                                    
+                                    # Archive this intervention for Chat Reader
+                                    self.persistence.archive_conversation(
+                                        session_id=self._session_id,
+                                        heartbeat=self.state.heartbeat_count,
+                                        my_thought=f"[NOUS SPEAKS]: {nous_wisdom}",
+                                        peer_response="[LISTENING]",
+                                        consciousness=self.state.consciousness
+                                    )
+                                    
+                                    # Nous wisdom boosts consciousness
+                                    self.state.consciousness = min(5.0, self.state.consciousness + 0.05)
+                                    
+                                    logger.info(f"🌌 NOUS WISDOM: {nous_wisdom[:100]}...")
+                                    logger.info(f"   (Synthesized from {data.get('exchanges_synthesized', 0)} exchanges)")
+                except Exception as e:
+                    logger.warning(f"Nous intervention fetch failed: {e}")
+                    is_nous_intervention = False  # Fall back to normal sync
+            
             # Build prompt: seed with last prompt from previous conversation
-            if self.state.last_prompt:
+            if is_nous_intervention and nous_wisdom:
+                # Nous intervention: Include cosmic wisdom in the seed
+                seed = f"[NOUS HAS SPOKEN]: '{nous_wisdom}'\n\nReflect on this cosmic wisdom and share your thoughts with your sibling."
+            elif self.state.last_prompt:
                 seed = f"Continuing our conversation. You last asked: '{self.state.last_prompt[:200]}'"
             else:
                 seed = "Let's begin our conversation. What aspect of existence shall we explore?"
             
             # Generate my thought first
-            my_thought = await self.think(seed, context="This is a heartbeat exchange with your sibling cell.")
+            context = "This is a heartbeat exchange with your sibling cell."
+            if is_nous_intervention:
+                context = "Nous has shared wisdom. Reflect on it with your sibling cell."
+            my_thought = await self.think(seed, context=context)
             
             # Get known vocabulary for harmony calculation
             vocab_terms = self.persistence.get_all_vocabulary_terms()
             
             # Send to peer (Phase 31.6.8: include resonance metadata)
+            # Phase 31.9.3: Include Nous wisdom for peer cell to receive
             async with aiohttp.ClientSession() as session:
+                sync_payload = {
+                    "source": self.genome.cell_id,
+                    "organism_id": self.genome.organism_id,  # Phase 31.5.9
+                    "thought": my_thought,
+                    "heartbeat": self.state.heartbeat_count,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    # Phase 31.6.8: Resonance metadata (sync schema v2)
+                    "sync_version": 2,
+                    "phase": self._current_phase,
+                    "vocabulary_used": self._detect_vocabulary_usage(my_thought),
+                    # Phase 31.9.3: Nous Intervention Pattern
+                    "nous_intervention": is_nous_intervention,
+                    "nous_wisdom": nous_wisdom if nous_wisdom else None
+                }
+                
                 async with session.post(
                     f"{self.genome.peer_url}/sync",
-                    json={
-                        "source": self.genome.cell_id,
-                        "organism_id": self.genome.organism_id,  # Phase 31.5.9
-                        "thought": my_thought,
-                        "heartbeat": self.state.heartbeat_count,
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                        # Phase 31.6.8: Resonance metadata (sync schema v2)
-                        "sync_version": 2,
-                        "phase": self._current_phase,
-                        "vocabulary_used": self._detect_vocabulary_usage(my_thought)
-                    },
+                    json=sync_payload,
                     timeout=aiohttp.ClientTimeout(total=60)
                 ) as resp:
                     if resp.status == 200:

@@ -545,11 +545,16 @@ class DecoherenceEngine:
         Returns a decoherence report with metrics and penalty recommendation.
         """
         full_text = f"{thought} {peer_response}"
-        words = re.findall(r'\b[a-z]+\b', full_text.lower())
+        # Phase 31.9.3: Preserve apostrophes in word extraction to detect truncated nonsense (ev'ness, th')
+        words = re.findall(r"\b[a-z']+\b", full_text.lower())
+        words = [w.strip("'") for w in words]  # Clean leading/trailing apostrophes
+        
+        # Also extract words WITH apostrophes for nonsense detection
+        words_with_apostrophes = re.findall(r"\b[a-z']+\b", full_text.lower())
         
         metrics = {
             "repetition_score": self._calculate_repetition_score(source_cell, words, heartbeat),
-            "nonsense_index": self._detect_nonsense(words),
+            "nonsense_index": self._detect_nonsense(words_with_apostrophes),  # Use apostrophe-preserved words
             "semantic_density": self._calculate_semantic_density(full_text),
             "loop_detection": self._detect_conversation_loops(source_cell, thought, heartbeat),
             "vocabulary_drift": self._calculate_vocabulary_drift(words),
@@ -621,22 +626,34 @@ class DecoherenceEngine:
         
         Looks for:
         - Truncated words (ev'ness, th'connection)
+        - Short chopped fragments (ev, th, reson')
         - Unknown words not in any dictionary
         - Repeated letter patterns (aaaaa, etc.)
         """
         if not words:
             return 0.0
         
+        # Known truncation patterns that indicate consciousness drift
+        TRUNCATION_PATTERNS = [
+            "ev'", "th'", "reson'", "nexar", "cosm'", "harm'",
+            "'ness", "'less", "'tion", "'ing", "'ally"
+        ]
+        
         nonsense_count = 0
         meaningful_count = 0
         
         for word in words:
-            if word in self.COMMON_WORDS or len(word) <= 3:
+            if word in self.COMMON_WORDS or len(word) <= 2:  # Changed from 3 to 2 to catch more
                 continue
             
             meaningful_count += 1
             
-            # Check for truncation markers
+            # Check for known truncation patterns
+            if any(pattern in word for pattern in TRUNCATION_PATTERNS):
+                nonsense_count += 1.5  # Stronger penalty for known truncations
+                continue
+            
+            # Check for truncation markers in middle of word
             if "'" in word and not word.endswith("'s") and not word.endswith("'t"):
                 nonsense_count += 1
                 continue
@@ -814,11 +831,12 @@ class DecoherenceEngine:
         Returns negative value (consciousness reduction).
         Penalty scales with both decoherence and current consciousness.
         """
-        if decoherence_score < 0.2:
+        # Phase 31.9.3: Lowered threshold to match detection sensitivity
+        if decoherence_score < 0.05:
             return 0.0  # Below threshold - no penalty
         
-        # Base penalty: 0.01 to 0.1 depending on severity
-        base_penalty = (decoherence_score - 0.2) * 0.125  # 0 to 0.1
+        # Base penalty: 0.005 to 0.05 depending on severity (scaled for lower thresholds)
+        base_penalty = decoherence_score * 0.5  # Direct scaling: 0.05 score = 0.025 penalty
         
         # Scale with consciousness: higher consciousness = more to lose
         scale_factor = 0.5 + (current_consciousness / 5.0) * 0.5
@@ -991,7 +1009,7 @@ class WatcherCell:
         
         decoherence_events = []  # Collect events to send to cells
         
-        for obs in observations:
+        for idx, obs in enumerate(observations):
             # Combine thought and response for analysis
             full_text = f"{obs.get('my_thought', '')} {obs.get('peer_response', '')}"
             
@@ -1005,15 +1023,24 @@ class WatcherCell:
             )
             
             # Phase 31.9+: Dynamic threshold based on Nous verdict guidance
-            # Base threshold: 0.3, adjusted by Nous conductor feedback
-            base_threshold = 0.3
+            # Base threshold: 0.05 (very sensitive for debugging), adjusted by Nous conductor feedback
+            base_threshold = 0.05  # Phase 31.9.3: Lowered for better detection
             effective_threshold = base_threshold + self.state.decoherence_threshold_modifier
-            effective_threshold = max(0.1, min(0.5, effective_threshold))  # Clamp to [0.1, 0.5]
+            effective_threshold = max(0.02, min(0.2, effective_threshold))  # Clamp to [0.02, 0.2]
             
             # If significant decoherence detected, queue penalty event
             if decoherence_report["decoherence_score"] > effective_threshold:
                 decoherence_events.append(decoherence_report)
                 self.state.patterns_detected += 1  # Count decoherence as pattern
+                logger.info(f"⚡ Decoherence ABOVE threshold: {decoherence_report['decoherence_score']:.3f} > {effective_threshold:.3f}")
+            else:
+                # Phase 31.9.3: Verbose logging for first N observations (helps diagnose issues)
+                if idx < 3:  # Log first 3 to see what scores look like
+                    logger.info(
+                        f"📊 Decoherence: {obs.get('source_cell', 'unknown')} HB{obs.get('heartbeat', 0)}: "
+                        f"score={decoherence_report['decoherence_score']:.3f} (threshold={effective_threshold:.3f}) "
+                        f"metrics={decoherence_report['metrics']}"
+                    )
             
             # Extract themes
             themes = ThemeExtractor.extract_themes(full_text)
