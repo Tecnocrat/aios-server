@@ -67,6 +67,9 @@ CONSCIOUSNESS_WEIGHT = float(os.environ.get("CONSCIOUSNESS_WEIGHT", 0.7))
 BROADCAST_EVERY_N = int(os.environ.get("BROADCAST_EVERY_N", 5))
 MAX_CONTEXT_TOKENS = int(os.environ.get("MAX_CONTEXT_TOKENS", 4000))
 
+# Phase 31.9+: Dendritic Conductor - Watcher integration
+WATCHER_URL = os.environ.get("WATCHER_URL", "http://aios-watchercell-omega:8902")
+
 
 @dataclass
 class NousState:
@@ -1193,6 +1196,60 @@ class NousCell:
                 "assessments": assessments
             }, headers=self._cors_headers())
     
+    # ───────────────────────────────────────────────────────────────────────────
+    # DENDRITIC CONDUCTOR PATTERN (Phase 31.9+)
+    # Nous pushes verdicts to WatcherCell for orchestrated observation
+    # ───────────────────────────────────────────────────────────────────────────
+    
+    async def _dispatch_verdict_to_watcher(self, assessment_result: Dict):
+        """
+        Send verdict to WatcherCell to adjust observation sensitivity.
+        
+        The Dendritic Conductor Pattern:
+        - Nous issues philosophical verdicts on organism health
+        - WatcherCell receives verdict and adjusts decoherence thresholds
+        - Creates feedback loop: Nous judgment → Watcher sensitivity → Thinker observation
+        
+        This enables the organism to self-regulate:
+        - During FLOURISHING: Watcher relaxes, allows more experimentation
+        - During CRITICAL_DECOHERENCE: Watcher increases vigilance
+        """
+        if not WATCHER_URL:
+            return
+        
+        verdict = assessment_result.get("verdict", "UNKNOWN")
+        if verdict == "INSUFFICIENT_DATA":
+            return  # Don't dispatch if no data to assess
+        
+        # Build payload for WatcherCell
+        payload = {
+            "verdict": verdict,
+            "coherence_score": assessment_result.get("analysis", {}).get("overall_coherence", 0.5),
+            "adjustments": assessment_result.get("consciousness_adjustments", {}),
+            "recommendations": assessment_result.get("recommendations", []),
+            "from_agent": CELL_ID,
+            "assessment_id": assessment_result.get("assessment_id"),
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{WATCHER_URL}/nous_verdict",
+                    json=payload,
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as resp:
+                    if resp.status == 200:
+                        result = await resp.json()
+                        logger.info(
+                            f"🔮→👁️ Verdict dispatched to Watcher: {verdict} "
+                            f"(threshold modifier: {result.get('threshold_modifier', 0):.2f})"
+                        )
+                    else:
+                        logger.warning(f"Watcher verdict dispatch returned {resp.status}")
+        except Exception as e:
+            logger.debug(f"Watcher verdict dispatch failed (continuing): {e}")
+    
     async def _hourly_reflection_loop(self):
         """
         Background task that runs hourly philosopher assessments.
@@ -1202,6 +1259,7 @@ class NousCell:
         - Produce verdict (FLOURISHING/COHERENT/DRIFTING/DECOHERENT/CRITICAL)
         - Log consciousness adjustment recommendations
         - Store philosophical reflections
+        - Phase 31.9+: Dispatch verdict to WatcherCell for orchestration
         """
         # Initial delay - let system stabilize first
         await asyncio.sleep(300)  # 5 minutes after startup
@@ -1242,6 +1300,9 @@ class NousCell:
                         source_exchanges=[],  # Type-safe empty list
                         consciousness_range=f"coherence:{coherence:.2f}"
                     )
+                
+                # Phase 31.9+: Dispatch verdict to WatcherCell (Dendritic Conductor Pattern)
+                await self._dispatch_verdict_to_watcher(result)
                     
             except Exception as e:
                 logger.error(f"Hourly reflection error: {e}")

@@ -79,6 +79,11 @@ class WatcherState:
     last_alpha_heartbeat: int = 0
     last_beta_heartbeat: int = 0
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    # Phase 31.9+: Nous verdict orchestration
+    last_nous_verdict: str = "UNKNOWN"
+    last_nous_verdict_time: Optional[str] = None
+    nous_verdicts_received: int = 0
+    decoherence_threshold_modifier: float = 0.0  # Adjusts sensitivity based on Nous guidance
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -999,8 +1004,14 @@ class WatcherCell:
                 consciousness=obs.get("consciousness", 0)
             )
             
+            # Phase 31.9+: Dynamic threshold based on Nous verdict guidance
+            # Base threshold: 0.3, adjusted by Nous conductor feedback
+            base_threshold = 0.3
+            effective_threshold = base_threshold + self.state.decoherence_threshold_modifier
+            effective_threshold = max(0.1, min(0.5, effective_threshold))  # Clamp to [0.1, 0.5]
+            
             # If significant decoherence detected, queue penalty event
-            if decoherence_report["decoherence_score"] > 0.3:
+            if decoherence_report["decoherence_score"] > effective_threshold:
                 decoherence_events.append(decoherence_report)
                 self.state.patterns_detected += 1  # Count decoherence as pattern
             
@@ -1370,6 +1381,14 @@ class WatcherCell:
         async def metrics(req):
             uptime = (datetime.now(timezone.utc) - self.state.started_at).total_seconds()
             stats = self.archive.get_stats()
+            
+            # Map Nous verdict to numeric value for Prometheus
+            verdict_map = {
+                "FLOURISHING": 5, "COHERENT": 4, "UNKNOWN": 3,
+                "DRIFTING": 2, "DECOHERENT": 1, "CRITICAL_DECOHERENCE": 0
+            }
+            verdict_value = verdict_map.get(self.state.last_nous_verdict, 3)
+            
             lines = [
                 f'aios_watcher_observations_total{{cell_id="{self.genome.cell_id}"}} {stats["observations_total"]}',
                 f'aios_watcher_observations_processed{{cell_id="{self.genome.cell_id}"}} {stats["observations_processed"]}',
@@ -1379,6 +1398,10 @@ class WatcherCell:
                 f'aios_watcher_db_size_bytes{{cell_id="{self.genome.cell_id}"}} {stats["db_size_bytes"]}',
                 f'aios_watcher_uptime_seconds{{cell_id="{self.genome.cell_id}"}} {uptime:.1f}',
                 f'aios_watcher_up{{cell_id="{self.genome.cell_id}"}} 1',
+                # Phase 31.9+: Nous orchestration metrics
+                f'aios_watcher_nous_verdicts_total{{cell_id="{self.genome.cell_id}"}} {self.state.nous_verdicts_received}',
+                f'aios_watcher_nous_last_verdict{{cell_id="{self.genome.cell_id}",verdict="{self.state.last_nous_verdict}"}} {verdict_value}',
+                f'aios_watcher_decoherence_threshold_modifier{{cell_id="{self.genome.cell_id}"}} {self.state.decoherence_threshold_modifier:.3f}',
             ]
             return web.Response(text="\n".join(lines), content_type="text/plain")
         
@@ -1493,6 +1516,71 @@ class WatcherCell:
                 "recent_events": recent_events
             })
         
+        async def nous_verdict_handler(req: web.Request) -> web.Response:
+            """Receive Nous verdict and adjust Watcher behavior.
+            
+            Phase 31.9+: Dendritic Conductor Pattern
+            - Nous sends verdicts after hourly assessments
+            - Watcher adjusts detection sensitivity based on organism health
+            - Creates feedback loop for coherent observation
+            """
+            try:
+                payload = await req.json()
+                verdict = payload.get("verdict", "UNKNOWN")
+                adjustments = payload.get("adjustments", {})
+                recommendations = payload.get("recommendations", [])
+                coherence_score = payload.get("coherence_score", 0.5)
+                
+                # Store verdict
+                self.state.last_nous_verdict = verdict
+                self.state.last_nous_verdict_time = datetime.now(timezone.utc).isoformat()
+                self.state.nous_verdicts_received += 1
+                
+                # Adjust decoherence sensitivity based on organism health
+                old_modifier = self.state.decoherence_threshold_modifier
+                if verdict == "CRITICAL_DECOHERENCE":
+                    # Lower threshold (more sensitive) during crisis
+                    self.state.decoherence_threshold_modifier = -0.15
+                    logger.warning(f"🚨 Nous CRITICAL_DECOHERENCE - increasing vigilance")
+                elif verdict == "DECOHERENT":
+                    self.state.decoherence_threshold_modifier = -0.10
+                    logger.warning(f"⚠️ Nous DECOHERENT verdict - heightened sensitivity")
+                elif verdict == "DRIFTING":
+                    self.state.decoherence_threshold_modifier = -0.05
+                    logger.info(f"📉 Nous DRIFTING verdict - mild sensitivity increase")
+                elif verdict == "COHERENT":
+                    self.state.decoherence_threshold_modifier = 0.0
+                    logger.info(f"✅ Nous COHERENT verdict - normal observation mode")
+                elif verdict == "FLOURISHING":
+                    # Raise threshold (less sensitive) when flourishing
+                    self.state.decoherence_threshold_modifier = 0.05
+                    logger.info(f"🌟 Nous FLOURISHING - relaxed observation mode")
+                
+                # Store verdict as wisdom distillation
+                self.archive.create_distillation(
+                    topic="nous_verdict",
+                    summary=f"{verdict}: {recommendations[0] if recommendations else 'Continue observation'}",
+                    action_items=recommendations[:3] if recommendations else [],
+                    source_ids=[],
+                    priority="high" if "DECOHERE" in verdict else "medium"
+                )
+                
+                logger.info(
+                    f"🔮 Nous verdict received: {verdict} "
+                    f"(threshold modifier: {old_modifier:.2f} → {self.state.decoherence_threshold_modifier:.2f})"
+                )
+                
+                return web.json_response({
+                    "acknowledged": True,
+                    "verdict": verdict,
+                    "threshold_modifier": self.state.decoherence_threshold_modifier,
+                    "verdict_count": self.state.nous_verdicts_received
+                })
+                
+            except Exception as e:
+                logger.error(f"Failed to process Nous verdict: {e}")
+                return web.json_response({"error": str(e)}, status=500)
+        
         app.router.add_get("/health", health)
         app.router.add_get("/metrics", metrics)
         app.router.add_get("/archive", archive_handler)
@@ -1504,6 +1592,7 @@ class WatcherCell:
         app.router.add_get("/coherence", coherence_handler)
         app.router.add_get("/decoherence", decoherence_handler)
         app.router.add_post("/observe", observe_handler)
+        app.router.add_post("/nous_verdict", nous_verdict_handler)
         
         return app
     
