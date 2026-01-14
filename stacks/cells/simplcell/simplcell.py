@@ -1256,6 +1256,23 @@ class SimplCell:
         self.state.sync_count += 1
         self._add_memory("sync_received", source, thought)
         
+        # ─────────────────────────────────────────────────────────────────────
+        # Phase 31.9.4: Archive receiving cell's perspective
+        # Previously only initiating cell archived - WatcherCell couldn't 
+        # observe the receiver's conversations, so only Alpha got penalties.
+        # Now BOTH cells archive their perspective of each exchange.
+        # ─────────────────────────────────────────────────────────────────────
+        self.persistence.archive_conversation(
+            session_id=self._session_id,
+            heartbeat=self.state.heartbeat_count,
+            my_thought=response,  # Our response IS our thought in this exchange
+            peer_response=thought,  # The incoming thought from peer
+            consciousness=self.state.consciousness
+        )
+        self.state.conversation_count += 1
+        self.state.total_lifetime_exchanges += 1
+        logger.info(f"📝 Archived received sync: my response={response[:60]}...")
+        
         return {
             "type": "sync_response",
             "source": self.genome.cell_id,

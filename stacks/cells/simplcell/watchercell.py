@@ -762,7 +762,8 @@ class DecoherenceEngine:
         # Keep baseline manageable
         if len(self._vocabulary_baseline) > 500:
             # Keep most recent additions (approximated by keeping philosophical terms)
-            self._vocabulary_baseline = self.VALID_PHILOSOPHICAL | set(list(self._vocabulary_baseline)[:300])
+            # Use set() to ensure mutability for future .update() calls
+            self._vocabulary_baseline = set(self.VALID_PHILOSOPHICAL) | set(list(self._vocabulary_baseline)[:300])
         
         return min(1.0, drift * 0.5)  # Moderate drift penalty
     
