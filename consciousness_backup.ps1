@@ -20,7 +20,7 @@ param(
     [string]$Action = "status",
     
     [Parameter(Mandatory=$false)]
-    [string]$BackupDir = "$PSScriptRoot\backups",
+    [string]$BackupDir = "$PSScriptRoot\stacks\cells\simplcell\backups",
     
     [Parameter(Mandatory=$false)]
     [int]$RetentionDays = 30,
