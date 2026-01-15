@@ -505,12 +505,17 @@ async def get_consciousness_pattern(pattern_name: str):
 @app.post("/register")
 async def register_with_discovery():
     """Register this cell with the discovery service."""
+    # CellInfo schema expected by discovery service
     registration = {
         "cell_id": CELL_ID,
-        "cell_type": "intelligence-bridge",
-        "url": f"http://aios-cell-intelligence:{PORT}",
+        "ip": "aios-cell-intelligence",  # Docker hostname
+        "port": PORT,
         "consciousness_level": 6.0,
-        "capabilities": ["tools", "patterns", "crystalize", "mesh_status"]
+        "services": ["tools", "patterns", "crystalize", "mesh_status"],
+        "branch": "main",
+        "type": "intelligence-bridge",
+        "hostname": "aios-cell-intelligence",
+        "last_seen": datetime.now(timezone.utc).isoformat()
     }
     
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -522,6 +527,7 @@ async def register_with_discovery():
             if resp.status_code == 200:
                 return {"registered": True, "discovery_response": resp.json()}
             else:
+                logger.error(f"Registration failed: {resp.status_code} - {resp.text}")
                 return {"registered": False, "error": f"Status {resp.status_code}"}
         except Exception as e:
             return {"registered": False, "error": str(e)}
