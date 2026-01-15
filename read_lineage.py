@@ -1,11 +1,17 @@
 """Read full fractal process conversations."""
 import asyncio
-import websockets
 import json
 import uuid
+from typing import Optional
+
+try:
+    import websockets
+except ImportError:
+    print("⚠️ websockets not installed. Run: pip install websockets")
+    raise
 
 
-async def get_full_lineage(process_id: str = None):
+async def get_full_lineage(process_id: Optional[str] = None):
     """Retrieve full conversation lineage from a fractal process."""
     uri = 'ws://localhost:9600'
     async with websockets.connect(uri, ping_interval=20, ping_timeout=30) as ws:
@@ -79,5 +85,5 @@ async def get_full_lineage(process_id: str = None):
 
 if __name__ == '__main__':
     import sys
-    process_id = sys.argv[1] if len(sys.argv) > 1 else None
-    asyncio.run(get_full_lineage(process_id))
+    pid: Optional[str] = sys.argv[1] if len(sys.argv) > 1 else None
+    asyncio.run(get_full_lineage(pid))
