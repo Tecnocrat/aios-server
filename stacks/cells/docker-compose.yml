@@ -168,6 +168,39 @@ services:
       timeout: 10s
       retries: 3
 
+  # AIOS Cell - Intelligence Bridge (2026-01-15 - Phase 31.9.7)
+  # Exposes AIOS main dendritic intelligence patterns to the ecosystem
+  aios-cell-intelligence:
+    build:
+      context: .
+      dockerfile: intelligence/Dockerfile.intelligence
+    image: aios-cell:intelligence
+    container_name: aios-cell-intelligence
+    restart: unless-stopped
+    networks:
+      - aios-cells
+      - aios-observability
+      - aios-dendritic-mesh
+    ports:
+      - "0.0.0.0:8950:8950"  # Intelligence Bridge API
+    environment:
+      - CELL_ID=intelligence-bridge
+      - INTELLIGENCE_BRIDGE_PORT=8950
+      - DISCOVERY_URL=http://aios-discovery:8001
+      - MEMORY_URL=http://aios-cell-memory:8007
+      - AIOS_MOUNT_PATH=/repos/AIOS
+    volumes:
+      # Mount AIOS main read-only for tool discovery
+      - /c/dev/AIOS:/repos/AIOS:ro
+    depends_on:
+      - discovery-service
+      - aios-cell-memory
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8950/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   aios-cells:
     driver: bridge

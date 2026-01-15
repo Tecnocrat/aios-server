@@ -161,6 +161,8 @@ Legend: L = Consciousness Level
 | **Alpha** | aios-cell-alpha | 8000 | Flask | 5.2 | ✅ Active |
 | **Nous** | aios-cell-pure | 8002 | FastAPI | 0.2 | ✅ Active |
 | **Discovery** | aios-discovery | 8001 | FastAPI | 4.0 | ✅ Active |
+| **Memory** | aios-cell-memory | 8007 | FastAPI | 4.8 | ✅ Active |
+| **Intelligence** | aios-cell-intelligence | 8950 | FastAPI | 6.0 | ✅ Active |
 
 ### 🔄 Dendritic Pulse Coordination
 
