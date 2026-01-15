@@ -1,0 +1,16 @@
+# AIOS Cell Alpha Enhanced Requirements
+# Phase 31.9.7: Deep Genome Integration
+#
+# AINLP.cellular[DEPS]: Dependencies for reflection/synthesis/crystallization
+
+# HTTP Framework (async)
+aiohttp>=3.9.0
+
+# Prometheus metrics export
+prometheus-client>=0.19.0
+
+# Environment configuration
+python-dotenv>=1.0.0
+
+# Type hints and dataclasses utilities
+typing-extensions>=4.9.0

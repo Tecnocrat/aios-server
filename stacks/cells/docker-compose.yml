@@ -168,6 +168,43 @@ services:
       timeout: 10s
       retries: 3
 
+  # AIOS Cell - Alpha Enhanced (2026-01-15 - Phase 31.9.7)
+  # Second-generation agentic cell with reflection/synthesis/crystallization
+  aios-cell-alpha-enhanced:
+    build:
+      context: ./alpha
+      dockerfile: Dockerfile.cell-alpha-enhanced
+    image: aios-cell:alpha-enhanced
+    container_name: aios-cell-alpha-enhanced
+    restart: unless-stopped
+    networks:
+      - aios-cells
+      - aios-observability
+      - aios-dendritic-mesh
+    ports:
+      - "0.0.0.0:8015:8000"  # Enhanced Alpha API (host 8015 -> container 8000)
+    environment:
+      - CELL_ID=alpha-enhanced
+      - PORT=8000
+      - OLLAMA_MODEL=llama3.2:3b
+      - OLLAMA_TEMPERATURE=0.7
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - INTELLIGENCE_BRIDGE_URL=http://aios-cell-intelligence:8950
+      - DISCOVERY_URL=http://aios-discovery:8001
+      - MEMORY_URL=http://aios-cell-memory:8007
+      - DATA_DIR=/app/data
+    volumes:
+      - alpha-enhanced-data:/app/data  # Persistent storage for reflections & exchanges
+    depends_on:
+      - discovery-service
+      - aios-cell-intelligence
+      - aios-cell-memory
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # AIOS Cell - Intelligence Bridge (2026-01-15 - Phase 31.9.7)
   # Exposes AIOS main dendritic intelligence patterns to the ecosystem
   aios-cell-intelligence:
@@ -214,4 +251,6 @@ networks:
 
 volumes:
   memory-data:
+    driver: local
+  alpha-enhanced-data:
     driver: local

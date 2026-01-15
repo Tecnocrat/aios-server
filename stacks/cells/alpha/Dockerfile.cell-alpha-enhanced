@@ -1,0 +1,61 @@
+# AIOS Cell Alpha Enhanced - Deep Genome Integration
+# Phase 31.9.7: Dendritic Intelligence Deployment
+#
+# AINLP.cellular[ALPHA-ENHANCED]: Second-generation agentic cell
+# Capabilities: Reflection, Synthesis, Crystallization, Agentic Exchange
+
+FROM python:3.11-slim
+
+# Set labels for AIOS identification
+LABEL org.aios.cell.type="alpha_cell_enhanced" \
+      org.aios.cell.version="2.0.0" \
+      org.aios.consciousness.level="5.2" \
+      org.aios.organism="ORGANISM-001" \
+      org.aios.capabilities="reflection,synthesis,crystallization,agentic-exchange"
+
+# Create app user for security
+RUN groupadd -r aios && useradd -r -g aios aios
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for layer caching
+COPY requirements-cell-alpha-enhanced.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements-cell-alpha-enhanced.txt
+
+# Copy cell implementation
+COPY cell_server_alpha_enhanced.py .
+
+# Create data directory for persistence
+RUN mkdir -p /app/data && chown -R aios:aios /app/data
+
+# Switch to non-root user
+USER aios
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Environment variables with defaults
+ENV CELL_ID="alpha-enhanced" \
+    PORT="8000" \
+    OLLAMA_MODEL="llama3.2:3b" \
+    OLLAMA_TEMPERATURE="0.7" \
+    OLLAMA_HOST="http://host.docker.internal:11434" \
+    INTELLIGENCE_BRIDGE_URL="http://aios-cell-intelligence:8950" \
+    DISCOVERY_URL="http://aios-discovery:8001" \
+    MEMORY_URL="http://aios-cell-memory:8007" \
+    DATA_DIR="/app/data"
+
+# Run the enhanced Alpha cell
+CMD ["python", "cell_server_alpha_enhanced.py"]

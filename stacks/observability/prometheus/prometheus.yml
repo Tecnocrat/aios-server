@@ -245,6 +245,38 @@ scrape_configs:
           organism: 'organism-001'
     metrics_path: /metrics
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # DENDRITIC INTELLIGENCE - Phase 31.9.7
+  # Intelligence Bridge + Enhanced Alpha Cell with deep genome integration
+  # AINLP.dendritic[INTELLIGENCE_DEPLOYMENT]
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # Intelligence Bridge - Pattern exposure from AIOS main
+  - job_name: 'aios-intelligence-bridge'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['aios-cell-intelligence:8950']
+        labels:
+          cell_id: 'intelligence-bridge'
+          cell_type: 'intelligence'
+          role: 'pattern-exposure'
+          mesh: 'dendritic'
+    metrics_path: /metrics
+
+  # Alpha Enhanced - Second-generation agentic cell
+  - job_name: 'aios-alpha-enhanced'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-cell-alpha-enhanced:8000']
+        labels:
+          cell_id: 'alpha-enhanced'
+          cell_type: 'alpha_enhanced'
+          role: 'agentic-reflection'
+          mesh: 'dendritic'
+          organism: 'organism-001'
+          generation: 'second'
+    metrics_path: /metrics
+
   # Docker daemon metrics (if exposed)
   # - job_name: 'docker'
   #   static_configs:
