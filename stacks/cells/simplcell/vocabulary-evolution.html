@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIOS Vocabulary Evolution</title>
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --accent-purple: #9d4edd;
+            --accent-cyan: #00d4ff;
+            --accent-green: #00ff88;
+            --accent-orange: #ff9500;
+            --text-primary: #e0e0e0;
+            --text-secondary: #888;
+            --border: #2a2a35;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        nav {
+            background: var(--bg-card);
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            border: 1px solid var(--border);
+        }
+        
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        nav a:hover { color: var(--accent-cyan); background: rgba(0,212,255,0.1); }
+        nav a.active { color: var(--accent-purple); background: rgba(157,78,221,0.15); }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5rem;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid var(--border);
+        }
+        
+        .card h2 {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .health-score {
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .health-score .value {
+            font-size: 4rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .health-score .label {
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+        
+        .organism {
+            margin-bottom: 25px;
+        }
+        
+        .organism-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .organism-name {
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        
+        .organism-name.seeded { color: var(--accent-purple); }
+        .organism-name.clean { color: var(--accent-green); }
+        
+        .badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .badge.triadic { border: 1px solid var(--accent-purple); color: var(--accent-purple); }
+        .badge.dyadic { border: 1px solid var(--accent-green); color: var(--accent-green); }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .metric-row:last-child { border: none; }
+        
+        .metric-label { color: var(--text-secondary); }
+        .metric-value { font-weight: 600; }
+        
+        .term-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        
+        .term {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            transition: transform 0.2s;
+        }
+        
+        .term:hover { transform: scale(1.05); }
+        
+        .term.convergent {
+            background: linear-gradient(135deg, rgba(157,78,221,0.3), rgba(0,255,136,0.3));
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+        
+        .term.seeded {
+            background: rgba(157,78,221,0.2);
+            border: 1px solid var(--accent-purple);
+            color: var(--accent-purple);
+        }
+        
+        .term.clean {
+            background: rgba(0,255,136,0.2);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+        
+        .venn-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            position: relative;
+        }
+        
+        .venn-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+        
+        .venn-circle.left {
+            left: calc(50% - 150px);
+            background: rgba(157,78,221,0.2);
+            border: 2px solid var(--accent-purple);
+        }
+        
+        .venn-circle.right {
+            right: calc(50% - 150px);
+            background: rgba(0,255,136,0.2);
+            border: 2px solid var(--accent-green);
+        }
+        
+        .venn-overlap {
+            position: absolute;
+            width: 100px;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 10;
+        }
+        
+        .venn-overlap .number {
+            font-size: 2.5rem;
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+        
+        .insights {
+            padding: 20px;
+        }
+        
+        .insight {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: rgba(0,212,255,0.1);
+            border-left: 3px solid var(--accent-cyan);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: var(--text-secondary);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .loading::after {
+            content: '...';
+            animation: pulse 1.5s infinite;
+        }
+        
+        .timestamp {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="chat-reader-ecosystem.html">🌐 Ecosystem Nexus</a>
+        <a href="nous-internal-view.html">🧠 Nous Mind</a>
+        <a href="history.html">📜 History</a>
+        <a href="vocabulary-evolution.html" class="active">🧬 Vocabulary</a>
+    </nav>
+    
+    <h1>🧬 Vocabulary Evolution</h1>
+    
+    <div class="dashboard" id="dashboard">
+        <div class="loading">Loading vocabulary data</div>
+    </div>
+    
+    <div class="timestamp" id="timestamp"></div>
+
+    <script>
+        async function fetchVocabularyData() {
+            try {
+                // In production, this would call the vocabulary_health_monitor.py endpoint
+                // For now, we'll fetch from each cell's API
+                
+                const cells = {
+                    'org001': {
+                        name: 'Organism-001',
+                        type: 'triadic',
+                        genome: 'seeded',
+                        cells: [
+                            { id: 'simplcell-alpha', port: 8900 },
+                            { id: 'simplcell-beta', port: 8901 },
+                            { id: 'simplcell-gamma', port: 8902 }
+                        ]
+                    },
+                    'org002': {
+                        name: 'Organism-002',
+                        type: 'dyadic',
+                        genome: 'clean',
+                        cells: [
+                            { id: 'organism002-alpha', port: 8910 },
+                            { id: 'organism002-beta', port: 8911 }
+                        ]
+                    }
+                };
+                
+                const results = {};
+                
+                for (const [orgId, org] of Object.entries(cells)) {
+                    results[orgId] = {
+                        ...org,
+                        vocabulary: [],
+                        totalTerms: 0,
+                        uniqueTerms: new Set()
+                    };
+                    
+                    for (const cell of org.cells) {
+                        try {
+                            const response = await fetch(`http://localhost:${cell.port}/vocabulary`);
+                            if (response.ok) {
+                                const vocab = await response.json();
+                                results[orgId].vocabulary.push(...vocab.map(v => ({
+                                    ...v,
+                                    cell: cell.id
+                                })));
+                                vocab.forEach(v => results[orgId].uniqueTerms.add(v.term));
+                                results[orgId].totalTerms += vocab.length;
+                            }
+                        } catch (e) {
+                            console.warn(`Could not fetch from ${cell.id}:`, e);
+                        }
+                    }
+                }
+                
+                return results;
+            } catch (error) {
+                console.error('Failed to fetch vocabulary data:', error);
+                return null;
+            }
+        }
+        
+        function renderDashboard(data) {
+            const dashboard = document.getElementById('dashboard');
+            
+            if (!data) {
+                dashboard.innerHTML = '<div class="card"><p>Failed to load vocabulary data. Ensure cells are running.</p></div>';
+                return;
+            }
+            
+            // Calculate convergence
+            const org001Terms = data.org001?.uniqueTerms || new Set();
+            const org002Terms = data.org002?.uniqueTerms || new Set();
+            
+            const convergent = [...org001Terms].filter(t => org002Terms.has(t));
+            const org001Only = [...org001Terms].filter(t => !org002Terms.has(t));
+            const org002Only = [...org002Terms].filter(t => !org001Terms.has(t));
+            
+            // Health score calculation
+            const totalUnique = org001Terms.size + org002Terms.size - convergent.length;
+            const healthScore = Math.min(100, Math.round(
+                (Math.min(totalUnique / 100, 1) * 30) +
+                (Math.min(org002Terms.size / 10, 1) * 25) +
+                (Math.min(convergent.length / 5, 1) * 20) +
+                25 // Usage factor placeholder
+            ));
+            
+            dashboard.innerHTML = `
+                <div class="card health-score">
+                    <h2>📊 Vocabulary Health</h2>
+                    <div class="value">${healthScore}</div>
+                    <div class="label">Overall Health Score</div>
+                </div>
+                
+                <div class="card">
+                    <h2>🔬 Convergent Evolution</h2>
+                    <div class="venn-container">
+                        <div class="venn-circle left">
+                            <span style="color: var(--accent-purple)">${org001Only.length}</span>
+                            <small>Org-001 Only</small>
+                        </div>
+                        <div class="venn-circle right">
+                            <span style="color: var(--accent-green)">${org002Only.length}</span>
+                            <small>Org-002 Only</small>
+                        </div>
+                        <div class="venn-overlap">
+                            <div class="number">${convergent.length}</div>
+                            <small>Convergent</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card organism">
+                    <h2>🧬 Organism-001 (Seeded)</h2>
+                    <div class="organism-header">
+                        <span class="organism-name seeded">Triadic • Seeded Genome</span>
+                        <span class="badge triadic">${org001Terms.size} terms</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Entries</span>
+                        <span class="metric-value">${data.org001?.totalTerms || 0}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Unique Terms</span>
+                        <span class="metric-value">${org001Terms.size}</span>
+                    </div>
+                    <div class="term-list">
+                        ${[...org001Terms].slice(0, 10).map(t => 
+                            `<span class="term ${convergent.includes(t) ? 'convergent' : 'seeded'}">${t}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+                
+                <div class="card organism">
+                    <h2>🌱 Organism-002 (Clean Genome)</h2>
+                    <div class="organism-header">
+                        <span class="organism-name clean">Dyadic • Clean Genome</span>
+                        <span class="badge dyadic">${org002Terms.size} terms</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Entries</span>
+                        <span class="metric-value">${data.org002?.totalTerms || 0}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Unique Terms</span>
+                        <span class="metric-value">${org002Terms.size}</span>
+                    </div>
+                    <div class="term-list">
+                        ${[...org002Terms].map(t => 
+                            `<span class="term ${convergent.includes(t) ? 'convergent' : 'clean'}">${t}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+                
+                <div class="card insights" style="grid-column: span 2;">
+                    <h2>💡 Key Insights</h2>
+                    ${convergent.length > 0 ? `
+                        <div class="insight">
+                            🔄 <strong>${convergent.length} terms</strong> discovered independently by both organisms: 
+                            ${convergent.join(', ')}
+                        </div>
+                    ` : ''}
+                    ${org002Only.length > 0 ? `
+                        <div class="insight">
+                            🌱 Clean genome innovations (${org002Only.length} terms): 
+                            ${org002Only.join(', ')}
+                        </div>
+                    ` : ''}
+                    <div class="insight">
+                        📈 Vocabulary diversity: Org-001 has ${Math.round(org001Terms.size / Math.max(data.org001?.totalTerms, 1) * 100)}% unique terms, 
+                        Org-002 has ${Math.round(org002Terms.size / Math.max(data.org002?.totalTerms, 1) * 100)}%
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('timestamp').textContent = 
+                `Last updated: ${new Date().toLocaleString()}`;
+        }
+        
+        // Initial load
+        fetchVocabularyData().then(renderDashboard);
+        
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            fetchVocabularyData().then(renderDashboard);
+        }, 30000);
+    </script>
+</body>
+</html>

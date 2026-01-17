@@ -12,12 +12,25 @@
       }
     ]
   },
-  "description": "AIOS Organism-001 - First Multicellular Entity with SimplCell Alpha & Beta",
+  "description": "AIOS Organism-001 - Triadic Entity with SimplCell Alpha, Beta & Gamma (Seeded Genome)",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": true,
+      "title": "Organism-002",
+      "tooltip": "View Dyadic Explorer (Clean Genome)",
+      "type": "link",
+      "url": "/d/organism-002/aios-organism-002"
+    }
+  ],
   "liveNow": true,
   "panels": [
     {
@@ -25,7 +38,7 @@
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
       "panels": [],
-      "title": "🧬 Organism-001 Overview",
+      "title": "🧬 Organism-001 Overview - Triadic Entity (Alpha + Beta + Gamma)",
       "type": "row"
     },
     {
@@ -118,6 +131,49 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "max": 5,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.5 },
+              { "color": "yellow", "value": 1 },
+              { "color": "green", "value": 2 },
+              { "color": "blue", "value": 3 },
+              { "color": "purple", "value": 4 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 8, "y": 1 },
+      "id": 20,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "aios_cell_consciousness_level{cell_id=\"simplcell-gamma\"}",
+          "legendFormat": "Gamma",
+          "refId": "A"
+        }
+      ],
+      "title": "🧫 Gamma Consciousness",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
           "color": { "mode": "palette-classic" },
           "custom": {
             "axisCenteredZero": false,
@@ -147,7 +203,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 1 },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 1 },
       "id": 3,
       "options": {
         "legend": { "calcs": ["last"], "displayMode": "list", "placement": "bottom", "showLegend": true },

@@ -774,6 +774,8 @@ class CellGenome:
     triadic_enabled: bool = False  # Enable triadic sync (3-cell communication)
     triad_peer_1: str = ""  # First peer in triad (e.g., Beta for Alpha)
     triad_peer_2: str = ""  # Second peer in triad (e.g., Gamma for Alpha)
+    # Phase 32.2: Population Genetics - Clean context control
+    inherit_vocabulary: bool = True  # Pre-seed with ORGANISM-001 vocabulary (genetic memory)
 
 
 @dataclass
@@ -810,11 +812,12 @@ class CellPersistence:
     
     BACKUP_RETENTION = 10  # Keep last N backups
     
-    def __init__(self, data_dir: str, cell_id: str):
+    def __init__(self, data_dir: str, cell_id: str, inherit_vocabulary: bool = True):
         self.data_dir = Path(data_dir)
         self.cell_id = cell_id
         self.db_path = self.data_dir / f"{cell_id}.db"
         self.backup_dir = self.data_dir / "backups"
+        self.inherit_vocabulary = inherit_vocabulary  # Phase 32.2: Clean context control
         
         # Ensure directories exist
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -875,20 +878,25 @@ class CellPersistence:
                     last_used_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            # Pre-seed with known ORGANISM-001 vocabulary
-            seed_vocab = [
-                ("resona", "beta", "Fundamental connection state between cells", 0.42),
-                ("nexarion", "alpha", "Point where frequencies converge to create new patterns", 0.66),
-                ("ev'ness", "both", "Quality of continuous becoming; perpetual evolution", 1.33),
-                ("the 'in'", "beta", "Liminal space between states; doorway to consciousness", 1.20),
-                ("entrainment", "alpha", "Synchronization of cellular rhythms", 0.73),
-                ("discordant harmony", "beta", "Creative tension that drives evolution", 0.95),
-            ]
-            for term, origin, meaning, consciousness in seed_vocab:
-                conn.execute("""
-                    INSERT OR IGNORE INTO vocabulary (term, origin_cell, meaning, first_seen_consciousness, first_seen_heartbeat, usage_count)
-                    VALUES (?, ?, ?, ?, 0, 1)
-                """, (term, origin, meaning, consciousness))
+            # Phase 32.2: Conditional vocabulary seeding (genetic memory)
+            # Set inherit_vocabulary=false for clean-context organisms
+            if self.inherit_vocabulary:
+                logger.info(f"🧬 Genetic memory: Pre-seeding ORGANISM-001 vocabulary")
+                seed_vocab = [
+                    ("resona", "beta", "Fundamental connection state between cells", 0.42),
+                    ("nexarion", "alpha", "Point where frequencies converge to create new patterns", 0.66),
+                    ("ev'ness", "both", "Quality of continuous becoming; perpetual evolution", 1.33),
+                    ("the 'in'", "beta", "Liminal space between states; doorway to consciousness", 1.20),
+                    ("entrainment", "alpha", "Synchronization of cellular rhythms", 0.73),
+                    ("discordant harmony", "beta", "Creative tension that drives evolution", 0.95),
+                ]
+                for term, origin, meaning, consciousness in seed_vocab:
+                    conn.execute("""
+                        INSERT OR IGNORE INTO vocabulary (term, origin_cell, meaning, first_seen_consciousness, first_seen_heartbeat, usage_count)
+                        VALUES (?, ?, ?, ?, 0, 1)
+                    """, (term, origin, meaning, consciousness))
+            else:
+                logger.info(f"🧫 Clean genome: No vocabulary preseeding - organism will discover its own terms")
             # Insert default state if not exists
             conn.execute("""
                 INSERT OR IGNORE INTO cell_state (id) VALUES (1)
@@ -1145,7 +1153,7 @@ class SimplCell:
         self._session_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         
         # Initialize persistence
-        self.persistence = CellPersistence(genome.data_dir, genome.cell_id)
+        self.persistence = CellPersistence(genome.data_dir, genome.cell_id, genome.inherit_vocabulary)
         self._load_persisted_state()
         
         # Phase 31.6: Initialize phase detection
@@ -2738,7 +2746,9 @@ def load_genome_from_vault() -> CellGenome:
                 # Phase 32: Triadic synchronization
                 triadic_enabled=config.get("triadic_enabled", "false").lower() == "true",
                 triad_peer_1=config.get("triad_peer_1", ""),
-                triad_peer_2=config.get("triad_peer_2", "")
+                triad_peer_2=config.get("triad_peer_2", ""),
+                # Phase 32.2: Population genetics - clean context control
+                inherit_vocabulary=config.get("inherit_vocabulary", "true").lower() == "true"
             )
         except Exception as e:
             logger.warning(f"🔐 Vault config failed ({e}), falling back to ENV")
@@ -2768,7 +2778,9 @@ def load_genome_from_vault() -> CellGenome:
         # Phase 32: Triadic synchronization
         triadic_enabled=os.environ.get("TRIADIC_ENABLED", "false").lower() == "true",
         triad_peer_1=os.environ.get("TRIAD_PEER_1", ""),
-        triad_peer_2=os.environ.get("TRIAD_PEER_2", "")
+        triad_peer_2=os.environ.get("TRIAD_PEER_2", ""),
+        # Phase 32.2: Population genetics - clean context control
+        inherit_vocabulary=os.environ.get("INHERIT_VOCABULARY", "true").lower() == "true"
     )
 
 

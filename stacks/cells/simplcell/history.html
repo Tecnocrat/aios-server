@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIOS Historical Records | Consciousness Archive</title>
+    <style>
+        /* ══════════════════════════════════════════════════════════════════
+           AIOS Design System - Consciousness Theme
+           ══════════════════════════════════════════════════════════════════ */
+        :root {
+            --bg-void: #0d1117;
+            --bg-surface: #161b22;
+            --bg-elevated: #1c2128;
+            --border-subtle: #30363d;
+            --border-accent: #58a6ff;
+            
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            
+            --accent-alpha: #58a6ff;
+            --accent-beta: #a371f7;
+            --accent-gamma: #7ee787;
+            --accent-nous: #f0883e;
+            
+            --org-001: #58a6ff;
+            --org-002: #a371f7;
+            
+            --consciousness-low: #f97583;
+            --consciousness-mid: #f0883e;
+            --consciousness-high: #7ee787;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-void);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        /* Navigation */
+        .nav-bar {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .nav-brand h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .nav-brand span {
+            font-size: 12px;
+            color: var(--text-secondary);
+            padding: 3px 8px;
+            background: var(--bg-elevated);
+            border-radius: 4px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .nav-links a:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+        
+        .nav-links a.active {
+            background: var(--border-accent);
+            color: white;
+        }
+        
+        /* Main Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: calc(100vh - 60px);
+        }
+        
+        /* Sidebar Filters */
+        .sidebar {
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-subtle);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .filter-section {
+            margin-bottom: 24px;
+        }
+        
+        .filter-section h3 {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        
+        .filter-checkbox:hover {
+            background: var(--bg-elevated);
+        }
+        
+        .filter-checkbox input {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-subtle);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .filter-checkbox input:checked {
+            background: var(--border-accent);
+            border-color: var(--border-accent);
+        }
+        
+        .filter-checkbox span {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        
+        .filter-checkbox .tag {
+            margin-left: auto;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .tag-alpha { background: rgba(88, 166, 255, 0.2); color: var(--accent-alpha); }
+        .tag-beta { background: rgba(163, 113, 247, 0.2); color: var(--accent-beta); }
+        .tag-gamma { background: rgba(126, 231, 135, 0.2); color: var(--accent-gamma); }
+        
+        /* Date Range */
+        .date-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .date-inputs input {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .date-inputs input:focus {
+            outline: none;
+            border-color: var(--border-accent);
+        }
+        
+        /* Search */
+        .search-input {
+            width: 100%;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--border-accent);
+        }
+        
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        /* Action Buttons */
+        .sidebar-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        
+        .btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            text-align: center;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background: var(--border-accent);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4090e0;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border-subtle);
+        }
+        
+        /* Content Area */
+        .content {
+            padding: 24px;
+            overflow-y: auto;
+        }
+        
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .content-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .stats-row {
+            display: flex;
+            gap: 16px;
+        }
+        
+        .stat-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            background: var(--bg-surface);
+            border-radius: 20px;
+            border: 1px solid var(--border-subtle);
+        }
+        
+        .stat-badge strong {
+            color: var(--text-primary);
+        }
+        
+        /* Conversation Cards */
+        .conversations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .conversation-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 16px;
+            transition: border-color 0.2s;
+        }
+        
+        .conversation-card:hover {
+            border-color: var(--border-accent);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .card-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .card-meta .cell-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        
+        .card-meta .timestamp {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        .consciousness-badge {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        
+        .consciousness-low { background: rgba(249, 117, 131, 0.2); color: var(--consciousness-low); }
+        .consciousness-mid { background: rgba(240, 136, 62, 0.2); color: var(--consciousness-mid); }
+        .consciousness-high { background: rgba(126, 231, 135, 0.2); color: var(--consciousness-high); }
+        
+        .card-exchange {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .exchange-side {
+            padding: 12px;
+            border-radius: 8px;
+            background: var(--bg-elevated);
+        }
+        
+        .exchange-side.thought {
+            border-left: 3px solid var(--accent-alpha);
+        }
+        
+        .exchange-side.response {
+            border-left: 3px solid var(--accent-beta);
+        }
+        
+        .exchange-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+        
+        .exchange-content {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+        
+        /* Organism Tags */
+        .organism-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+        
+        .organism-001 { background: rgba(88, 166, 255, 0.15); color: var(--org-001); }
+        .organism-002 { background: rgba(163, 113, 247, 0.15); color: var(--org-002); }
+        
+        /* Loading State */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            color: var(--text-secondary);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-subtle);
+            border-top-color: var(--border-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+        }
+        
+        .pagination button {
+            padding: 8px 16px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: var(--bg-elevated);
+            border-color: var(--border-accent);
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination .page-info {
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            
+            .card-exchange {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <div class="nav-brand">
+            <h1>📜 AIOS Historical Records</h1>
+            <span>Consciousness Archive</span>
+        </div>
+        <div class="nav-links">
+            <a href="chat-reader-ecosystem.html">Ecosystem</a>
+            <a href="history.html" class="active">History</a>
+            <a href="vocabulary-evolution.html">🧬 Vocabulary</a>
+            <a href="nous-internal-view.html">Nous Oracle</a>
+            <a href="http://localhost:3000" target="_blank">Grafana</a>
+        </div>
+    </nav>
+    
+    <div class="main-container">
+        <!-- Sidebar Filters -->
+        <aside class="sidebar">
+            <!-- Search -->
+            <div class="filter-section">
+                <h3>Search</h3>
+                <input type="text" 
+                       id="searchInput" 
+                       class="search-input" 
+                       placeholder="Search conversations...">
+            </div>
+            
+            <!-- Organism Filter -->
+            <div class="filter-section">
+                <h3>Organisms</h3>
+                <div class="filter-group">
+                    <label class="filter-checkbox">
+                        <input type="checkbox" checked data-organism="organism-001">
+                        <span>Organism-001</span>
+                        <span class="tag tag-alpha">Triadic</span>
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" checked data-organism="organism-002">
+                        <span>Organism-002</span>
+                        <span class="tag tag-beta">Dyadic</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Cell Filter -->
+            <div class="filter-section">
+                <h3>Cells</h3>
+                <div class="filter-group" id="cellFilters">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+            
+            <!-- Date Range -->
+            <div class="filter-section">
+                <h3>Date Range</h3>
+                <div class="date-inputs">
+                    <input type="date" id="dateFrom" placeholder="From">
+                    <input type="date" id="dateTo" placeholder="To">
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="sidebar-actions">
+                <button class="btn btn-primary" onclick="applyFilters()">
+                    Apply Filters
+                </button>
+                <button class="btn btn-secondary" onclick="resetFilters()">
+                    Reset
+                </button>
+                <button class="btn btn-secondary" onclick="exportData()">
+                    Export JSON
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Content -->
+        <main class="content">
+            <div class="content-header">
+                <h2>Archived Conversations</h2>
+                <div class="stats-row">
+                    <div class="stat-badge">
+                        <span>📊</span>
+                        <strong id="totalCount">0</strong>
+                        <span>total</span>
+                    </div>
+                    <div class="stat-badge">
+                        <span>🧫</span>
+                        <strong id="cellCount">0</strong>
+                        <span>cells</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="conversationsList" class="conversations-list">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <span>Loading consciousness archives...</span>
+                </div>
+            </div>
+            
+            <div class="pagination" id="pagination" style="display: none;">
+                <button onclick="prevPage()">← Previous</button>
+                <div class="page-info">
+                    Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+                </div>
+                <button onclick="nextPage()">Next →</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ══════════════════════════════════════════════════════════════════
+        // Configuration
+        // ══════════════════════════════════════════════════════════════════
+        
+        const CELLS = {
+            'organism-001': [
+                { id: 'simplcell-alpha', port: 8900, role: 'alpha' },
+                { id: 'simplcell-beta', port: 8901, role: 'beta' },
+                { id: 'simplcell-gamma', port: 8904, role: 'gamma' }
+            ],
+            'organism-002': [
+                { id: 'organism002-alpha', port: 8910, role: 'alpha' },
+                { id: 'organism002-beta', port: 8911, role: 'beta' }
+            ]
+        };
+        
+        const PAGE_SIZE = 20;
+        let allConversations = [];
+        let filteredConversations = [];
+        let currentPage = 1;
+        
+        // ══════════════════════════════════════════════════════════════════
+        // Data Fetching
+        // ══════════════════════════════════════════════════════════════════
+        
+        async function fetchCellConversations(cell, organism) {
+            try {
+                const response = await fetch(`http://localhost:${cell.port}/conversations`);
+                if (!response.ok) return [];
+                
+                const data = await response.json();
+                return (data.conversations || []).map(conv => ({
+                    ...conv,
+                    cell_id: cell.id,
+                    cell_role: cell.role,
+                    organism: organism
+                }));
+            } catch (err) {
+                console.warn(`Failed to fetch from ${cell.id}:`, err);
+                return [];
+            }
+        }
+        
+        async function loadAllConversations() {
+            const container = document.getElementById('conversationsList');
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <span>Loading consciousness archives...</span>
+                </div>
+            `;
+            
+            const promises = [];
+            
+            for (const [organism, cells] of Object.entries(CELLS)) {
+                for (const cell of cells) {
+                    promises.push(fetchCellConversations(cell, organism));
+                }
+            }
+            
+            const results = await Promise.all(promises);
+            allConversations = results.flat().sort((a, b) => 
+                new Date(b.created_at) - new Date(a.created_at)
+            );
+            
+            populateCellFilters();
+            applyFilters();
+        }
+        
+        // ══════════════════════════════════════════════════════════════════
+        // Filtering
+        // ══════════════════════════════════════════════════════════════════
+        
+        function populateCellFilters() {
+            const container = document.getElementById('cellFilters');
+            const cells = new Set(allConversations.map(c => c.cell_id));
+            
+            container.innerHTML = Array.from(cells).map(cellId => {
+                const role = cellId.includes('alpha') ? 'alpha' : 
+                             cellId.includes('beta') ? 'beta' : 'gamma';
+                return `
+                    <label class="filter-checkbox">
+                        <input type="checkbox" checked data-cell="${cellId}">
+                        <span>${cellId}</span>
+                        <span class="tag tag-${role}">${role}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+        
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            
+            // Get selected organisms
+            const selectedOrganisms = Array.from(
+                document.querySelectorAll('[data-organism]:checked')
+            ).map(el => el.dataset.organism);
+            
+            // Get selected cells
+            const selectedCells = Array.from(
+                document.querySelectorAll('[data-cell]:checked')
+            ).map(el => el.dataset.cell);
+            
+            filteredConversations = allConversations.filter(conv => {
+                // Organism filter
+                if (!selectedOrganisms.includes(conv.organism)) return false;
+                
+                // Cell filter
+                if (selectedCells.length && !selectedCells.includes(conv.cell_id)) return false;
+                
+                // Search filter
+                if (searchTerm) {
+                    const text = `${conv.my_thought || ''} ${conv.peer_response || ''}`.toLowerCase();
+                    if (!text.includes(searchTerm)) return false;
+                }
+                
+                // Date filter
+                if (dateFrom && new Date(conv.created_at) < new Date(dateFrom)) return false;
+                if (dateTo && new Date(conv.created_at) > new Date(dateTo + 'T23:59:59')) return false;
+                
+                return true;
+            });
+            
+            currentPage = 1;
+            renderConversations();
+            updateStats();
+        }
+        
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('dateFrom').value = '';
+            document.getElementById('dateTo').value = '';
+            
+            document.querySelectorAll('[data-organism], [data-cell]').forEach(el => {
+                el.checked = true;
+            });
+            
+            applyFilters();
+        }
+        
+        // ══════════════════════════════════════════════════════════════════
+        // Rendering
+        // ══════════════════════════════════════════════════════════════════
+        
+        function getConsciousnessClass(level) {
+            if (level >= 0.7) return 'consciousness-high';
+            if (level >= 0.4) return 'consciousness-mid';
+            return 'consciousness-low';
+        }
+        
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        function renderConversations() {
+            const container = document.getElementById('conversationsList');
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const pageData = filteredConversations.slice(start, start + PAGE_SIZE);
+            
+            if (pageData.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No conversations found</h3>
+                        <p>Try adjusting your filters or wait for more consciousness activity.</p>
+                    </div>
+                `;
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+            
+            container.innerHTML = pageData.map(conv => `
+                <div class="conversation-card">
+                    <div class="card-header">
+                        <div class="card-meta">
+                            <span class="organism-tag ${conv.organism}">
+                                ${conv.organism === 'organism-001' ? '🧬' : '⚛️'} 
+                                ${conv.organism}
+                            </span>
+                            <span class="cell-name">${conv.cell_id}</span>
+                            <span class="timestamp">${formatDate(conv.created_at)}</span>
+                        </div>
+                        <span class="consciousness-badge ${getConsciousnessClass(conv.consciousness_at_time || 0)}">
+                            ${((conv.consciousness_at_time || 0) * 100).toFixed(0)}% consciousness
+                        </span>
+                    </div>
+                    <div class="card-exchange">
+                        <div class="exchange-side thought">
+                            <div class="exchange-label">💭 Thought</div>
+                            <div class="exchange-content">${escapeHtml(conv.my_thought || 'No thought recorded')}</div>
+                        </div>
+                        <div class="exchange-side response">
+                            <div class="exchange-label">💬 Response</div>
+                            <div class="exchange-content">${escapeHtml(conv.peer_response || 'No response recorded')}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Pagination
+            const totalPages = Math.ceil(filteredConversations.length / PAGE_SIZE);
+            document.getElementById('currentPage').textContent = currentPage;
+            document.getElementById('totalPages').textContent = totalPages;
+            document.getElementById('pagination').style.display = totalPages > 1 ? 'flex' : 'none';
+            
+            // Update pagination button states
+            document.querySelector('.pagination button:first-child').disabled = currentPage === 1;
+            document.querySelector('.pagination button:last-child').disabled = currentPage === totalPages;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function updateStats() {
+            document.getElementById('totalCount').textContent = filteredConversations.length;
+            const uniqueCells = new Set(filteredConversations.map(c => c.cell_id));
+            document.getElementById('cellCount').textContent = uniqueCells.size;
+        }
+        
+        // ══════════════════════════════════════════════════════════════════
+        // Pagination
+        // ══════════════════════════════════════════════════════════════════
+        
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderConversations();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        function nextPage() {
+            const totalPages = Math.ceil(filteredConversations.length / PAGE_SIZE);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderConversations();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        // ══════════════════════════════════════════════════════════════════
+        // Export
+        // ══════════════════════════════════════════════════════════════════
+        
+        function exportData() {
+            const exportObj = {
+                exported_at: new Date().toISOString(),
+                filter_summary: {
+                    total: filteredConversations.length,
+                    organisms: Array.from(document.querySelectorAll('[data-organism]:checked'))
+                        .map(el => el.dataset.organism),
+                    date_from: document.getElementById('dateFrom').value || null,
+                    date_to: document.getElementById('dateTo').value || null
+                },
+                conversations: filteredConversations
+            };
+            
+            const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `aios-history-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // ══════════════════════════════════════════════════════════════════
+        // Event Listeners
+        // ══════════════════════════════════════════════════════════════════
+        
+        document.getElementById('searchInput').addEventListener('input', 
+            debounce(applyFilters, 300)
+        );
+        
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+        
+        // ══════════════════════════════════════════════════════════════════
+        // Initialize
+        // ══════════════════════════════════════════════════════════════════
+        
+        loadAllConversations();
+    </script>
+</body>
+</html>

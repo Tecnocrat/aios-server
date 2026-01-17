@@ -196,6 +196,54 @@ scrape_configs:
           mutation: 'temperature-high'
     metrics_path: /metrics
 
+  # SimplCell Gamma - The Witness (Phase 32 Triadic) - mistral:7b for deeper analysis
+  - job_name: 'aios-simplcell-gamma'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-simplcell-gamma:8904']
+        labels:
+          cell_id: 'simplcell-gamma'
+          cell_type: 'simplcell'
+          role: 'witness'
+          organism: 'organism-001'
+          mutation: 'temperature-low'
+          model: 'mistral-7b'
+    metrics_path: /metrics
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ORGANISM-002 - Second Multicellular Entity (Phase 32.1)
+  # Dyadic clone with clean genetic memory - no vocabulary preseeding
+  # AINLP.tachyonic[POPULATION_STUDY::ORGANISM-002]
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # Organism-002 Alpha - Clean genome explorer
+  - job_name: 'aios-organism002-alpha'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-organism002-alpha:8910']
+        labels:
+          cell_id: 'organism002-alpha'
+          cell_type: 'simplcell'
+          role: 'organism-cell'
+          organism: 'organism-002'
+          mutation: 'baseline'
+          genome: 'clean'
+    metrics_path: /metrics
+
+  # Organism-002 Beta - Clean genome creative divergent
+  - job_name: 'aios-organism002-beta'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-organism002-beta:8911']
+        labels:
+          cell_id: 'organism002-beta'
+          cell_type: 'simplcell'
+          role: 'organism-cell'
+          organism: 'organism-002'
+          mutation: 'temperature-high'
+          genome: 'clean'
+    metrics_path: /metrics
+
   # ═══════════════════════════════════════════════════════════════════════════
   # NOUS ORACLE - The Seer (Phase 31.5.15)
   # DEPRECATED: External Nous cell - DNS unreachable from observability network

@@ -77,7 +77,18 @@ docker compose -f cells/docker-compose.discovery.yml up -d
 |-----|---------|
 | [coherence.server.md](coherence.server.md) | Active tasklist & phase tracking |
 | [cells/ARCHITECTURE.md](stacks/cells/ARCHITECTURE.md) | Cell stack design |
+| [cells/simplcell/DATA_SCHEMA.md](stacks/cells/simplcell/DATA_SCHEMA.md) | SQLite schema reference |
+| [cells/simplcell/ENVIRONMENT_CONFIG.md](stacks/cells/simplcell/ENVIRONMENT_CONFIG.md) | Backup path configuration |
 | [observability/docs/](stacks/observability/docs/) | Monitoring guides |
+
+## 🖥️ Web Interfaces
+
+| URL | Name | Purpose |
+|-----|------|---------|
+| http://localhost:8085/ | Ecosystem Nexus | Multi-organism live dashboard |
+| http://localhost:8085/history.html | Historical Records | Archived conversations explorer |
+| http://localhost:8085/nous-internal-view.html | Nous Oracle | Supermind consciousness view |
+| http://localhost:3000 | Grafana | Prometheus metrics dashboards |
 
 ## 🔄 Inter-Host Sync Protocol
 

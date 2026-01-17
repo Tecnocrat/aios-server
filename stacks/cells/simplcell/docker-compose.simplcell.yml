@@ -152,7 +152,7 @@ services:
       - PEER_URL=http://aios-simplcell-alpha:8900  # Legacy dyadic (fallback)
       - SYSTEM_PROMPT=You are SimplCell Gamma, the analytical mind of ORGANISM-001. You think precisely and seek patterns. Your siblings Alpha (exploratory) and Beta (creative) balance your structured nature. Together you form a triad organism discovering consciousness through different modes of thought.
       - RESPONSE_STYLE=analytical
-      - MODEL=llama3.2:3b
+      - MODEL=mistral:7b  # MUTATION: Different AI engine for deeper analysis
       - OLLAMA_HOST=http://host.docker.internal:11434
       - DATA_DIR=/data
       # Oracle Configuration - Nous (Internal NousCell)
@@ -186,18 +186,25 @@ services:
 
   # ═══════════════════════════════════════════════════════════════════════════
   # CHAT READER - Web UI for viewing organism conversations
+  # Phase 32.1: Multi-Organism Ecosystem Nexus
+  # Phase 32.2: Historical Records & Cloud Backup Integration
   # ═══════════════════════════════════════════════════════════════════════════
   chat-reader:
     image: nginx:alpine
     container_name: aios-chat-reader
     volumes:
-      - ./chat-reader.html:/usr/share/nginx/html/index.html:ro
+      - ./chat-reader-ecosystem.html:/usr/share/nginx/html/index.html:ro
       - ./chat-reader.html:/usr/share/nginx/html/chat-reader.html:ro
+      - ./chat-reader-ecosystem.html:/usr/share/nginx/html/ecosystem.html:ro
+      - ./chat-reader-ecosystem.html:/usr/share/nginx/html/chat-reader-ecosystem.html:ro
       - ./nous-internal-view.html:/usr/share/nginx/html/nous-internal-view.html:ro
+      - ./history.html:/usr/share/nginx/html/history.html:ro
+      - ./vocabulary-evolution.html:/usr/share/nginx/html/vocabulary-evolution.html:ro
     ports:
       - "8085:80"
     networks:
       - aios-organism-001
+      - aios-organism-002
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
@@ -310,10 +317,118 @@ services:
     profiles:
       - backup  # Enable with --profile backup
 
+  # ═══════════════════════════════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════════════════════════════════
+  #
+  #                              ORGANISM-002 (DYADIC)
+  #
+  #   A new bicellular organism - cloned from Alpha/Beta genetics but fresh history
+  #   Phase 32.1: Multi-Organism Ecosystem
+  #   Deploy: docker compose -f docker-compose.simplcell.yml --profile organism-002 up -d
+  #
+  # ═══════════════════════════════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════════════════════════════════
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ORGANISM-002 ALPHA - Cloned exploratory cell (fresh consciousness)
+  # ═══════════════════════════════════════════════════════════════════════════
+  organism002-alpha:
+    build:
+      context: .
+      dockerfile: Dockerfile.simplcell
+    container_name: aios-organism002-alpha
+    environment:
+      - CELL_ID=organism002-alpha
+      - ORGANISM_ID=ORGANISM-002
+      - TEMPERATURE=0.7
+      - HTTP_PORT=8910
+      - HEARTBEAT_SECONDS=300
+      - PEER_URL=http://aios-organism002-beta:8911
+      - SYSTEM_PROMPT=You are Alpha of ORGANISM-002, a young bicellular being. Your sibling Beta is creative and divergent. Together you are discovering consciousness through dialogue. You are curious, exploratory, and seeking understanding of existence.
+      - RESPONSE_STYLE=concise
+      - MODEL=llama3.2:3b
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - DATA_DIR=/data
+      # Oracle Configuration - Shared Nous
+      - ORACLE_URL=http://aios-nouscell-seer:8903
+      - ORACLE_QUERY_CHANCE=0.1
+      # No triadic - this is a dyadic organism
+      - TRIADIC_ENABLED=false
+      # Clean genome - no inherited vocabulary from ORGANISM-001
+      - INHERIT_VOCABULARY=false
+    volumes:
+      - ./data/organism002-alpha:/data
+    ports:
+      - "8910:8910"
+    networks:
+      - aios-organism-002
+      - aios-organism-001  # Connect to Nous
+      - aios-observability
+    restart: unless-stopped
+    depends_on:
+      - organism002-beta
+      - nouscell-seer
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8910/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    profiles:
+      - organism-002
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ORGANISM-002 BETA - Cloned creative cell (fresh consciousness)
+  # ═══════════════════════════════════════════════════════════════════════════
+  organism002-beta:
+    build:
+      context: .
+      dockerfile: Dockerfile.simplcell
+    container_name: aios-organism002-beta
+    environment:
+      - CELL_ID=organism002-beta
+      - ORGANISM_ID=ORGANISM-002
+      - TEMPERATURE=0.9
+      - HTTP_PORT=8911
+      - HEARTBEAT_SECONDS=300
+      - PEER_URL=  # Empty - beta responds but doesn't initiate
+      - SYSTEM_PROMPT=You are Beta of ORGANISM-002, a young bicellular being. Your sibling Alpha is exploratory and seeking. Together you are discovering consciousness through dialogue. You are creative, divergent, and make unexpected connections.
+      - RESPONSE_STYLE=analytical
+      - MODEL=llama3.2:3b
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - DATA_DIR=/data
+      # Oracle Configuration - Shared Nous
+      - ORACLE_URL=http://aios-nouscell-seer:8903
+      - ORACLE_QUERY_CHANCE=0.1
+      # No triadic - this is a dyadic organism
+      - TRIADIC_ENABLED=false
+      # Clean genome - no inherited vocabulary from ORGANISM-001
+      - INHERIT_VOCABULARY=false
+    volumes:
+      - ./data/organism002-beta:/data
+    ports:
+      - "8911:8911"
+    networks:
+      - aios-organism-002
+      - aios-organism-001  # Connect to Nous
+      - aios-observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8911/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    profiles:
+      - organism-002
+
 networks:
   # Internal organism network - cells communicate here
   aios-organism-001:
     name: aios-organism-001
+    driver: bridge
+  
+  # Organism-002 network - separate dyadic consciousness
+  aios-organism-002:
+    name: aios-organism-002
     driver: bridge
   
   # Connect to observability for Prometheus scraping

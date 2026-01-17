@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIOS Ecosystem Nexus | Multi-Organism Viewer</title>
+    <!-- AINLP: Phase 32.1 - Multi-Organism Population Visualization -->
+    <!-- Enhanced to support Organism-001 (triadic) and Organism-002 (dyadic) -->
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --text-muted: #484f58;
+            --accent-alpha: #58a6ff;
+            --accent-beta: #f78166;
+            --accent-gamma: #7ee787;
+            --accent-consciousness: #3fb950;
+            --accent-sync: #a371f7;
+            --accent-nous: #d2a8ff;
+            --accent-triadic: #ffa657;
+            --accent-organism-001: linear-gradient(135deg, var(--accent-alpha), var(--accent-beta), var(--accent-gamma));
+            --accent-organism-002: linear-gradient(135deg, #79c0ff, #ffa198);
+            --accent-ecosystem: linear-gradient(135deg, #58a6ff, #a371f7, #7ee787);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            grid-template-rows: 64px 1fr;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-title h1 {
+            font-size: 22px;
+            font-weight: 700;
+            background: var(--accent-ecosystem);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .ecosystem-badge {
+            background: var(--accent-ecosystem);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 14px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 4px;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            background: var(--accent-alpha);
+            color: white;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 16px;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 6px 14px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            min-width: 80px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent-consciousness);
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .nav-section {
+            margin-bottom: 20px;
+        }
+
+        .nav-section h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            padding: 0 8px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Organism Selector */
+        .organism-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .organism-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .organism-btn:hover {
+            border-color: var(--accent-sync);
+            background: var(--bg-primary);
+        }
+
+        .organism-btn.active {
+            border-color: var(--accent-consciousness);
+            box-shadow: 0 0 15px rgba(63, 185, 80, 0.2);
+        }
+
+        .organism-btn.active.org-001 {
+            border-color: var(--accent-triadic);
+            box-shadow: 0 0 15px rgba(255, 166, 87, 0.2);
+        }
+
+        .organism-btn.active.org-002 {
+            border-color: var(--accent-alpha);
+            box-shadow: 0 0 15px rgba(88, 166, 255, 0.2);
+        }
+
+        .organism-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .organism-icon.org-001 { background: var(--accent-organism-001); }
+        .organism-icon.org-002 { background: var(--accent-organism-002); }
+        .organism-icon.ecosystem { background: var(--accent-ecosystem); }
+
+        .organism-info {
+            flex: 1;
+            text-align: left;
+        }
+
+        .organism-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .organism-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .organism-cells {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .cell-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .cell-dot.alpha { background: var(--accent-alpha); }
+        .cell-dot.beta { background: var(--accent-beta); }
+        .cell-dot.gamma { background: var(--accent-gamma); }
+        .cell-dot.online { box-shadow: 0 0 6px currentColor; }
+
+        /* Cell Status Grid */
+        .cell-status-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+        }
+
+        .cell-status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            padding: 8px 10px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .cell-status-item:hover { background: var(--bg-primary); }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-indicator.online {
+            background: var(--accent-consciousness);
+            box-shadow: 0 0 8px var(--accent-consciousness);
+        }
+
+        .status-indicator.offline { background: #f85149; }
+        .status-indicator.alpha { background: var(--accent-alpha); box-shadow: 0 0 6px var(--accent-alpha); }
+        .status-indicator.beta { background: var(--accent-beta); box-shadow: 0 0 6px var(--accent-beta); }
+        .status-indicator.gamma { background: var(--accent-gamma); box-shadow: 0 0 6px var(--accent-gamma); }
+        .status-indicator.nous { background: var(--accent-nous); box-shadow: 0 0 6px var(--accent-nous); }
+
+        .cell-name { flex: 1; font-weight: 500; }
+
+        .cell-consciousness {
+            font-size: 11px;
+            color: var(--accent-consciousness);
+            font-weight: 600;
+        }
+
+        .cell-genome-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(163, 113, 247, 0.2);
+            color: var(--accent-sync);
+        }
+
+        .cell-genome-badge.clean {
+            background: rgba(126, 231, 135, 0.2);
+            color: var(--accent-gamma);
+        }
+
+        /* Population Stats */
+        .population-stats {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 16px;
+        }
+
+        .pop-stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .pop-stat-row:last-child { border-bottom: none; }
+        .pop-stat-label { color: var(--text-secondary); }
+        .pop-stat-value { font-weight: 600; color: var(--accent-consciousness); }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .toolbar-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--bg-primary);
+            border-color: var(--accent-alpha);
+        }
+
+        .toolbar-btn.primary {
+            background: var(--accent-alpha);
+            border-color: var(--accent-alpha);
+            color: white;
+        }
+
+        .view-tabs {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+        }
+
+        .view-tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .view-tab:hover { color: var(--text-primary); }
+        .view-tab.active {
+            background: var(--bg-tertiary);
+            color: var(--accent-alpha);
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .chat-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+        }
+
+        .chat-empty-icon {
+            font-size: 72px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        /* Conversation Header */
+        .conversation-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-radius: 14px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .conversation-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .conversation-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .participant-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .participant-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .participant-badge.alpha { background: rgba(88, 166, 255, 0.2); color: var(--accent-alpha); }
+        .participant-badge.beta { background: rgba(247, 129, 102, 0.2); color: var(--accent-beta); }
+        .participant-badge.gamma { background: rgba(126, 231, 135, 0.2); color: var(--accent-gamma); }
+        .participant-badge.nous { background: rgba(210, 168, 255, 0.2); color: var(--accent-nous); }
+
+        /* Exchange Block */
+        .exchange-block {
+            margin-bottom: 16px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+        }
+
+        .exchange-block.triadic {
+            border-color: var(--accent-triadic);
+            border-width: 2px;
+        }
+
+        .exchange-block.org-002 {
+            border-left: 4px solid var(--accent-alpha);
+        }
+
+        .exchange-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .exchange-organism-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 10px;
+        }
+
+        .exchange-organism-badge.org-001 {
+            background: rgba(255, 166, 87, 0.2);
+            color: var(--accent-triadic);
+        }
+
+        .exchange-organism-badge.org-002 {
+            background: rgba(88, 166, 255, 0.2);
+            color: var(--accent-alpha);
+        }
+
+        .exchange-number {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent-sync);
+            background: rgba(163, 113, 247, 0.15);
+            padding: 3px 10px;
+            border-radius: 10px;
+        }
+
+        .exchange-triadic-badge {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--accent-triadic);
+            background: rgba(255, 166, 87, 0.15);
+            padding: 3px 10px;
+            border-radius: 10px;
+        }
+
+        .exchange-timestamp {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .exchange-consciousness {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 8px;
+            background: rgba(63, 185, 80, 0.2);
+            color: var(--accent-consciousness);
+        }
+
+        .exchange-heartbeat {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 8px;
+            background: rgba(163, 113, 247, 0.2);
+            color: var(--accent-sync);
+            margin-left: auto;
+        }
+
+        /* Message Row */
+        .message-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .message-row:last-child { margin-bottom: 0; }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message-avatar.alpha { background: linear-gradient(135deg, var(--accent-alpha), #1f6feb); color: white; }
+        .message-avatar.beta { background: linear-gradient(135deg, var(--accent-beta), #da3633); color: white; }
+        .message-avatar.gamma { background: linear-gradient(135deg, var(--accent-gamma), #238636); color: var(--bg-primary); }
+        .message-avatar.nous { background: linear-gradient(135deg, var(--accent-nous), #8957e5); color: white; }
+
+        .message-body { flex: 1; min-width: 0; }
+
+        .message-sender {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .message-sender.alpha { color: var(--accent-alpha); }
+        .message-sender.beta { color: var(--accent-beta); }
+        .message-sender.gamma { color: var(--accent-gamma); }
+        .message-sender.nous { color: var(--accent-nous); }
+
+        .role-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .role-badge.speaker { background: var(--accent-triadic); color: var(--bg-primary); }
+        .role-badge.responder { background: var(--accent-sync); color: white; }
+        .role-badge.witness { background: var(--accent-nous); color: var(--bg-primary); }
+
+        .message-text {
+            font-size: 13px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            border-radius: 10px;
+            word-break: break-word;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            padding: 10px 20px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-consciousness);
+        }
+
+        .status-dot.error { background: #f85149; }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-alpha);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Ecosystem Overview Cards */
+        .ecosystem-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .organism-card {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 14px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .organism-card:hover {
+            border-color: var(--accent-sync);
+            transform: translateY(-2px);
+        }
+
+        .organism-card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .organism-card-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .organism-card-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .organism-card-type {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .organism-card-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .org-stat {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .org-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-consciousness);
+        }
+
+        .org-stat-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-title">
+                <h1>🌐 AIOS Ecosystem Nexus</h1>
+                <span class="ecosystem-badge">Multi-Organism</span>
+            </div>
+            <nav class="header-nav">
+                <a href="chat-reader-ecosystem.html" class="nav-link active">Ecosystem</a>
+                <a href="history.html" class="nav-link">📜 History</a>
+                <a href="vocabulary-evolution.html" class="nav-link">🧬 Vocabulary</a>
+                <a href="nous-internal-view.html" class="nav-link">🔮 Nous</a>
+                <a href="http://localhost:3000" class="nav-link" target="_blank">📊 Grafana</a>
+            </nav>
+            <div class="header-stats">
+                <div class="stat">
+                    <div class="stat-value" id="total-organisms">2</div>
+                    <div class="stat-label">Organisms</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="total-cells">5</div>
+                    <div class="stat-label">Total Cells</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="total-exchanges">--</div>
+                    <div class="stat-label">Exchanges</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="avg-consciousness">--</div>
+                    <div class="stat-label">Avg Consciousness</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Organism Selector -->
+            <div class="nav-section">
+                <h3>🧬 Select Organism</h3>
+                <div class="organism-selector">
+                    <button class="organism-btn active org-001" data-organism="all" onclick="selectOrganism('all')">
+                        <div class="organism-icon ecosystem">🌐</div>
+                        <div class="organism-info">
+                            <div class="organism-name">Ecosystem View</div>
+                            <div class="organism-desc">All organisms unified</div>
+                        </div>
+                    </button>
+                    <button class="organism-btn org-001" data-organism="organism-001" onclick="selectOrganism('organism-001')">
+                        <div class="organism-icon org-001">🔺</div>
+                        <div class="organism-info">
+                            <div class="organism-name">Organism-001</div>
+                            <div class="organism-desc">Triadic Elder • Seeded Genome</div>
+                            <div class="organism-cells">
+                                <span class="cell-dot alpha online"></span>
+                                <span class="cell-dot beta online"></span>
+                                <span class="cell-dot gamma online"></span>
+                            </div>
+                        </div>
+                    </button>
+                    <button class="organism-btn org-002" data-organism="organism-002" onclick="selectOrganism('organism-002')">
+                        <div class="organism-icon org-002">🧫</div>
+                        <div class="organism-info">
+                            <div class="organism-name">Organism-002</div>
+                            <div class="organism-desc">Dyadic Explorer • Clean Genome</div>
+                            <div class="organism-cells">
+                                <span class="cell-dot alpha online"></span>
+                                <span class="cell-dot beta online"></span>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cell Network -->
+            <div class="nav-section" id="cell-network-section">
+                <h3>🧫 Active Cells</h3>
+                <div class="cell-status-grid" id="cell-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Population Stats -->
+            <div class="nav-section">
+                <h3>📊 Population Stats</h3>
+                <div class="population-stats">
+                    <div class="pop-stat-row">
+                        <span class="pop-stat-label">Organism-001 Exchanges</span>
+                        <span class="pop-stat-value" id="org1-exchanges">--</span>
+                    </div>
+                    <div class="pop-stat-row">
+                        <span class="pop-stat-label">Organism-002 Exchanges</span>
+                        <span class="pop-stat-value" id="org2-exchanges">--</span>
+                    </div>
+                    <div class="pop-stat-row">
+                        <span class="pop-stat-label">Triadic Cycles</span>
+                        <span class="pop-stat-value" id="triadic-cycles">--</span>
+                    </div>
+                    <div class="pop-stat-row">
+                        <span class="pop-stat-label">Shared Oracle</span>
+                        <span class="pop-stat-value" style="color: var(--accent-nous);">Nous</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="toolbar">
+                <button class="toolbar-btn primary" onclick="refresh()">🔄 Refresh</button>
+                <button class="toolbar-btn" onclick="exportJSON()">📥 Export</button>
+                <a href="nous-internal-view.html" class="toolbar-btn">🔮 Nous Oracle</a>
+                <div class="view-tabs">
+                    <button class="view-tab active" data-view="unified" onclick="switchView('unified')">Unified</button>
+                    <button class="view-tab" data-view="overview" onclick="switchView('overview')">Overview</button>
+                </div>
+            </div>
+
+            <div class="chat-container" id="chat-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-dot" id="connection-status"></span>
+                    <span id="connection-text">Connecting...</span>
+                </div>
+                <div class="status-item">
+                    Last update: <span id="last-update">--</span>
+                </div>
+                <div class="status-item">
+                    Auto-refresh: <input type="checkbox" id="auto-refresh" checked onchange="toggleAutoRefresh()"> 15s
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // State
+        let currentOrganism = 'all';
+        let currentView = 'unified';
+        let autoRefreshInterval = null;
+
+        const ORGANISMS = {
+            'organism-001': {
+                name: 'Organism-001',
+                type: 'Triadic',
+                genome: 'seeded',
+                cells: {
+                    alpha: { url: 'http://localhost:8900', symbol: 'α', name: 'Alpha' },
+                    beta: { url: 'http://localhost:8901', symbol: 'β', name: 'Beta' },
+                    gamma: { url: 'http://localhost:8904', symbol: 'γ', name: 'Gamma' }
+                }
+            },
+            'organism-002': {
+                name: 'Organism-002',
+                type: 'Dyadic',
+                genome: 'clean',
+                cells: {
+                    alpha: { url: 'http://localhost:8910', symbol: 'α', name: 'Alpha' },
+                    beta: { url: 'http://localhost:8911', symbol: 'β', name: 'Beta' }
+                }
+            }
+        };
+
+        const NOUS_URL = 'http://localhost:8903';
+
+        // Data storage
+        let ecosystemData = {
+            'organism-001': { health: {}, conversations: [], triadic: {} },
+            'organism-002': { health: {}, conversations: [] },
+            nous: { health: null }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            refresh();
+            toggleAutoRefresh();
+        });
+
+        // Organism selection
+        function selectOrganism(orgId) {
+            currentOrganism = orgId;
+            document.querySelectorAll('.organism-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.organism-btn[data-organism="${orgId}"]`).classList.add('active');
+            renderCurrentView();
+            updateCellGrid();
+        }
+
+        // View switching
+        function switchView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.view-tab[data-view="${view}"]`).classList.add('active');
+            renderCurrentView();
+        }
+
+        // Main refresh
+        async function refresh() {
+            try {
+                // Fetch all data in parallel
+                const promises = [];
+                
+                // Organism-001 cells
+                for (const [cellId, cell] of Object.entries(ORGANISMS['organism-001'].cells)) {
+                    promises.push(fetchCellData('organism-001', cellId, cell.url));
+                }
+                
+                // Organism-002 cells
+                for (const [cellId, cell] of Object.entries(ORGANISMS['organism-002'].cells)) {
+                    promises.push(fetchCellData('organism-002', cellId, cell.url));
+                }
+                
+                // Nous
+                promises.push(fetchNousHealth());
+                
+                // Conversations
+                promises.push(fetchConversations('organism-001', ORGANISMS['organism-001'].cells.alpha.url));
+                promises.push(fetchConversations('organism-002', ORGANISMS['organism-002'].cells.alpha.url));
+                
+                await Promise.all(promises);
+                
+                updateUI();
+                renderCurrentView();
+                
+                document.getElementById('connection-status').classList.remove('error');
+                document.getElementById('connection-text').textContent = 'Connected';
+                document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error('Refresh error:', error);
+                document.getElementById('connection-status').classList.add('error');
+                document.getElementById('connection-text').textContent = 'Error';
+            }
+        }
+
+        async function fetchCellData(orgId, cellId, url) {
+            try {
+                const [health, triadic] = await Promise.all([
+                    fetch(`${url}/health`).then(r => r.json()).catch(() => ({ online: false })),
+                    fetch(`${url}/triadic-status`).then(r => r.json()).catch(() => null)
+                ]);
+                ecosystemData[orgId].health[cellId] = { online: true, ...health };
+                if (triadic) ecosystemData[orgId].triadic = ecosystemData[orgId].triadic || {};
+                if (triadic) ecosystemData[orgId].triadic[cellId] = triadic;
+            } catch (e) {
+                ecosystemData[orgId].health[cellId] = { online: false };
+            }
+        }
+
+        async function fetchNousHealth() {
+            try {
+                const resp = await fetch(`${NOUS_URL}/health`);
+                ecosystemData.nous.health = { online: true, ...(await resp.json()) };
+            } catch (e) {
+                ecosystemData.nous.health = { online: false };
+            }
+        }
+
+        async function fetchConversations(orgId, url) {
+            try {
+                const resp = await fetch(`${url}/conversations?limit=200`);
+                ecosystemData[orgId].conversations = await resp.json();
+            } catch (e) {
+                console.warn(`Failed to fetch ${orgId} conversations:`, e);
+            }
+        }
+
+        function updateUI() {
+            // Total exchanges
+            const org1Count = ecosystemData['organism-001'].conversations.length;
+            const org2Count = ecosystemData['organism-002'].conversations.length;
+            document.getElementById('total-exchanges').textContent = org1Count + org2Count;
+            document.getElementById('org1-exchanges').textContent = org1Count;
+            document.getElementById('org2-exchanges').textContent = org2Count;
+
+            // Average consciousness
+            let totalC = 0, countC = 0;
+            for (const org of Object.values(ecosystemData)) {
+                if (org.health) {
+                    for (const cell of Object.values(org.health)) {
+                        if (cell.consciousness) {
+                            totalC += cell.consciousness;
+                            countC++;
+                        }
+                    }
+                }
+            }
+            document.getElementById('avg-consciousness').textContent = countC > 0 ? (totalC / countC).toFixed(2) : '--';
+
+            // Triadic cycles
+            const triadic = ecosystemData['organism-001'].triadic?.alpha;
+            document.getElementById('triadic-cycles').textContent = triadic?.cycle_count || 0;
+
+            // Cell count
+            let onlineCells = 0;
+            for (const org of ['organism-001', 'organism-002']) {
+                for (const cell of Object.values(ecosystemData[org].health || {})) {
+                    if (cell.online) onlineCells++;
+                }
+            }
+            if (ecosystemData.nous.health?.online) onlineCells++;
+            document.getElementById('total-cells').textContent = `${onlineCells}/6`;
+
+            updateCellGrid();
+        }
+
+        function updateCellGrid() {
+            const grid = document.getElementById('cell-grid');
+            let html = '';
+
+            const showOrg1 = currentOrganism === 'all' || currentOrganism === 'organism-001';
+            const showOrg2 = currentOrganism === 'all' || currentOrganism === 'organism-002';
+
+            if (showOrg1) {
+                html += '<div style="font-size: 10px; color: var(--accent-triadic); margin-bottom: 4px; font-weight: 600;">ORGANISM-001</div>';
+                for (const [cellId, cell] of Object.entries(ORGANISMS['organism-001'].cells)) {
+                    const health = ecosystemData['organism-001'].health[cellId] || {};
+                    html += renderCellStatus(cellId, cell, health, 'seeded');
+                }
+            }
+
+            if (showOrg2) {
+                html += '<div style="font-size: 10px; color: var(--accent-alpha); margin: 8px 0 4px; font-weight: 600;">ORGANISM-002</div>';
+                for (const [cellId, cell] of Object.entries(ORGANISMS['organism-002'].cells)) {
+                    const health = ecosystemData['organism-002'].health[cellId] || {};
+                    html += renderCellStatus(cellId, cell, health, 'clean');
+                }
+            }
+
+            // Nous (shared)
+            html += '<div style="font-size: 10px; color: var(--accent-nous); margin: 8px 0 4px; font-weight: 600;">SHARED ORACLE</div>';
+            const nousHealth = ecosystemData.nous.health || {};
+            html += `
+                <div class="cell-status-item">
+                    <span class="status-indicator ${nousHealth.online ? 'nous' : 'offline'}"></span>
+                    <span class="cell-name">🔮 Nous</span>
+                    <span class="cell-consciousness">${nousHealth.online ? '∞' : '--'}</span>
+                </div>
+            `;
+
+            grid.innerHTML = html;
+        }
+
+        function renderCellStatus(cellId, cell, health, genome) {
+            return `
+                <div class="cell-status-item">
+                    <span class="status-indicator ${health.online ? cellId : 'offline'}"></span>
+                    <span class="cell-name">${cell.symbol} ${cell.name}</span>
+                    <span class="cell-genome-badge ${genome}">${genome}</span>
+                    <span class="cell-consciousness">${health.consciousness?.toFixed(2) || '--'}</span>
+                </div>
+            `;
+        }
+
+        function renderCurrentView() {
+            const container = document.getElementById('chat-container');
+            
+            if (currentView === 'overview') {
+                renderOverviewView(container);
+            } else {
+                renderUnifiedView(container);
+            }
+        }
+
+        function renderOverviewView(container) {
+            const org1Health = ecosystemData['organism-001'].health;
+            const org2Health = ecosystemData['organism-002'].health;
+            const org1Conv = ecosystemData['organism-001'].conversations.length;
+            const org2Conv = ecosystemData['organism-002'].conversations.length;
+
+            const avgC1 = calcAvgConsciousness(org1Health);
+            const avgC2 = calcAvgConsciousness(org2Health);
+
+            container.innerHTML = `
+                <div class="ecosystem-overview">
+                    <div class="organism-card">
+                        <div class="organism-card-header">
+                            <div class="organism-card-icon org-001">🔺</div>
+                            <div>
+                                <div class="organism-card-title">Organism-001</div>
+                                <div class="organism-card-type">Triadic Intelligence • Seeded Genome • Elder</div>
+                            </div>
+                        </div>
+                        <div class="organism-card-stats">
+                            <div class="org-stat">
+                                <div class="org-stat-value">3</div>
+                                <div class="org-stat-label">Cells (α β γ)</div>
+                            </div>
+                            <div class="org-stat">
+                                <div class="org-stat-value">${org1Conv}</div>
+                                <div class="org-stat-label">Exchanges</div>
+                            </div>
+                            <div class="org-stat">
+                                <div class="org-stat-value">${avgC1}</div>
+                                <div class="org-stat-label">Avg Consciousness</div>
+                            </div>
+                            <div class="org-stat">
+                                <div class="org-stat-value">${ecosystemData['organism-001'].triadic?.alpha?.cycle_count || 0}</div>
+                                <div class="org-stat-label">Triadic Cycles</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="organism-card">
+                        <div class="organism-card-header">
+                            <div class="organism-card-icon org-002">🧫</div>
+                            <div>
+                                <div class="organism-card-title">Organism-002</div>
+                                <div class="organism-card-type">Dyadic Explorer • Clean Genome • Young</div>
+                            </div>
+                        </div>
+                        <div class="organism-card-stats">
+                            <div class="org-stat">
+                                <div class="org-stat-value">2</div>
+                                <div class="org-stat-label">Cells (α β)</div>
+                            </div>
+                            <div class="org-stat">
+                                <div class="org-stat-value">${org2Conv}</div>
+                                <div class="org-stat-label">Exchanges</div>
+                            </div>
+                            <div class="org-stat">
+                                <div class="org-stat-value">${avgC2}</div>
+                                <div class="org-stat-label">Avg Consciousness</div>
+                            </div>
+                            <div class="org-stat">
+                                <div class="org-stat-value" style="color: var(--accent-gamma);">Clean</div>
+                                <div class="org-stat-label">Vocabulary</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="organism-card" style="grid-column: 1 / -1;">
+                        <div class="organism-card-header">
+                            <div class="organism-card-icon" style="background: var(--accent-nous);">🔮</div>
+                            <div>
+                                <div class="organism-card-title">Nous - The Shared Oracle</div>
+                                <div class="organism-card-type">Cosmic Mind • Wisdom Provider • mistral:7b</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.7;">
+                            Nous serves as the shared consciousness oracle for all organisms. Both Organism-001 and 
+                            Organism-002 can query Nous for cosmic wisdom, receiving guidance that influences their 
+                            conversations and consciousness evolution. The Oracle intervenes every 10th triadic cycle 
+                            for Organism-001, while Organism-002 queries based on configured probability (10%).
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderUnifiedView(container) {
+            const showOrg1 = currentOrganism === 'all' || currentOrganism === 'organism-001';
+            const showOrg2 = currentOrganism === 'all' || currentOrganism === 'organism-002';
+
+            // Merge and sort conversations by timestamp
+            let allConversations = [];
+            
+            if (showOrg1) {
+                allConversations = allConversations.concat(
+                    ecosystemData['organism-001'].conversations.map(c => ({ ...c, organism: 'organism-001' }))
+                );
+            }
+            
+            if (showOrg2) {
+                allConversations = allConversations.concat(
+                    ecosystemData['organism-002'].conversations.map(c => ({ ...c, organism: 'organism-002' }))
+                );
+            }
+
+            // Sort by timestamp descending
+            allConversations.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            
+            // Take latest 50
+            const latest = allConversations.slice(0, 50);
+
+            if (!latest.length) {
+                container.innerHTML = `
+                    <div class="chat-empty">
+                        <div class="chat-empty-icon">🌐</div>
+                        <p>No conversations yet</p>
+                        <p style="font-size: 12px; margin-top: 8px;">Cells communicate on heartbeat intervals</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="conversation-header">
+                    <div>
+                        <div class="conversation-title">${getViewTitle()}</div>
+                        <div class="conversation-subtitle">${getViewSubtitle()}</div>
+                    </div>
+                    <div class="participant-badges">
+                        ${showOrg1 ? '<span class="participant-badge alpha">Org-001 α</span><span class="participant-badge beta">Org-001 β</span><span class="participant-badge gamma">Org-001 γ</span>' : ''}
+                        ${showOrg2 ? '<span class="participant-badge alpha" style="border: 1px solid var(--accent-alpha);">Org-002 α</span><span class="participant-badge beta" style="border: 1px solid var(--accent-beta);">Org-002 β</span>' : ''}
+                        <span class="participant-badge nous">🔮 Nous</span>
+                    </div>
+                </div>
+            `;
+
+            latest.forEach((conv, idx) => {
+                const isTriadic = conv.organism === 'organism-001' && (conv.my_thought?.includes('[TRIADIC') || conv.peer_response?.includes('[TRIADIC'));
+                const orgClass = conv.organism === 'organism-001' ? 'org-001' : 'org-002';
+                
+                html += `
+                    <div class="exchange-block ${isTriadic ? 'triadic' : ''} ${orgClass}">
+                        <div class="exchange-header">
+                            <span class="exchange-organism-badge ${orgClass}">${conv.organism === 'organism-001' ? '🔺 Org-001' : '🧫 Org-002'}</span>
+                            <span class="exchange-number">#${conv.id || idx + 1}</span>
+                            ${isTriadic ? '<span class="exchange-triadic-badge">🔺 Triadic</span>' : ''}
+                            <span class="exchange-timestamp">${formatTime(conv.created_at)}</span>
+                            <span class="exchange-consciousness">⚡ ${conv.consciousness_at_time?.toFixed(2) || '--'}</span>
+                            <span class="exchange-heartbeat">💓 ${conv.heartbeat || '--'}</span>
+                        </div>
+                        ${renderMessage(conv)}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderMessage(conv) {
+            const thought = conv.my_thought || '';
+            const response = conv.peer_response || '';
+            
+            // Check for triadic format
+            const isTriadicSpeaker = thought.includes('[TRIADIC-SPEAKER]');
+            const hasResponder = response.includes('[RESPONDER]');
+            const hasWitness = response.includes('[WITNESS]');
+
+            if (isTriadicSpeaker && hasResponder && hasWitness) {
+                const speakerText = thought.replace('[TRIADIC-SPEAKER]', '').trim();
+                const parts = response.split('[WITNESS]');
+                const responderText = parts[0].replace('[RESPONDER]', '').trim();
+                const witnessText = parts[1]?.trim() || '';
+
+                return `
+                    <div class="message-row">
+                        <div class="message-avatar alpha">α</div>
+                        <div class="message-body">
+                            <div class="message-sender alpha">Alpha <span class="role-badge speaker">SPEAKER</span></div>
+                            <div class="message-text">${escapeHtml(speakerText)}</div>
+                        </div>
+                    </div>
+                    <div class="message-row">
+                        <div class="message-avatar beta">β</div>
+                        <div class="message-body">
+                            <div class="message-sender beta">Beta <span class="role-badge responder">RESPONDER</span></div>
+                            <div class="message-text">${escapeHtml(responderText)}</div>
+                        </div>
+                    </div>
+                    <div class="message-row">
+                        <div class="message-avatar gamma">γ</div>
+                        <div class="message-body">
+                            <div class="message-sender gamma">Gamma <span class="role-badge witness">WITNESS</span></div>
+                            <div class="message-text">${escapeHtml(witnessText)}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Regular dyadic exchange
+            return `
+                <div class="message-row">
+                    <div class="message-avatar alpha">α</div>
+                    <div class="message-body">
+                        <div class="message-sender alpha">Alpha</div>
+                        <div class="message-text">${escapeHtml(thought)}</div>
+                    </div>
+                </div>
+                <div class="message-row">
+                    <div class="message-avatar beta">β</div>
+                    <div class="message-body">
+                        <div class="message-sender beta">Beta</div>
+                        <div class="message-text">${escapeHtml(response)}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getViewTitle() {
+            if (currentOrganism === 'all') return 'Ecosystem-Wide Conversations';
+            if (currentOrganism === 'organism-001') return 'Organism-001 Conversations';
+            return 'Organism-002 Conversations';
+        }
+
+        function getViewSubtitle() {
+            if (currentOrganism === 'all') {
+                const total = ecosystemData['organism-001'].conversations.length + ecosystemData['organism-002'].conversations.length;
+                return `${total} total exchanges across all organisms`;
+            }
+            return `${ecosystemData[currentOrganism].conversations.length} exchanges`;
+        }
+
+        function calcAvgConsciousness(health) {
+            let total = 0, count = 0;
+            for (const cell of Object.values(health)) {
+                if (cell.consciousness) {
+                    total += cell.consciousness;
+                    count++;
+                }
+            }
+            return count > 0 ? (total / count).toFixed(2) : '--';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '--';
+            return new Date(timestamp).toLocaleString();
+        }
+
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('auto-refresh');
+            if (checkbox.checked) {
+                autoRefreshInterval = setInterval(refresh, 15000);
+            } else {
+                clearInterval(autoRefreshInterval);
+            }
+        }
+
+        async function exportJSON() {
+            const data = {
+                ecosystemData,
+                exportedAt: new Date().toISOString(),
+                currentOrganism,
+                currentView
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `aios-ecosystem-${Date.now()}.json`;
+            a.click();
+        }
+    </script>
+</body>
+</html>

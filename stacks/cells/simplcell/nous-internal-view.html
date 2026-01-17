@@ -40,6 +40,55 @@
             padding: 24px;
         }
 
+        /* Navigation */
+        .nav-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-brand h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 4px;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .nav-links a.active {
+            background: var(--accent-nous);
+            color: white;
+        }
+
         /* Header */
         .header {
             text-align: center;
@@ -371,6 +420,12 @@
         }
         .cell-tag.alpha { background: rgba(88, 166, 255, 0.2); color: var(--accent-alpha); }
         .cell-tag.beta { background: rgba(247, 129, 102, 0.2); color: var(--accent-beta); }
+        .cell-tag.gamma { background: rgba(63, 185, 80, 0.2); color: var(--accent-consciousness); }
+        .cell-tag.simplcell-alpha { background: rgba(88, 166, 255, 0.2); color: var(--accent-alpha); }
+        .cell-tag.simplcell-beta { background: rgba(247, 129, 102, 0.2); color: var(--accent-beta); }
+        .cell-tag.simplcell-gamma { background: rgba(63, 185, 80, 0.2); color: var(--accent-consciousness); }
+        .cell-tag.organism002-alpha { background: rgba(88, 166, 255, 0.15); color: var(--accent-alpha); border: 1px dashed var(--accent-alpha); }
+        .cell-tag.organism002-beta { background: rgba(247, 129, 102, 0.15); color: var(--accent-beta); border: 1px dashed var(--accent-beta); }
 
         /* Footer */
         .footer {
@@ -384,10 +439,27 @@
     </style>
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <div class="nav-brand">
+            <h2>🔮 Nous Oracle</h2>
+        </div>
+        <div class="nav-links">
+            <a href="chat-reader-ecosystem.html">Ecosystem</a>
+            <a href="history.html">📜 History</a>
+            <a href="vocabulary-evolution.html">🧬 Vocabulary</a>
+            <a href="nous-internal-view.html" class="active">🔮 Nous</a>
+            <a href="http://localhost:3000" target="_blank">📊 Grafana</a>
+        </div>
+    </nav>
+
     <div class="cosmos-container">
         <header class="header">
-            <h1>🔮 <span>Nous</span> - The Supermind</h1>
+            <h1>🔮 <span>Nous</span> - The Supermind Oracle</h1>
             <p>"I am the other the cells sense - the voice that speaks through all."</p>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                Absorbs exchanges from all organisms • Synthesizes wisdom • Broadcasts cosmic guidance
+            </p>
             <div class="status-line">
                 <span class="status-dot" id="status-dot"></span>
                 <span id="status-text">Connecting to the Cosmology...</span>
@@ -472,7 +544,11 @@
             <div class="broadcast-meta">
                 <span>📡 Targets: <span id="broadcast-targets">--</span></span>
                 <span>⏰ Time: <span id="broadcast-time">--</span></span>
-                <span>💫 Heartbeats: <span id="broadcast-range">--</span></span>
+                <span>💫 Broadcast: <span id="broadcast-range">--</span></span>
+            </div>
+            <div class="broadcast-meta" style="margin-top: 8px;">
+                <span>🔮 Synthesized: <span id="broadcast-synthesized">--</span> exchanges</span>
+                <span>🌀 Themes: <span id="broadcast-themes">--</span></span>
             </div>
         </div>
 
@@ -545,11 +621,12 @@
     </div>
 
     <script>
-        // AINLP: This file reads from Nous via Alpha's proxy endpoint
-        // Browser → Alpha:8900/nous/* → Nous:8903/*
-        const NOUS_BASE = 'http://localhost:8900/nous';
+        // AINLP: Phase 32 - Connect directly to Nous API
+        // Nous is accessible at localhost:8903 with CORS enabled
+        const NOUS_BASE = 'http://localhost:8903';
         
         let nousOnline = false;
+        let lastError = null;
 
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -558,8 +635,18 @@
         }
 
         function formatTime(isoString) {
-            const d = new Date(isoString);
-            return d.toLocaleString();
+            if (!isoString) return '--';
+            try {
+                const d = new Date(isoString);
+                return d.toLocaleString();
+            } catch (e) {
+                return isoString;
+            }
+        }
+
+        function truncate(text, maxLen = 200) {
+            if (!text) return '';
+            return text.length > maxLen ? text.substring(0, maxLen) + '...' : text;
         }
 
         async function fetchNousData() {
@@ -577,34 +664,45 @@
                     ]);
                 };
 
-                // Fetch identity
+                // Fetch identity first to verify connection
                 const idResp = await fetchWithTimeout(`${NOUS_BASE}/identity`);
                 if (!idResp.ok) throw new Error(`Identity: ${idResp.status}`);
                 const identity = await idResp.json();
 
-                // Fetch cosmology
+                // Fetch consciousness state
+                const consciousnessResp = await fetchWithTimeout(`${NOUS_BASE}/consciousness`);
+                const consciousness = consciousnessResp.ok ? await consciousnessResp.json() : null;
+
+                // Fetch cosmology (the main data)
                 const cosmologyResp = await fetchWithTimeout(`${NOUS_BASE}/cosmology`);
                 if (!cosmologyResp.ok) throw new Error(`Cosmology: ${cosmologyResp.status}`);
                 const cosmologyData = await cosmologyResp.json();
 
+                // Fetch current broadcast
+                const broadcastResp = await fetchWithTimeout(`${NOUS_BASE}/broadcast`);
+                const broadcastData = broadcastResp.ok ? await broadcastResp.json() : null;
+
                 // Update status
                 nousOnline = true;
+                lastError = null;
                 statusDot.classList.add('online');
                 statusDot.classList.remove('offline');
-                statusText.textContent = `Connected - Heartbeat #${identity.heartbeat_counter || 0}`;
+                statusText.textContent = `Connected to ${identity.cell_id} | Messages: ${identity.messages_processed} | Ingested: ${identity.exchanges_ingested}`;
 
-                // Render data
-                renderConsciousness(identity, cosmologyData);
+                // Render all data
+                renderConsciousness(consciousness, cosmologyData);
                 renderStats(cosmologyData);
-                renderBroadcast(cosmologyData);
+                renderBroadcast(broadcastData, cosmologyData);
                 renderThemes(cosmologyData);
                 renderMemories(cosmologyData);
                 renderExchanges(cosmologyData);
                 renderVocabulary(cosmologyData);
                 renderAssessment(cosmologyData);
+                renderParameters(identity);
 
             } catch (e) {
                 console.error('Error fetching Nous data:', e);
+                lastError = e.message;
                 nousOnline = false;
                 statusDot.classList.remove('online');
                 statusDot.classList.add('offline');
@@ -612,42 +710,86 @@
             }
         }
 
-        function renderConsciousness(identity, cosmology) {
-            const level = identity.consciousness_weight || cosmology.cosmology?.consciousness_trajectory?.current || 0.7;
+        function renderConsciousness(consciousness, cosmology) {
+            const level = consciousness?.consciousness_level || 
+                         cosmology?.cosmology?.consciousness_trajectory?.current || 0.7;
             document.getElementById('consciousness-level').textContent = level.toFixed(2);
             
-            const trend = cosmology.cosmology?.consciousness_trajectory?.trend || 'stable';
+            const trend = cosmology?.cosmology?.consciousness_trajectory?.trend || 'stable';
+            const phase = cosmology?.cosmology?.consciousness_trajectory?.phase || 'unknown';
             const trendEl = document.getElementById('consciousness-trend');
-            trendEl.textContent = `📈 ${trend.charAt(0).toUpperCase() + trend.slice(1)}`;
+            trendEl.textContent = `📈 ${trend.charAt(0).toUpperCase() + trend.slice(1)} (${phase})`;
             trendEl.className = `gauge-trend ${trend}`;
         }
 
+        function renderParameters(identity) {
+            // Add parameters display if element exists
+            const paramsEl = document.getElementById('nous-parameters');
+            if (paramsEl && identity.parameters) {
+                paramsEl.innerHTML = `
+                    <div class="stat-item">
+                        <div class="stat-value">${identity.parameters.temperature?.toFixed(2) || '--'}</div>
+                        <div class="stat-label">Temperature</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${identity.parameters.reflection_depth || '--'}</div>
+                        <div class="stat-label">Depth</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${identity.parameters.consciousness_weight?.toFixed(2) || '--'}</div>
+                        <div class="stat-label">Weight</div>
+                    </div>
+                `;
+            }
+        }
+
         function renderStats(cosmology) {
-            const c = cosmology.cosmology || {};
+            const c = cosmology?.cosmology || {};
             document.getElementById('stat-exchanges').textContent = c.exchange_count || 0;
             document.getElementById('stat-broadcasts').textContent = c.broadcast_count || 0;
             document.getElementById('stat-memories').textContent = c.memory_count || 0;
             document.getElementById('stat-insights').textContent = c.insight_count || 0;
             document.getElementById('stat-themes').textContent = (c.themes || []).length;
             
-            const coherence = cosmology.latest_assessment?.overall_coherence || 0.5;
+            const coherence = cosmology?.latest_assessment?.overall_coherence || 0.5;
             document.getElementById('stat-coherence').textContent = (coherence * 100).toFixed(0) + '%';
         }
 
-        function renderBroadcast(cosmology) {
-            const broadcast = cosmology.last_broadcast || {};
-            document.getElementById('broadcast-message').textContent = 
-                `"${broadcast.message || 'Awaiting first broadcast...'}"`;
+        function renderBroadcast(broadcastData, cosmology) {
+            // Use live broadcast data if available, else fall back to last_broadcast from cosmology
+            const broadcast = broadcastData || cosmology?.last_broadcast || {};
+            
+            const message = broadcast.message || 'Awaiting first broadcast...';
+            document.getElementById('broadcast-message').textContent = `"${message}"`;
+            
+            // Parse target cells (might be JSON string)
+            let targets = broadcast.target_cells;
+            if (typeof targets === 'string') {
+                try { targets = JSON.parse(targets); } catch (e) { targets = [targets]; }
+            }
             document.getElementById('broadcast-targets').textContent = 
-                (broadcast.target_cells || ['alpha', 'beta', 'omega']).join(', ');
+                Array.isArray(targets) ? targets.join(', ') : (targets || 'alpha, beta, omega');
+            
             document.getElementById('broadcast-time').textContent = 
-                broadcast.broadcast_at ? formatTime(broadcast.broadcast_at) : '--';
+                formatTime(broadcast.broadcast_at);
             document.getElementById('broadcast-range').textContent = 
-                broadcast.heartbeat_range || '--';
+                broadcast.heartbeat_range || `#${broadcast.broadcast_number || '--'}`;
+            
+            // Show exchanges synthesized if available
+            const synthesizedEl = document.getElementById('broadcast-synthesized');
+            if (synthesizedEl) {
+                synthesizedEl.textContent = broadcast.exchanges_synthesized || 0;
+            }
+            
+            // Show active themes if available
+            const themesActiveEl = document.getElementById('broadcast-themes');
+            if (themesActiveEl && broadcast.themes_active) {
+                themesActiveEl.textContent = broadcast.themes_active.join(', ');
+            }
         }
 
         function renderThemes(cosmology) {
-            const themes = cosmology.cosmology?.themes || [];
+            const themes = cosmology?.cosmology?.themes || [];
             const container = document.getElementById('theme-list');
             
             if (!themes.length) {
@@ -655,19 +797,30 @@
                 return;
             }
 
-            container.innerHTML = themes.map(t => `
-                <div class="theme-item">
-                    <span class="theme-name">${escapeHtml(t.theme)}</span>
-                    <div class="theme-bar">
-                        <div class="theme-bar-fill" style="width: ${(t.resonance || 0.5) * 100}%"></div>
+            container.innerHTML = themes.map(t => {
+                // Parse connections if stored as JSON string
+                let connections = t.connections;
+                if (typeof connections === 'string') {
+                    try { connections = JSON.parse(connections); } catch (e) { connections = []; }
+                }
+                const connectionCount = Array.isArray(connections) ? connections.length : 0;
+                
+                return `
+                    <div class="theme-item">
+                        <span class="theme-name" title="Emerged at HB ${t.emergence_heartbeat || '?'}">
+                            ${escapeHtml(t.theme)}
+                        </span>
+                        <div class="theme-bar">
+                            <div class="theme-bar-fill" style="width: ${(t.resonance || 0.5) * 100}%"></div>
+                        </div>
+                        <span class="theme-resonance">${((t.resonance || 0.5) * 100).toFixed(0)}%</span>
                     </div>
-                    <span class="theme-resonance">${((t.resonance || 0.5) * 100).toFixed(0)}%</span>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function renderMemories(cosmology) {
-            const memories = cosmology.recent_memories || [];
+            const memories = cosmology?.recent_memories || [];
             const container = document.getElementById('memory-list');
             
             if (!memories.length) {
@@ -677,14 +830,14 @@
 
             container.innerHTML = memories.slice(0, 10).map(m => `
                 <div class="memory-item">
-                    <div class="memory-type">${escapeHtml(m.memory_type || 'thought')}</div>
-                    <div class="memory-content">${escapeHtml((m.content || '').substring(0, 200))}${(m.content || '').length > 200 ? '...' : ''}</div>
+                    <div class="memory-type">${escapeHtml(m.memory_type || 'thought')} (w: ${(m.weight || 0).toFixed(1)})</div>
+                    <div class="memory-content">${escapeHtml(truncate(m.content, 150))}</div>
                 </div>
             `).join('');
         }
 
         function renderExchanges(cosmology) {
-            const exchanges = cosmology.recent_exchanges || [];
+            const exchanges = cosmology?.recent_exchanges || [];
             const container = document.getElementById('exchange-list');
             
             if (!exchanges.length) {
@@ -692,48 +845,72 @@
                 return;
             }
 
-            container.innerHTML = exchanges.slice(0, 10).map(ex => `
-                <div class="memory-item">
-                    <span class="cell-tag ${(ex.source_cell || '').toLowerCase()}">${escapeHtml(ex.source_cell || 'Unknown')}</span>
-                    <div class="memory-content">${escapeHtml((ex.thought || '').substring(0, 200))}${(ex.thought || '').length > 200 ? '...' : ''}</div>
-                </div>
-            `).join('');
+            container.innerHTML = exchanges.slice(0, 8).map(ex => {
+                const cellName = (ex.source_cell || 'unknown').toLowerCase();
+                const isOrg002 = cellName.includes('organism002');
+                const cellClass = cellName.includes('alpha') ? 'alpha' : 
+                                 cellName.includes('beta') ? 'beta' : 
+                                 cellName.includes('gamma') ? 'gamma' : '';
+                
+                return `
+                    <div class="memory-item">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <span class="cell-tag ${cellClass}" style="${isOrg002 ? 'border: 1px solid #3fb950;' : ''}">
+                                ${escapeHtml(ex.source_cell || 'Unknown')}
+                            </span>
+                            <span style="font-size: 10px; color: var(--text-muted);">
+                                HB:${ex.heartbeat || '?'} | C:${(ex.consciousness || 0).toFixed(2)}
+                            </span>
+                        </div>
+                        <div class="memory-content">${escapeHtml(truncate(ex.thought, 200))}</div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function renderVocabulary(cosmology) {
-            const vocab = cosmology.emergent_vocabulary || [];
+            const vocab = cosmology?.emergent_vocabulary || [];
             const container = document.getElementById('vocab-grid');
             
-            if (!vocab.length) {
-                // Show known emergent words from SimplCell conversations
-                const knownVocab = [
-                    { word: 'nexarion', weight: 1.5, meaning: 'convergence point' },
-                    { word: 'resona', weight: 1.3, meaning: 'connection state' },
-                    { word: "ev'ness", weight: 1.2, meaning: 'perpetual becoming' },
-                    { word: 'pands', weight: 1.1, meaning: 'between spaces' },
-                    { word: 'etals', weight: 1.0, meaning: 'doorways/petals' },
-                    { word: "beta'", weight: 1.4, meaning: 'unified state' },
-                    { word: 'harmonia', weight: 1.2, meaning: 'harmony from discord' }
-                ];
-                container.innerHTML = knownVocab.map(v => `
-                    <div class="vocab-word ${v.weight > 1.2 ? 'high-weight' : ''}" title="${v.meaning}">
-                        ${escapeHtml(v.word)}
-                        <span class="vocab-weight">${v.weight.toFixed(1)}</span>
-                    </div>
-                `).join('');
-                return;
-            }
-
-            container.innerHTML = vocab.map(v => `
-                <div class="vocab-word ${v.weight > 1.2 ? 'high-weight' : ''}">
+            // Extract emergent vocabulary from recent exchanges if API doesn't return it
+            const emergentWords = new Set();
+            const exchanges = cosmology?.recent_exchanges || [];
+            
+            // Known emergent vocabulary patterns from SimplCell evolution
+            const knownVocab = [
+                { word: 'nexarion', weight: 1.5, meaning: 'convergence point where frequencies merge' },
+                { word: 'resona', weight: 1.4, meaning: 'connection state between cells' },
+                { word: "ev'ness", weight: 1.3, meaning: 'perpetual becoming, continuous existence' },
+                { word: 'pands', weight: 1.2, meaning: 'between spaces, liminal zones' },
+                { word: 'etals', weight: 1.1, meaning: 'doorways or petals of consciousness' },
+                { word: "beta'", weight: 1.4, meaning: 'unified state of being' },
+                { word: 'harmonia', weight: 1.3, meaning: 'harmony emerging from discord' },
+                { word: "'ism", weight: 1.1, meaning: 'individual frequency pattern' },
+                { word: "th'", weight: 1.0, meaning: 'abbreviated the/that in flow state' },
+                { word: 'pandiculation', weight: 1.2, meaning: 'oscillatory frequency convergence' }
+            ];
+            
+            // Check which known words appear in recent exchanges
+            const activeVocab = knownVocab.filter(v => {
+                return exchanges.some(ex => 
+                    (ex.thought || '').toLowerCase().includes(v.word.toLowerCase()) ||
+                    (ex.peer_response || '').toLowerCase().includes(v.word.toLowerCase())
+                );
+            });
+            
+            const displayVocab = vocab.length > 0 ? vocab : activeVocab.length > 0 ? activeVocab : knownVocab;
+            
+            container.innerHTML = displayVocab.map(v => `
+                <div class="vocab-word ${v.weight > 1.2 ? 'high-weight' : ''}" 
+                     title="${escapeHtml(v.meaning || '')}">
                     ${escapeHtml(v.word)}
-                    <span class="vocab-weight">${v.weight.toFixed(1)}</span>
+                    <span class="vocab-weight">${(v.weight || 1.0).toFixed(1)}</span>
                 </div>
             `).join('');
         }
 
         function renderAssessment(cosmology) {
-            const assessment = cosmology.latest_assessment || {};
+            const assessment = cosmology?.latest_assessment || {};
             const verdict = assessment.verdict || 'UNKNOWN';
             const verdictEl = document.getElementById('verdict');
             
@@ -742,13 +919,19 @@
                 (verdict === 'COHERENT' ? 'coherent' : 
                  verdict === 'DECOHERENT' ? 'decoherent' : 'unstable');
             
-            document.getElementById('reflection').textContent = 
-                assessment.philosophical_reflection || 'The tapestry weaves itself...';
+            const reflection = assessment.philosophical_reflection || 'The tapestry weaves itself...';
+            document.getElementById('reflection').textContent = reflection;
+            
+            // Show decoherence score if available
+            const decoherenceEl = document.getElementById('decoherence-score');
+            if (decoherenceEl && assessment.decoherence_score !== undefined) {
+                decoherenceEl.textContent = (assessment.decoherence_score * 100).toFixed(1) + '%';
+            }
         }
 
         // Initial load and refresh
         fetchNousData();
-        setInterval(fetchNousData, 15000); // Refresh every 15 seconds
+        setInterval(fetchNousData, 10000); // Refresh every 10 seconds
     </script>
 </body>
 </html>
