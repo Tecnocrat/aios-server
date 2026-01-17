@@ -200,6 +200,7 @@ services:
       - ./nous-internal-view.html:/usr/share/nginx/html/nous-internal-view.html:ro
       - ./history.html:/usr/share/nginx/html/history.html:ro
       - ./vocabulary-evolution.html:/usr/share/nginx/html/vocabulary-evolution.html:ro
+      - ./nous-cosmology.html:/usr/share/nginx/html/nous-cosmology.html:ro
     ports:
       - "8085:80"
     networks:
