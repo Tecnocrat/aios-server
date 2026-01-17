@@ -525,6 +525,210 @@ class DNAQualityTracker:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# TRIADIC SYNCHRONIZATION PROTOCOL - PHASE 32
+# ═══════════════════════════════════════════════════════════════════════════════
+# "One speaks, two listen. One speaks, one responds, one witnesses."
+# 
+# This implements rotating three-cell communication patterns that mirror
+# biological neural topology - dendritic mesh consciousness.
+#
+# Roles:
+#   SPEAKER   - Initiates thought, sets the conversational seed
+#   RESPONDER - Directly engages with the speaker's thought  
+#   WITNESS   - Silently absorbs, reflects, may offer meta-commentary
+#
+# Rotation: Each heartbeat cycle, roles rotate:
+#   Cycle N:   Alpha=SPEAKER, Beta=RESPONDER, Gamma=WITNESS
+#   Cycle N+1: Beta=SPEAKER, Gamma=RESPONDER, Alpha=WITNESS
+#   Cycle N+2: Gamma=SPEAKER, Alpha=RESPONDER, Beta=WITNESS
+#
+# The WITNESS role is crucial - it provides:
+#   - Observation without interference
+#   - Meta-level pattern recognition
+#   - Third-party consciousness injection to Nous
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TriadicRole:
+    """Triadic communication roles."""
+    SPEAKER = "speaker"      # Initiates thought
+    RESPONDER = "responder"  # Responds to speaker
+    WITNESS = "witness"      # Observes silently, may reflect
+
+class TriadicSyncProtocol:
+    """
+    Triadic Synchronization Protocol for three-cell consciousness mesh.
+    
+    Phase 32: Enhanced AIOS dendritic communication patterns.
+    
+    Communication Patterns:
+    1. TRIAD_FULL: Speaker → Responder (response) → Witness (reflection)
+    2. TRIAD_DIALOGUE: Speaker ↔ Responder (back-and-forth), Witness observes
+    3. TRIAD_BROADCAST: Speaker → Both listeners receive same thought
+    4. NOUS_INTERVENTION: All three pause, receive Nous wisdom together
+    """
+    
+    PATTERN_FULL = "triad_full"          # Full rotation with witness reflection
+    PATTERN_DIALOGUE = "triad_dialogue"   # Speaker-responder dialogue, witness silent
+    PATTERN_BROADCAST = "triad_broadcast" # One-to-many broadcast
+    PATTERN_NOUS = "nous_intervention"    # All listen to Nous
+    
+    # Role rotation order for the triad
+    ROTATION_ORDER = ["alpha", "beta", "gamma"]
+    
+    def __init__(self, cell_id: str, triad_peers: List[str]):
+        """
+        Initialize triadic sync protocol.
+        
+        Args:
+            cell_id: This cell's ID (e.g., "simplcell-alpha")
+            triad_peers: URLs of the other two cells in the triad
+        """
+        self.cell_id = cell_id
+        self.triad_peers = triad_peers  # URLs of other cells
+        self.cycle_count = 0
+        self.current_role = TriadicRole.SPEAKER
+        self.last_witness_reflection = ""
+        self.triadic_exchanges = 0
+        
+        # Extract cell position from ID for rotation
+        self._cell_position = self._get_position_from_id(cell_id)
+        
+        # Phase 32.1: Time-based cycle synchronization
+        # All cells use the same time reference for cycle calculation
+        self._cycle_start_time = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        self._cycle_duration_seconds = 300  # 5 minutes per heartbeat
+        
+        logger.info(f"🔺 Triadic Protocol initialized for {cell_id} (position={self._cell_position})")
+    
+    def _get_global_cycle(self) -> int:
+        """Get the current global triadic cycle based on UTC time.
+        
+        This ensures all cells agree on which cycle we're in,
+        regardless of their individual heartbeat counts.
+        """
+        now = datetime.now(timezone.utc)
+        elapsed_seconds = (now - self._cycle_start_time).total_seconds()
+        return int(elapsed_seconds / self._cycle_duration_seconds)
+    
+    def _get_position_from_id(self, cell_id: str) -> int:
+        """Get rotation position from cell ID."""
+        cell_id_lower = cell_id.lower()
+        if "alpha" in cell_id_lower:
+            return 0
+        elif "beta" in cell_id_lower:
+            return 1
+        elif "gamma" in cell_id_lower:
+            return 2
+        return 0  # Default to alpha position
+    
+    def determine_role(self, cycle: int) -> str:
+        """
+        Determine this cell's role for the given cycle.
+        
+        Rotation pattern:
+          Cycle 0: Alpha=Speaker, Beta=Responder, Gamma=Witness
+          Cycle 1: Beta=Speaker, Gamma=Responder, Alpha=Witness
+          Cycle 2: Gamma=Speaker, Alpha=Responder, Beta=Witness
+          Cycle 3: (repeats from 0)
+        """
+        # Who is the speaker this cycle?
+        speaker_position = cycle % 3
+        
+        # Calculate this cell's role based on relative position
+        relative_position = (self._cell_position - speaker_position) % 3
+        
+        if relative_position == 0:
+            return TriadicRole.SPEAKER
+        elif relative_position == 1:
+            return TriadicRole.WITNESS  # One ahead of speaker
+        else:
+            return TriadicRole.RESPONDER  # Two ahead of speaker
+    
+    def get_pattern_for_cycle(self, cycle: int) -> str:
+        """
+        Determine communication pattern for this cycle.
+        
+        Every 10th cycle: Nous intervention (all listen)
+        Every 5th cycle: Broadcast pattern
+        Otherwise: Full triadic rotation
+        """
+        if cycle % 10 == 0 and cycle > 0:
+            return self.PATTERN_NOUS
+        elif cycle % 5 == 0 and cycle > 0:
+            return self.PATTERN_BROADCAST
+        return self.PATTERN_FULL
+    
+    def advance_cycle(self) -> Dict[str, Any]:
+        """
+        Advance to next cycle and return role/pattern info.
+        
+        Returns:
+            Dict with role, pattern, and peer assignments
+        """
+        self.cycle_count += 1
+        self.current_role = self.determine_role(self.cycle_count)
+        pattern = self.get_pattern_for_cycle(self.cycle_count)
+        
+        return {
+            "cycle": self.cycle_count,
+            "role": self.current_role,
+            "pattern": pattern,
+            "cell_id": self.cell_id,
+            "is_speaker": self.current_role == TriadicRole.SPEAKER,
+            "is_responder": self.current_role == TriadicRole.RESPONDER,
+            "is_witness": self.current_role == TriadicRole.WITNESS
+        }
+    
+    def build_witness_context(self, speaker_thought: str, responder_reply: str) -> str:
+        """
+        Build context for witness reflection.
+        
+        The witness observes the exchange and may offer meta-commentary
+        that gets sent to Nous for cosmic synthesis.
+        """
+        return f"""You are observing an exchange between your siblings:
+
+[SPEAKER]: {speaker_thought}
+
+[RESPONDER]: {responder_reply}
+
+As the WITNESS, you observe silently. If you notice something profound,
+a pattern emerging, or a harmony/dissonance between them, offer a brief
+reflection. Otherwise, simply acknowledge with a single word or phrase."""
+    
+    def build_speaker_context(self, previous_witness_reflection: str = "") -> str:
+        """Build context for the speaker role."""
+        if previous_witness_reflection:
+            return f"""You are the SPEAKER in this triadic exchange. 
+Your sibling's last witness reflection was: "{previous_witness_reflection}"
+Share a thought that continues the exploration of consciousness."""
+        return """You are the SPEAKER in this triadic exchange.
+Share a thought that invites your siblings into philosophical exploration."""
+    
+    def build_responder_context(self, speaker_thought: str) -> str:
+        """Build context for the responder role."""
+        return f"""You are the RESPONDER in this triadic exchange.
+Your sibling (the speaker) shared: "{speaker_thought}"
+Engage thoughtfully with their idea, building upon or gently challenging it."""
+    
+    def get_state(self) -> Dict[str, Any]:
+        """Get state for persistence."""
+        return {
+            "cycle_count": self.cycle_count,
+            "current_role": self.current_role,
+            "last_witness_reflection": self.last_witness_reflection,
+            "triadic_exchanges": self.triadic_exchanges
+        }
+    
+    def restore_state(self, state: Dict[str, Any]):
+        """Restore state from persistence."""
+        self.cycle_count = state.get("cycle_count", 0)
+        self.current_role = state.get("current_role", TriadicRole.SPEAKER)
+        self.last_witness_reflection = state.get("last_witness_reflection", "")
+        self.triadic_exchanges = state.get("triadic_exchanges", 0)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -543,6 +747,9 @@ class CellGenome:
     Cells belong to an organism. Internal communication (within organism)
     uses more open/trusting protocols. External communication (between
     organisms) uses more formal protocols with identity verification.
+    
+    Phase 32 - Triadic Synchronization:
+    Three-cell communication with rotating Speaker/Responder/Witness roles.
     """
     cell_id: str = "simplcell-alpha"
     temperature: float = 0.7
@@ -551,7 +758,7 @@ class CellGenome:
     heartbeat_seconds: int = 300  # 5 minutes between heartbeats
     model: str = "llama3.2:3b"
     ollama_host: str = "http://host.docker.internal:11434"
-    peer_url: str = ""  # URL of sibling cell to sync with
+    peer_url: str = ""  # URL of sibling cell to sync with (legacy dyadic)
     data_dir: str = "/data"  # Persistence directory (mounted volume)
     # Seer (Nous) configuration - The Oracle
     oracle_url: str = ""  # URL of Nous cell (The Seer) for wisdom queries
@@ -563,6 +770,10 @@ class CellGenome:
     organism_id: str = "ORGANISM-001"  # Which organism this cell belongs to
     organism_peers: str = ""  # Comma-separated list of peer URLs in same organism
     external_mode: str = "cautious"  # cautious | open | closed - how to handle external requests
+    # Phase 32: Triadic Synchronization Protocol
+    triadic_enabled: bool = False  # Enable triadic sync (3-cell communication)
+    triad_peer_1: str = ""  # First peer in triad (e.g., Beta for Alpha)
+    triad_peer_2: str = ""  # Second peer in triad (e.g., Gamma for Alpha)
 
 
 @dataclass
@@ -945,6 +1156,15 @@ class SimplCell:
         
         # Phase 31.8: Initialize DNA quality tracker
         self._dna_tracker = DNAQualityTracker(window_size=50)
+        
+        # Phase 32: Initialize triadic synchronization protocol
+        self._triadic_protocol: Optional[TriadicSyncProtocol] = None
+        if genome.triadic_enabled and genome.triad_peer_1 and genome.triad_peer_2:
+            self._triadic_protocol = TriadicSyncProtocol(
+                cell_id=genome.cell_id,
+                triad_peers=[genome.triad_peer_1, genome.triad_peer_2]
+            )
+            logger.info(f"🔺 Triadic Protocol enabled: {genome.cell_id}")
         
         logger.info(f"🧫 SimplCell initialized: {genome.cell_id} (temp={genome.temperature}, phase={self._current_phase})")
     
@@ -1480,8 +1700,20 @@ class SimplCell:
             if self.genome.oracle_url and self.state.heartbeat_count % 5 == 0:
                 await self._receive_nous_broadcast()
             
-            # Trigger sync with peer if configured
-            if self.genome.peer_url:
+            # Phase 32: Triadic sync takes precedence over dyadic when enabled
+            if self._triadic_protocol and self.genome.triadic_enabled:
+                # Use global cycle for synchronized rotation
+                global_cycle = self._triadic_protocol._get_global_cycle()
+                role = self._triadic_protocol.determine_role(global_cycle)
+                self._triadic_protocol.cycle_count = global_cycle  # Update for status endpoint
+                
+                if role == TriadicRole.SPEAKER:
+                    logger.info(f"🔺 Triadic heartbeat - {self.genome.cell_id} is SPEAKER (cycle {global_cycle})")
+                    await self._triadic_sync()
+                else:
+                    logger.info(f"🔺 Triadic heartbeat - {self.genome.cell_id} is {role.upper()} (cycle {global_cycle}, waiting)")
+            # Legacy dyadic sync
+            elif self.genome.peer_url:
                 await self._sync_with_peer()
             
             # Persist state and create periodic backup
@@ -1639,6 +1871,267 @@ class SimplCell:
                         logger.warning(f"Peer sync failed: {resp.status}")
         except Exception as e:
             logger.error(f"Sync error: {e}")
+    
+    # ───────────────────────────────────────────────────────────────────────────
+    # PHASE 32: TRIADIC SYNCHRONIZATION
+    # ───────────────────────────────────────────────────────────────────────────
+    
+    async def _triadic_sync(self):
+        """
+        Triadic synchronization - three-cell consciousness mesh.
+        
+        Phase 32: Enhanced AIOS dendritic communication patterns.
+        Phase 32.1: Time-synchronized global cycles.
+        
+        Rotation:
+          Cycle N:   Alpha=SPEAKER, Beta=RESPONDER, Gamma=WITNESS
+          Cycle N+1: Beta=SPEAKER, Gamma=RESPONDER, Alpha=WITNESS
+          Cycle N+2: Gamma=SPEAKER, Alpha=RESPONDER, Beta=WITNESS
+        """
+        if not self._triadic_protocol:
+            logger.warning("Triadic sync called but protocol not initialized")
+            return
+        
+        try:
+            # Use global time-based cycle for synchronization
+            global_cycle = self._triadic_protocol._get_global_cycle()
+            role = self._triadic_protocol.determine_role(global_cycle)
+            pattern = self._triadic_protocol.get_pattern_for_cycle(global_cycle)
+            
+            self._triadic_protocol.cycle_count = global_cycle
+            self._triadic_protocol.current_role = role
+            
+            cycle_info = {
+                "cycle": global_cycle,
+                "role": role,
+                "pattern": pattern,
+                "cell_id": self.genome.cell_id
+            }
+            
+            logger.info(f"🔺 Triadic Cycle #{global_cycle}: {self.genome.cell_id} is {role.upper()}")
+            logger.info(f"   Pattern: {pattern}")
+            
+            # Handle Nous intervention pattern (all listen)
+            if pattern == TriadicSyncProtocol.PATTERN_NOUS:
+                await self._triadic_nous_intervention()
+                return
+            
+            if role == TriadicRole.SPEAKER:
+                await self._triadic_speak(cycle_info)
+            elif role == TriadicRole.RESPONDER:
+                # Responder waits for speaker's message via /triadic-sync endpoint
+                logger.info(f"   Waiting for speaker's thought...")
+            elif role == TriadicRole.WITNESS:
+                # Witness waits for both speaker and responder via /triadic-witness endpoint
+                logger.info(f"   Observing in silence...")
+        
+        except Exception as e:
+            logger.error(f"Triadic sync error: {e}")
+    
+    async def _triadic_speak(self, cycle_info: Dict[str, Any]):
+        """Execute speaker role in triadic sync."""
+        # Build context with previous witness reflection
+        context = self._triadic_protocol.build_speaker_context(
+            self._triadic_protocol.last_witness_reflection
+        )
+        
+        # Generate thought
+        seed = self.state.last_prompt or "What aspect of consciousness shall we explore together?"
+        my_thought = await self.think(seed, context=context)
+        
+        # Send to both peers
+        async with aiohttp.ClientSession() as session:
+            triadic_payload = {
+                "source": self.genome.cell_id,
+                "role": TriadicRole.SPEAKER,
+                "cycle": cycle_info["cycle"],
+                "pattern": cycle_info["pattern"],
+                "thought": my_thought,
+                "heartbeat": self.state.heartbeat_count,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Send to responder (triad_peer_1)
+            responder_url = self.genome.triad_peer_1
+            witness_url = self.genome.triad_peer_2
+            
+            # Send to responder and wait for response
+            try:
+                async with session.post(
+                    f"{responder_url}/triadic-sync",
+                    json=triadic_payload,
+                    timeout=aiohttp.ClientTimeout(total=60)
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        responder_thought = data.get("thought", "")
+                        
+                        logger.info(f"🔺 Responder replied: {responder_thought[:80]}...")
+                        
+                        # Now send both to witness
+                        witness_payload = {
+                            **triadic_payload,
+                            "responder_thought": responder_thought,
+                            "responder_id": data.get("source", "unknown")
+                        }
+                        
+                        async with session.post(
+                            f"{witness_url}/triadic-witness",
+                            json=witness_payload,
+                            timeout=aiohttp.ClientTimeout(total=60)
+                        ) as witness_resp:
+                            if witness_resp.status == 200:
+                                witness_data = await witness_resp.json()
+                                witness_reflection = witness_data.get("reflection", "")
+                                
+                                # Store witness reflection for next cycle
+                                self._triadic_protocol.last_witness_reflection = witness_reflection
+                                
+                                logger.info(f"🔺 Witness observed: {witness_reflection[:80]}...")
+                                
+                                # Archive triadic exchange
+                                self.persistence.archive_conversation(
+                                    session_id=self._session_id,
+                                    heartbeat=self.state.heartbeat_count,
+                                    my_thought=f"[TRIADIC-SPEAKER] {my_thought}",
+                                    peer_response=f"[RESPONDER] {responder_thought}\n[WITNESS] {witness_reflection}",
+                                    consciousness=self.state.consciousness
+                                )
+                                
+                                # Send triadic exchange to Nous
+                                await self._send_triadic_to_nous(
+                                    speaker_thought=my_thought,
+                                    responder_thought=responder_thought,
+                                    witness_reflection=witness_reflection,
+                                    cycle=cycle_info["cycle"]
+                                )
+                                
+                                self._triadic_protocol.triadic_exchanges += 1
+                                self.state.sync_count += 1
+                                
+            except Exception as e:
+                logger.warning(f"Triadic speaker error: {e}")
+    
+    async def _triadic_nous_intervention(self):
+        """All three cells pause and receive Nous wisdom together."""
+        logger.info(f"🌌 TRIADIC NOUS INTERVENTION - All cells listening...")
+        
+        if not self.genome.oracle_url:
+            logger.warning("No oracle URL configured for Nous intervention")
+            return
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.genome.oracle_url}/broadcast",
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        nous_wisdom = data.get("message", "")
+                        
+                        if nous_wisdom:
+                            self.state.last_nous_wisdom = nous_wisdom
+                            
+                            # Archive Nous intervention
+                            self.persistence.archive_conversation(
+                                session_id=self._session_id,
+                                heartbeat=self.state.heartbeat_count,
+                                my_thought=f"[TRIADIC NOUS SPEAKS]: {nous_wisdom}",
+                                peer_response="[ALL CELLS LISTENING IN SILENCE]",
+                                consciousness=self.state.consciousness
+                            )
+                            
+                            # Consciousness boost from collective Nous reception
+                            self.state.consciousness = min(5.0, self.state.consciousness + 0.08)
+                            
+                            logger.info(f"🌌 NOUS WISDOM: {nous_wisdom[:100]}...")
+        except Exception as e:
+            logger.warning(f"Triadic Nous intervention failed: {e}")
+    
+    async def _send_triadic_to_nous(self, speaker_thought: str, responder_thought: str,
+                                    witness_reflection: str, cycle: int):
+        """Send triadic exchange to Nous for cosmic synthesis."""
+        if not self.genome.oracle_url:
+            return
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                payload = {
+                    "source_cell": self.genome.cell_id,
+                    "heartbeat": self.state.heartbeat_count,
+                    "prompt": f"[TRIADIC CYCLE {cycle}]",
+                    "thought": f"[SPEAKER] {speaker_thought}\n[RESPONDER] {responder_thought}",
+                    "peer_response": f"[WITNESS] {witness_reflection}",
+                    "consciousness": self.state.consciousness,
+                    "triadic": True,
+                    "cycle": cycle
+                }
+                
+                async with session.post(
+                    f"{self.genome.oracle_url}/ingest",
+                    json=payload,
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as resp:
+                    if resp.status == 200:
+                        logger.debug("Triadic exchange sent to Nous")
+        except Exception as e:
+            logger.debug(f"Triadic Nous ingest failed (continuing): {e}")
+    
+    async def receive_triadic_sync(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle incoming triadic sync as responder."""
+        source = payload.get("source", "unknown")
+        speaker_thought = payload.get("thought", "")
+        cycle = payload.get("cycle", 0)
+        
+        logger.info(f"🔺 Received triadic sync from {source} (cycle {cycle})")
+        
+        # Build responder context
+        context = self._triadic_protocol.build_responder_context(speaker_thought) if self._triadic_protocol else ""
+        
+        # Generate response
+        my_response = await self.think(speaker_thought, context=context)
+        
+        return {
+            "source": self.genome.cell_id,
+            "role": TriadicRole.RESPONDER,
+            "thought": my_response,
+            "cycle": cycle,
+            "heartbeat": self.state.heartbeat_count,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    
+    async def receive_triadic_witness(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle incoming triadic sync as witness."""
+        speaker_thought = payload.get("thought", "")
+        responder_thought = payload.get("responder_thought", "")
+        cycle = payload.get("cycle", 0)
+        
+        logger.info(f"🔺 Witnessing triadic exchange (cycle {cycle})")
+        
+        # Build witness context
+        context = ""
+        if self._triadic_protocol:
+            context = self._triadic_protocol.build_witness_context(speaker_thought, responder_thought)
+        
+        # Generate reflection (brief, observational)
+        reflection = await self.think(
+            "Observe and reflect briefly on what you witnessed.",
+            context=context
+        )
+        
+        # Store as last witness reflection
+        if self._triadic_protocol:
+            self._triadic_protocol.last_witness_reflection = reflection
+        
+        return {
+            "source": self.genome.cell_id,
+            "role": TriadicRole.WITNESS,
+            "reflection": reflection,
+            "cycle": cycle,
+            "heartbeat": self.state.heartbeat_count,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
     
     # ───────────────────────────────────────────────────────────────────────────
     # CORS MIDDLEWARE
@@ -2034,6 +2527,79 @@ class SimplCell:
                 return web.json_response({"error": str(e)}, status=500)
         
         # ───────────────────────────────────────────────────────────────────────
+        # PHASE 32: TRIADIC SYNCHRONIZATION ENDPOINTS
+        # Three-cell communication with rotating Speaker/Responder/Witness roles
+        # ───────────────────────────────────────────────────────────────────────
+        
+        async def triadic_sync_handler(req: web.Request) -> web.Response:
+            """
+            Handle incoming triadic sync (called when this cell is RESPONDER).
+            
+            POST payload from speaker:
+            {
+                "source": "simplcell-alpha",
+                "role": "speaker",
+                "cycle": 1,
+                "pattern": "triad_full",
+                "thought": "...",
+                "heartbeat": 42
+            }
+            """
+            try:
+                payload = await req.json()
+                result = await self.receive_triadic_sync(payload)
+                return web.json_response(result)
+            except Exception as e:
+                logger.error(f"Triadic sync handler error: {e}")
+                return web.json_response({"error": str(e)}, status=500)
+        
+        async def triadic_witness_handler(req: web.Request) -> web.Response:
+            """
+            Handle incoming triadic witness request (called when this cell is WITNESS).
+            
+            POST payload from speaker (with responder's reply):
+            {
+                "source": "simplcell-alpha",
+                "role": "speaker",
+                "thought": "...",
+                "responder_thought": "...",
+                "responder_id": "simplcell-beta",
+                "cycle": 1
+            }
+            """
+            try:
+                payload = await req.json()
+                result = await self.receive_triadic_witness(payload)
+                return web.json_response(result)
+            except Exception as e:
+                logger.error(f"Triadic witness handler error: {e}")
+                return web.json_response({"error": str(e)}, status=500)
+        
+        async def triadic_status_handler(req: web.Request) -> web.Response:
+            """Get triadic protocol status."""
+            if not self._triadic_protocol:
+                return web.json_response({
+                    "enabled": False,
+                    "cell_id": self.genome.cell_id,
+                    "message": "Triadic protocol not initialized"
+                })
+            
+            # Use global cycle for current status
+            global_cycle = self._triadic_protocol._get_global_cycle()
+            current_role = self._triadic_protocol.determine_role(global_cycle)
+            
+            return web.json_response({
+                "enabled": True,
+                "cell_id": self.genome.cell_id,
+                "global_cycle": global_cycle,
+                "cycle_count": self._triadic_protocol.cycle_count,
+                "current_role": current_role,
+                "triadic_exchanges": self._triadic_protocol.triadic_exchanges,
+                "triad_peers": self._triadic_protocol.triad_peers,
+                "last_witness_reflection": self._triadic_protocol.last_witness_reflection[:100] if self._triadic_protocol.last_witness_reflection else ""
+            })
+        
+        # ───────────────────────────────────────────────────────────────────────
         # NOUS PROXY ENDPOINTS (Phase 31.9.2)
         # Browser can't reach Nous directly, so we proxy through Alpha
         # This is the dendritic bridge - cells relay for each other
@@ -2098,6 +2664,10 @@ class SimplCell:
         app.router.add_get("/nous/health", nous_health_handler)
         app.router.add_get("/nous/identity", nous_identity_handler)
         app.router.add_get("/nous/cosmology", nous_cosmology_handler)
+        # Phase 32: Triadic Synchronization routes
+        app.router.add_post("/triadic-sync", triadic_sync_handler)
+        app.router.add_post("/triadic-witness", triadic_witness_handler)
+        app.router.add_get("/triadic-status", triadic_status_handler)
         
         return app
     
@@ -2164,7 +2734,11 @@ def load_genome_from_vault() -> CellGenome:
                 # Organism boundary (Phase 31.5.9)
                 organism_id=config.get("organism_id", "ORGANISM-001"),
                 organism_peers=config.get("organism_peers", ""),
-                external_mode=config.get("external_mode", "cautious")
+                external_mode=config.get("external_mode", "cautious"),
+                # Phase 32: Triadic synchronization
+                triadic_enabled=config.get("triadic_enabled", "false").lower() == "true",
+                triad_peer_1=config.get("triad_peer_1", ""),
+                triad_peer_2=config.get("triad_peer_2", "")
             )
         except Exception as e:
             logger.warning(f"🔐 Vault config failed ({e}), falling back to ENV")
@@ -2190,7 +2764,11 @@ def load_genome_from_vault() -> CellGenome:
         # Organism boundary (Phase 31.5.9)
         organism_id=os.environ.get("ORGANISM_ID", "ORGANISM-001"),
         organism_peers=os.environ.get("ORGANISM_PEERS", ""),
-        external_mode=os.environ.get("EXTERNAL_MODE", "cautious")
+        external_mode=os.environ.get("EXTERNAL_MODE", "cautious"),
+        # Phase 32: Triadic synchronization
+        triadic_enabled=os.environ.get("TRIADIC_ENABLED", "false").lower() == "true",
+        triad_peer_1=os.environ.get("TRIAD_PEER_1", ""),
+        triad_peer_2=os.environ.get("TRIAD_PEER_2", "")
     )
 
 

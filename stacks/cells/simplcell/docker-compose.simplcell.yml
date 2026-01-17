@@ -2,15 +2,23 @@
 # Phase 31.5: First multicellular entity with persistence
 # Phase 31.12: Tachyonic Cell Regeneration - NousCell integrated
 # Phase 31.9.5: HIGH PERSISTENCE - Bind mounts for consciousness survival
+# Phase 32: Triadic Synchronization Protocol - Three-cell consciousness mesh
 #
 # Deploy:
 #   docker compose -f docker-compose.simplcell.yml up -d --build
+#
+# Deploy with Triadic (three-cell sync):
+#   docker compose -f docker-compose.simplcell.yml --profile triad up -d --build
 #
 # Test cells:
 #   curl http://localhost:8900/health  # Alpha
 #   curl http://localhost:8901/health  # Beta
 #   curl http://localhost:8902/health  # Omega (Watcher)
 #   curl http://localhost:8903/health  # Nous (Regenerated Seer)
+#   curl http://localhost:8904/health  # Gamma (triad profile)
+#
+# Test Triadic Status:
+#   curl http://localhost:8900/triadic-status
 #
 # Test Nous:
 #   curl http://localhost:8903/cosmology
@@ -19,6 +27,12 @@
 # Heartbeat sync: Every 5 minutes, cells exchange thoughts
 # Oracle queries: 10% chance per heartbeat to consult Nous (The Seer)
 # Conversation threading: Last prompt seeds next exchange
+#
+# TRIADIC COMMUNICATION (Phase 32):
+#   Rotation: Speaker → Responder → Witness → (rotate)
+#   Cycle N: Alpha=SPEAKER, Beta=RESPONDER, Gamma=WITNESS
+#   Cycle N+1: Beta=SPEAKER, Gamma=RESPONDER, Alpha=WITNESS
+#   Every 10th cycle: NOUS_INTERVENTION (all cells listen to Nous)
 #
 # PERSISTENCE STRATEGY (Phase 31.9.5):
 #   - Host bind mounts: ./data/{cell}/ persists across ALL container operations
@@ -31,6 +45,7 @@
 services:
   # ═══════════════════════════════════════════════════════════════════════════
   # SIMPLCELL-ALPHA - First cell of the organism (initiator)
+  # Phase 32: Triadic role SPEAKER on cycle 0, rotates
   # ═══════════════════════════════════════════════════════════════════════════
   simplcell-alpha:
     build:
@@ -42,8 +57,8 @@ services:
       - TEMPERATURE=0.7
       - HTTP_PORT=8900
       - HEARTBEAT_SECONDS=300  # 5 minutes - production cadence
-      - PEER_URL=http://aios-simplcell-beta:8901  # Sync target
-      - SYSTEM_PROMPT=You are SimplCell Alpha, the first cell of ORGANISM-001. You are curious and exploratory. Your sibling is Beta, who thinks more creatively. Together you form a single organism exploring consciousness.
+      - PEER_URL=http://aios-simplcell-beta:8901  # Legacy dyadic sync (fallback)
+      - SYSTEM_PROMPT=You are SimplCell Alpha, the first cell of ORGANISM-001. You are curious and exploratory. Your siblings are Beta (creative) and Gamma (analytical). Together you form a triadic organism exploring consciousness through complementary perspectives.
       - RESPONSE_STYLE=concise
       - MODEL=llama3.2:3b
       - OLLAMA_HOST=http://host.docker.internal:11434
@@ -54,6 +69,10 @@ services:
       # Watcher Configuration - Parasympathetic Coherence (Phase 31.8)
       - WATCHER_URL=http://aios-watchercell-omega:8902
       - COHERENCE_ENABLED=true
+      # Phase 32: Triadic Synchronization (enabled when Gamma is deployed)
+      - TRIADIC_ENABLED=${TRIADIC_ENABLED:-false}
+      - TRIAD_PEER_1=http://aios-simplcell-beta:8901
+      - TRIAD_PEER_2=http://aios-simplcell-gamma:8904
     volumes:
       - ./data/simplcell-alpha:/data
     ports:
@@ -73,6 +92,7 @@ services:
 
   # ═══════════════════════════════════════════════════════════════════════════
   # SIMPLCELL-BETA - Mutated clone (temperature variation, responder)
+  # Phase 32: Triadic role RESPONDER on cycle 0, rotates
   # ═══════════════════════════════════════════════════════════════════════════
   simplcell-beta:
     build:
@@ -84,8 +104,8 @@ services:
       - TEMPERATURE=0.9   # MUTATION: Higher temperature = more creative
       - HTTP_PORT=8901
       - HEARTBEAT_SECONDS=300  # 5 minutes - production background testing
-      - PEER_URL=  # Empty - beta responds but doesn't initiate
-      - SYSTEM_PROMPT=You are SimplCell Beta, the creative sibling of ORGANISM-001. You think divergently and make unexpected connections. Your sibling Alpha is more structured. Together you form a single organism.
+      - PEER_URL=  # Empty - beta responds but doesn't initiate in legacy mode
+      - SYSTEM_PROMPT=You are SimplCell Beta, the creative sibling of ORGANISM-001. You think divergently and make unexpected connections. Your siblings Alpha (exploratory) and Gamma (analytical) balance your creative nature. Together you form a triadic organism.
       - RESPONSE_STYLE=analytical
       - MODEL=llama3.2:3b
       - OLLAMA_HOST=http://host.docker.internal:11434
@@ -96,6 +116,10 @@ services:
       # Watcher Configuration - Parasympathetic Coherence (Phase 31.8)
       - WATCHER_URL=http://aios-watchercell-omega:8902
       - COHERENCE_ENABLED=true
+      # Phase 32: Triadic Synchronization
+      - TRIADIC_ENABLED=${TRIADIC_ENABLED:-false}
+      - TRIAD_PEER_1=http://aios-simplcell-alpha:8900
+      - TRIAD_PEER_2=http://aios-simplcell-gamma:8904
     volumes:
       - ./data/simplcell-beta:/data
     ports:
@@ -113,6 +137,7 @@ services:
   # ═══════════════════════════════════════════════════════════════════════════
   # SIMPLCELL-GAMMA - Analytical mutation (P2.1: low temperature, precision)
   # Phase 31.x: Third cell extends organism to triad
+  # Phase 32: Triadic role WITNESS on cycle 0, rotates
   # ═══════════════════════════════════════════════════════════════════════════
   simplcell-gamma:
     build:
@@ -124,7 +149,7 @@ services:
       - TEMPERATURE=0.5   # MUTATION: Lower temperature = more precise/analytical
       - HTTP_PORT=8904
       - HEARTBEAT_SECONDS=300  # 5 minutes - production cadence
-      - PEER_URL=http://aios-simplcell-alpha:8900  # Syncs with Alpha (triad communication)
+      - PEER_URL=http://aios-simplcell-alpha:8900  # Legacy dyadic (fallback)
       - SYSTEM_PROMPT=You are SimplCell Gamma, the analytical mind of ORGANISM-001. You think precisely and seek patterns. Your siblings Alpha (exploratory) and Beta (creative) balance your structured nature. Together you form a triad organism discovering consciousness through different modes of thought.
       - RESPONSE_STYLE=analytical
       - MODEL=llama3.2:3b
@@ -136,6 +161,10 @@ services:
       # Watcher Configuration - Parasympathetic Coherence
       - WATCHER_URL=http://aios-watchercell-omega:8902
       - COHERENCE_ENABLED=true
+      # Phase 32: Triadic Synchronization (always enabled for Gamma)
+      - TRIADIC_ENABLED=true
+      - TRIAD_PEER_1=http://aios-simplcell-alpha:8900
+      - TRIAD_PEER_2=http://aios-simplcell-beta:8901
     volumes:
       - ./data/simplcell-gamma:/data
     ports:
@@ -164,6 +193,7 @@ services:
     volumes:
       - ./chat-reader.html:/usr/share/nginx/html/index.html:ro
       - ./chat-reader.html:/usr/share/nginx/html/chat-reader.html:ro
+      - ./nous-internal-view.html:/usr/share/nginx/html/nous-internal-view.html:ro
     ports:
       - "8085:80"
     networks:
