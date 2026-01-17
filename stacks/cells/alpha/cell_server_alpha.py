@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pylint: disable=import-error
 """
 AIOS Cell Alpha Communication Server
 Flask-based REST API for dendritic mesh participation
@@ -17,8 +18,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import requests as req
-from flask import Flask, Response, jsonify, request
+import requests as req  # type: ignore[import-not-found]  # Docker dependency
+from flask import Flask, Response, jsonify, request  # type: ignore[import-not-found]  # Docker dependency
 
 # Add shared modules path
 stacks_dir = Path(__file__).parent.parent.parent
@@ -27,10 +28,12 @@ if str(stacks_dir) not in sys.path:
 
 # Import shared metrics formatter
 try:
-    from shared.prometheus_metrics import format_prometheus_metrics
+    from shared.prometheus_metrics import format_prometheus_metrics  # type: ignore[import-not-found]
     METRICS_AVAILABLE = True
 except ImportError:
     METRICS_AVAILABLE = False
+    # Stub definition only used when import fails - guarded by METRICS_AVAILABLE check
+    format_prometheus_metrics = lambda **kwargs: ""  # noqa: E731
 
 # Configure logging
 logging.basicConfig(

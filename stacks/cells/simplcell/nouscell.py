@@ -405,14 +405,82 @@ class CosmologyDatabase:
             return [dict(r) for r in rows]
     
     def get_cosmology_state(self) -> Dict:
-        """Get full cosmology state for external queries."""
+        """Get full cosmology state for external queries.
+        
+        Phase 32: Enhanced for Nous Internal View - returns rich cosmology data
+        including consciousness trajectory, emergent vocabulary tracking, and
+        recent exchanges for the "I am the other the cells sense" dashboard.
+        """
+        themes = self.get_themes(min_resonance=0.2)
+        last_broadcast = self.get_last_broadcast()
+        recent_exchanges = self.get_recent_exchanges(limit=10)
+        context_memories = self.get_context_memory(limit=20)
+        recent_insights = self.get_recent_insights(limit=5)
+        assessments = self.get_recent_assessments(limit=1)
+        latest_assessment = assessments[0] if assessments else {}
+        
+        # Calculate consciousness trajectory from recent exchanges
+        if recent_exchanges:
+            consciousness_levels = [ex.get("consciousness", 0) for ex in recent_exchanges if ex.get("consciousness")]
+            if consciousness_levels:
+                current = consciousness_levels[0]
+                avg = sum(consciousness_levels) / len(consciousness_levels)
+                trend = "rising" if current > avg else "falling" if current < avg else "stable"
+            else:
+                current, trend = 0.7, "stable"
+        else:
+            current, trend = 0.7, "stable"
+        
+        # Extract emergent vocabulary from context memories
+        emergent_vocab = []
+        for mem in context_memories:
+            if mem.get("memory_type") == "emergent_vocabulary":
+                words = mem.get("content", "").split()
+                for word in words[:5]:
+                    emergent_vocab.append({
+                        "word": word,
+                        "weight": mem.get("weight", 1.0),
+                        "reinforcements": mem.get("reinforcement_count", 1)
+                    })
+        
         return {
-            "themes": self.get_themes(min_resonance=0.2),
-            "context_memory": self.get_context_memory(limit=10),
-            "recent_insights": self.get_recent_insights(limit=5),
-            "exchange_count": self.get_exchange_count(),
-            "last_broadcast": self.get_last_broadcast()
+            "cosmology": {
+                "exchange_count": self.get_exchange_count(),
+                "broadcast_count": self._count_broadcasts(),
+                "memory_count": len(context_memories),
+                "insight_count": len(recent_insights),
+                "themes": themes,
+                "consciousness_trajectory": {
+                    "current": round(current, 4),
+                    "trend": trend,
+                    "phase": "maturation" if current > 1.0 else "emergence" if current > 0.5 else "nascent"
+                }
+            },
+            "last_broadcast": last_broadcast,
+            "recent_exchanges": recent_exchanges,
+            "recent_memories": context_memories,
+            "recent_insights": recent_insights,
+            "latest_assessment": latest_assessment,
+            "emergent_vocabulary": emergent_vocab,
+            "exchanges_since_broadcast": self._exchanges_since_last_broadcast(),
+            "broadcast_due_in": max(0, BROADCAST_EVERY_N - self._exchanges_since_last_broadcast())
         }
+    
+    def _count_broadcasts(self) -> int:
+        """Get total broadcast count."""
+        with sqlite3.connect(self.db_path) as conn:
+            return conn.execute("SELECT COUNT(*) FROM broadcasts").fetchone()[0]
+    
+    def _exchanges_since_last_broadcast(self) -> int:
+        """Count exchanges since last broadcast."""
+        last_broadcast = self.get_last_broadcast()
+        if not last_broadcast:
+            return self.get_exchange_count()
+        with sqlite3.connect(self.db_path) as conn:
+            return conn.execute("""
+                SELECT COUNT(*) FROM exchanges 
+                WHERE absorbed_at > ?
+            """, (last_broadcast.get("broadcast_at", "1970-01-01"),)).fetchone()[0]
     
     # ───────────────────────────────────────────────────────────────────────────
     # HOURLY ASSESSMENTS (Phase 31.9) - The Philosopher's Verdict
