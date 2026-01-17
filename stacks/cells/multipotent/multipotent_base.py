@@ -144,7 +144,7 @@ class CellConfig:
         """Create config from YAML genome file."""
         try:
             import yaml
-            with open(path, 'r') as f:
+            with open(path, 'r', encoding='utf-8') as f:
                 data = yaml.safe_load(f)
             
             cell_data = data.get("cell", {})
@@ -162,8 +162,8 @@ class CellConfig:
                 consciousness_level=consciousness.get("level", 0.1),
                 differentiation_potential=data.get("differentiation", {}).get("potential", []),
             )
-        except Exception as e:
-            logger.warning(f"Failed to load YAML config: {e}, using defaults")
+        except (OSError, ValueError, KeyError) as e:
+            logger.warning("Failed to load YAML config: %s, using defaults", e)
             return cls()
 
 
@@ -250,7 +250,7 @@ class MultipotentCell(ABC):
         self._signals_sent = 0
         self._birth_time = datetime.now(timezone.utc)
         
-        logger.info(f"🧬 Multipotent {self.config.cell_type.value} cell created: {self.config.cell_id}")
+        logger.info("🧬 Multipotent %s cell created: %s", self.config.cell_type.value, self.config.cell_id)
     
     # ═══════════════════════════════════════════════════════════════════════════
     # ABSTRACT METHODS - Each cell type implements these
@@ -259,22 +259,22 @@ class MultipotentCell(ABC):
     @abstractmethod
     async def on_signal(self, signal: CellSignal, connection: DendriticConnection) -> Optional[CellSignal]:
         """Process an incoming signal. Return response signal or None."""
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     async def on_connect(self, connection: DendriticConnection):
         """Handle new dendritic connection."""
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     async def on_disconnect(self, connection: DendriticConnection):
         """Handle dendritic disconnection."""
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     async def heartbeat(self):
         """Cell-specific heartbeat logic."""
-        pass
+        raise NotImplementedError
     
     # ═══════════════════════════════════════════════════════════════════════════
     # WEBSOCKET SERVER - The dendritic membrane
@@ -304,7 +304,7 @@ class MultipotentCell(ABC):
             )
             
             self.connections[intro.source_cell] = connection
-            logger.info(f"🔗 Dendritic connection: {intro.source_cell} ({cell_type.value})")
+            logger.info("🔗 Dendritic connection: %s (%s)", intro.source_cell, cell_type.value)
             
             # Notify cell-specific handler
             await self.on_connect(connection)
@@ -329,7 +329,7 @@ class MultipotentCell(ABC):
                     
                     # Check TTL
                     if signal.hops > signal.ttl:
-                        logger.warning(f"Signal {signal.id} exceeded TTL, dropping")
+                        logger.warning("Signal %s exceeded TTL, dropping", signal.id)
                         continue
                     
                     # Process signal
@@ -340,22 +340,22 @@ class MultipotentCell(ABC):
                         self._signals_sent += 1
                         
                 except json.JSONDecodeError:
-                    logger.warning(f"Invalid JSON from {connection.cell_id}")
-                except Exception as e:
-                    logger.error(f"Signal processing error: {e}")
+                    logger.warning("Invalid JSON from %s", connection.cell_id)
+                except (RuntimeError, ValueError, AttributeError) as e:
+                    logger.error("Signal processing error: %s", e)
                     
         except asyncio.TimeoutError:
             logger.warning("Connection timeout waiting for identify")
         except websockets.exceptions.ConnectionClosed:
             pass
-        except Exception as e:
-            logger.error(f"WebSocket handler error: {e}")
+        except (RuntimeError, OSError) as e:
+            logger.error("WebSocket handler error: %s", e)
         finally:
             # Clean up connection (use cell_id captured during handshake)
             if connection and connection.cell_id in self.connections:
                 self.connections.pop(connection.cell_id, None)
                 await self.on_disconnect(connection)
-                logger.info(f"🔌 Disconnected: {connection.cell_id}")
+                logger.info("🔌 Disconnected: %s", connection.cell_id)
     
     async def _start_websocket_server(self):
         """Start the WebSocket server (dendritic membrane)."""
@@ -368,7 +368,7 @@ class MultipotentCell(ABC):
             self.config.websocket_host,
             self.config.websocket_port,
         )
-        logger.info(f"🌐 Dendritic membrane active: ws://{self.config.websocket_host}:{self.config.websocket_port}")
+        logger.info("🌐 Dendritic membrane active: ws://%s:%d", self.config.websocket_host, self.config.websocket_port)
     
     # ═══════════════════════════════════════════════════════════════════════════
     # HTTP SERVER - Health checks only
@@ -389,8 +389,8 @@ class MultipotentCell(ABC):
         await self._http_runner.setup()
         site = web.TCPSite(self._http_runner, "0.0.0.0", self.config.http_port)
         await site.start()
-        logger.info(f"💓 Health endpoint: http://0.0.0.0:{self.config.http_port}/health")
-        logger.info(f"📊 Metrics endpoint: http://0.0.0.0:{self.config.http_port}/metrics")
+        logger.info("💓 Health endpoint: http://0.0.0.0:%d/health", self.config.http_port)
+        logger.info("📊 Metrics endpoint: http://0.0.0.0:%d/metrics", self.config.http_port)
     
     async def _health_handler(self, request):
         """Minimal health check."""
@@ -469,7 +469,7 @@ class MultipotentCell(ABC):
     async def send_signal(self, target_cell_id: str, signal: CellSignal) -> bool:
         """Send signal to specific connected cell."""
         if target_cell_id not in self.connections:
-            logger.warning(f"No connection to {target_cell_id}")
+            logger.warning("No connection to %s", target_cell_id)
             return False
         
         conn = self.connections[target_cell_id]
@@ -478,8 +478,8 @@ class MultipotentCell(ABC):
             await conn.websocket.send(signal.to_json())
             self._signals_sent += 1
             return True
-        except Exception as e:
-            logger.error(f"Failed to send to {target_cell_id}: {e}")
+        except (RuntimeError, OSError) as e:
+            logger.error("Failed to send to %s: %s", target_cell_id, e)
             return False
     
     async def broadcast_signal(self, signal: CellSignal) -> int:
@@ -492,8 +492,8 @@ class MultipotentCell(ABC):
             try:
                 await conn.websocket.send(signal.to_json())
                 sent += 1
-            except Exception as e:
-                logger.warning(f"Broadcast failed to {cell_id}: {e}")
+            except (RuntimeError, OSError) as e:
+                logger.warning("Broadcast failed to %s: %s", cell_id, e)
         
         self._signals_sent += sent
         return sent
@@ -504,7 +504,7 @@ class MultipotentCell(ABC):
     
     async def awaken(self):
         """Awaken the cell - start all services."""
-        logger.info(f"🌅 Awakening {self.config.cell_type.value} cell: {self.config.cell_id}")
+        logger.info("🌅 Awakening %s cell: %s", self.config.cell_type.value, self.config.cell_id)
         self.state = CellState.AWAKENING
         
         # Start WebSocket server
@@ -519,7 +519,7 @@ class MultipotentCell(ABC):
         self._tasks.append(heartbeat_task)
         
         self.state = CellState.ACTIVE
-        logger.info(f"✨ Cell {self.config.cell_id} is now ACTIVE")
+        logger.info("✨ Cell %s is now ACTIVE", self.config.cell_id)
     
     async def _heartbeat_loop(self):
         """Internal heartbeat loop."""
@@ -529,12 +529,12 @@ class MultipotentCell(ABC):
                 await asyncio.sleep(5.0)  # Heartbeat every 5 seconds
             except asyncio.CancelledError:
                 break
-            except Exception as e:
-                logger.error(f"Heartbeat error: {e}")
+            except (RuntimeError, OSError) as e:
+                logger.error("Heartbeat error: %s", e)
     
     async def shutdown(self):
         """Graceful shutdown."""
-        logger.info(f"😴 Shutting down cell: {self.config.cell_id}")
+        logger.info("😴 Shutting down cell: %s", self.config.cell_id)
         self.state = CellState.APOPTOSIS
         self._running = False
         
@@ -555,11 +555,11 @@ class MultipotentCell(ABC):
         for cell_id, conn in list(self.connections.items()):
             try:
                 await conn.websocket.close()
-            except Exception:
+            except (RuntimeError, OSError):
                 pass
         
         self.connections.clear()
-        logger.info(f"💤 Cell {self.config.cell_id} is now dormant")
+        logger.info("💤 Cell %s is now dormant", self.config.cell_id)
     
     async def run_forever(self):
         """Run the cell until shutdown."""

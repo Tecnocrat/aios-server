@@ -104,7 +104,7 @@ class VoidCell(MultipotentCell):
         # Pending route discoveries
         self._pending_discoveries: Set[str] = set()
         
-        logger.info(f"🕳️ VOID Cell initialized: {self.config.cell_id}")
+        logger.info("🕳️ VOID Cell initialized: %s", self.config.cell_id)
     
     # ═══════════════════════════════════════════════════════════════════════════
     # ABSTRACT METHOD IMPLEMENTATIONS
@@ -194,7 +194,7 @@ class VoidCell(MultipotentCell):
         # Broadcast topology update to all connected cells
         await self._broadcast_topology_update()
         
-        logger.info(f"🕳️ VOID registered: {connection.cell_id} ({connection.cell_type.value})")
+        logger.info("🕳️ VOID registered: %s (%s)", connection.cell_id, connection.cell_type.value)
     
     async def on_disconnect(self, connection: DendriticConnection):
         """Handle disconnection - update registry and invalidate routes."""
@@ -218,7 +218,7 @@ class VoidCell(MultipotentCell):
         # Broadcast topology update
         await self._broadcast_topology_update()
         
-        logger.info(f"🕳️ VOID deregistered: {connection.cell_id}")
+        logger.info("🕳️ VOID deregistered: %s", connection.cell_id)
     
     async def heartbeat(self):
         """VOID-specific heartbeat - verify routes and track environment."""
@@ -278,10 +278,10 @@ class VoidCell(MultipotentCell):
             try:
                 await self.connections[next_hop].websocket.send(signal.to_json())
                 self._signals_routed += 1
-                logger.debug(f"🕳️ Relayed signal to {target} via {next_hop}")
+                logger.debug("🕳️ Relayed signal to %s via %s", target, next_hop)
                 return None  # No response needed for relay
-            except Exception as e:
-                logger.error(f"Relay failed to {next_hop}: {e}")
+            except (RuntimeError, OSError) as e:
+                logger.error("Relay failed to %s: %s", next_hop, e)
                 route.state = ConnectionState.DEGRADED
                 self._routing_failures += 1
         
@@ -339,7 +339,7 @@ class VoidCell(MultipotentCell):
                     self._routing_table[cell_id].last_verified = datetime.now(timezone.utc)
                     self._routing_table[cell_id].state = ConnectionState.ESTABLISHED
                     
-            except Exception:
+            except (RuntimeError, OSError):
                 if cell_id in self._routing_table:
                     self._routing_table[cell_id].state = ConnectionState.DEGRADED
     
@@ -376,7 +376,7 @@ class VoidCell(MultipotentCell):
                         next_hop=source,
                         distance=cell_info.get("distance", 1) + 1,
                     )
-                    logger.debug(f"🕳️ Learned route to {cell_id} via {source}")
+                    logger.debug("🕳️ Learned route to %s via %s", cell_id, source)
     
     async def _broadcast_topology_update(self):
         """Broadcast current topology to all connected cells."""

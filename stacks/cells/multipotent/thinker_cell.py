@@ -200,16 +200,16 @@ class OllamaAgent:
                         
                         if model_available:
                             self.is_available = True
-                            logger.info(f"🦙 Ollama ready: {self.model_name} (tier: {self.tier.value})")
+                            logger.info("🦙 Ollama ready: %s (tier: %s)", self.model_name, self.tier.value)
                             return True
                         else:
-                            logger.warning(f"🦙 Model {self.model_name} not found. Available: {models}")
+                            logger.warning("🦙 Model %s not found. Available: %s", self.model_name, models)
                             return False
                     else:
-                        logger.warning(f"🦙 Ollama API returned {resp.status}")
+                        logger.warning("🦙 Ollama API returned %s", resp.status)
                         return False
-        except Exception as e:
-            logger.error(f"🦙 Ollama connection failed: {e}")
+        except (OSError, aiohttp.ClientError, asyncio.TimeoutError) as e:
+            logger.error("🦙 Ollama connection failed: %s", e)
             return False
     
     async def generate(self, prompt: str, system: Optional[str] = None) -> str:
@@ -239,10 +239,10 @@ class OllamaAgent:
                     else:
                         text = await resp.text()
                         raise RuntimeError(f"Ollama generate failed: {resp.status} - {text}")
-        except asyncio.TimeoutError:
-            raise RuntimeError("Ollama generation timed out")
-        except Exception as e:
-            raise RuntimeError(f"Ollama error: {e}")
+        except asyncio.TimeoutError as exc:
+            raise RuntimeError("Ollama generation timed out") from exc
+        except (OSError, aiohttp.ClientError) as e:
+            raise RuntimeError(f"Ollama error: {e}") from e
     
     async def chat(self, messages: List[Dict[str, str]]) -> str:
         """Chat completion with message history."""
@@ -268,10 +268,10 @@ class OllamaAgent:
                     else:
                         text = await resp.text()
                         raise RuntimeError(f"Ollama chat failed: {resp.status} - {text}")
-        except asyncio.TimeoutError:
-            raise RuntimeError("Ollama chat timed out")
-        except Exception as e:
-            raise RuntimeError(f"Ollama error: {e}")
+        except asyncio.TimeoutError as exc:
+            raise RuntimeError("Ollama chat timed out") from exc
+        except (OSError, aiohttp.ClientError) as e:
+            raise RuntimeError(f"Ollama error: {e}") from e
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -362,14 +362,14 @@ class GitHubModelsAgent:
                 ) as resp:
                     if resp.status == 200:
                         self.is_available = True
-                        logger.info(f"🐙 GitHub Models ready: {self.model_name} (tier: {self.tier.value})")
+                        logger.info("🐙 GitHub Models ready: %s (tier: %s)", self.model_name, self.tier.value)
                         return True
                     else:
                         text = await resp.text()
-                        logger.warning(f"🐙 GitHub Models check failed: {resp.status} - {text[:100]}")
+                        logger.warning("🐙 GitHub Models check failed: %s - %s", resp.status, text[:100])
                         return False
-        except Exception as e:
-            logger.error(f"🐙 GitHub Models connection failed: {e}")
+        except (OSError, aiohttp.ClientError, asyncio.TimeoutError) as e:
+            logger.error("🐙 GitHub Models connection failed: %s", e)
             return False
     
     async def generate(self, prompt: str, system: Optional[str] = None) -> str:
@@ -424,10 +424,10 @@ class GitHubModelsAgent:
                     else:
                         text = await resp.text()
                         raise RuntimeError(f"GitHub Models failed: {resp.status} - {text[:200]}")
-        except asyncio.TimeoutError:
-            raise RuntimeError("GitHub Models generation timed out")
-        except Exception as e:
-            raise RuntimeError(f"GitHub Models error: {e}")
+        except asyncio.TimeoutError as exc:
+            raise RuntimeError("GitHub Models generation timed out") from exc
+        except (OSError, aiohttp.ClientError) as e:
+            raise RuntimeError(f"GitHub Models error: {e}") from e
     
     def _track_usage(self, input_tokens: int, output_tokens: int):
         """Track token usage."""
@@ -567,10 +567,10 @@ class ThinkerCell(MultipotentCell):
             try:
                 self._crystal = get_crystal()
                 logger.info("💎 Conversation Crystal connected")
-            except Exception as e:
-                logger.warning(f"💎 Crystal unavailable: {e}")
+            except (RuntimeError, OSError, ValueError) as e:
+                logger.warning("💎 Crystal unavailable: %s", e)
         
-        logger.info(f"🧠 Thinker Cell initialized: {self.config.cell_id}")
+        logger.info("🧠 Thinker Cell initialized: %s", self.config.cell_id)
     
     # ═══════════════════════════════════════════════════════════════════════════
     # ABSTRACT METHOD IMPLEMENTATIONS
@@ -657,8 +657,8 @@ class ThinkerCell(MultipotentCell):
     
     async def on_connect(self, connection: DendriticConnection):
         """Handle new connection - potential agent source."""
-        logger.info(f"🧠 Thinker connected to: {connection.cell_id} ({connection.cell_type.value})")
-    
+        logger.info("🧠 Thinker connected to: %s (%s)", connection.cell_id, connection.cell_type.value)
+
     async def on_disconnect(self, connection: DendriticConnection):
         """Handle disconnection - clean up related conversations."""
         # Mark any conversations with this cell as interrupted
@@ -666,8 +666,8 @@ class ThinkerCell(MultipotentCell):
             if conv.get("partner_cell") == connection.cell_id:
                 conv["state"] = "interrupted"
         
-        logger.info(f"🧠 Thinker disconnected from: {connection.cell_id}")
-    
+        logger.info("🧠 Thinker disconnected from: %s", connection.cell_id)
+
     async def heartbeat(self):
         """Thinker-specific heartbeat - check agent health and coherence."""
         # Check agent states
@@ -708,10 +708,10 @@ class ThinkerCell(MultipotentCell):
         
         if success:
             self._agent_states[agent_id] = AgentState.READY
-            logger.info(f"🧠 Agent embedded: {agent_id} ({agent_type})")
+            logger.info("🧠 Agent embedded: %s (%s)", agent_id, agent_type)
         else:
             self._agent_states[agent_id] = AgentState.DORMANT
-            logger.warning(f"🧠 Agent embedding failed: {agent_id}")
+            logger.warning("🧠 Agent embedding failed: %s", agent_id)
         
         return CellSignal(
             signal_type="agent_embedded",
@@ -739,10 +739,10 @@ class ThinkerCell(MultipotentCell):
                 
                 if await agent.initialize():
                     self._agents[agent_id] = agent
-                    logger.info(f"🧠 Ollama agent initialized: {model_name} (tier: {agent.tier.value})")
+                    logger.info("🧠 Ollama agent initialized: %s (tier: %s)", model_name, agent.tier.value)
                     return True
                 else:
-                    logger.warning(f"🧠 Ollama agent failed to initialize: {model_name}")
+                    logger.warning("🧠 Ollama agent failed to initialize: %s", model_name)
                     
             elif agent_type in ("gemini", "github", "github_models"):
                 # Create GitHub Models client for cloud orchestration (FREE with GitHub subscription)
@@ -756,18 +756,18 @@ class ThinkerCell(MultipotentCell):
                 
                 if await agent.initialize():
                     self._agents[agent_id] = agent
-                    logger.info(f"🐙 GitHub Models agent initialized: {model_name} (tier: {agent.tier.value})")
+                    logger.info("🐙 GitHub Models agent initialized: %s (tier: %s)", model_name, agent.tier.value)
                     return True
                 else:
-                    logger.warning(f"🐙 GitHub Models agent failed to initialize: {model_name}")
+                    logger.warning("🐙 GitHub Models agent failed to initialize: %s", model_name)
                     return False
             
             # Fallback: register as placeholder for external agent
             self._agents[agent_id] = {"type": agent_type, "external": True}
             return True
             
-        except Exception as e:
-            logger.error(f"Agent initialization error: {e}")
+        except (RuntimeError, OSError, ValueError) as e:
+            logger.error("Agent initialization error: %s", e)
             return False
     
     async def _check_agent_health(self, agent_id: str):
@@ -878,7 +878,7 @@ class ThinkerCell(MultipotentCell):
                 },
             )
             
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError) as e:
             self._agent_states[target_agent_id] = AgentState.READY
             return CellSignal(
                 signal_type="query_error",
@@ -925,8 +925,8 @@ class ThinkerCell(MultipotentCell):
                 if hasattr(response, 'text'):
                     return response.text
                 return str(response)
-            except Exception as e:
-                raise RuntimeError(f"Agent query failed: {e}")
+            except (RuntimeError, OSError, ValueError) as e:
+                raise RuntimeError(f"Agent query failed: {e}") from e
         
         raise ValueError(f"Agent {agent_id} has no query interface")
     
@@ -962,7 +962,7 @@ class ThinkerCell(MultipotentCell):
         )
         
         self._conclaves[conclave.id] = conclave
-        logger.info(f"🧠 Conclave started: {conclave.id} - {topic} ({len(participants)} participants)")
+        logger.info("🧠 Conclave started: %s - %s (%d participants)", conclave.id, topic, len(participants))
         
         return CellSignal(
             signal_type="conclave_started",
@@ -1022,8 +1022,8 @@ class ThinkerCell(MultipotentCell):
                 )
                 conclave.thoughts.append(thought)
                 
-            except Exception as e:
-                logger.warning(f"Agent {agent_id} failed to contribute: {e}")
+            except (RuntimeError, OSError, ValueError) as e:
+                logger.warning("Agent %s failed to contribute: %s", agent_id, e)
         
         return CellSignal(
             signal_type="conclave_updated",
@@ -1068,7 +1068,7 @@ class ThinkerCell(MultipotentCell):
                 consensus = await self._query_agent(synthesizer, prompt)
                 conclave.consensus = consensus
                 
-            except Exception as e:
+            except (RuntimeError, OSError, ValueError) as e:
                 conclave.consensus = f"Synthesis failed: {e}"
         else:
             conclave.consensus = "No synthesizer available"
@@ -1076,7 +1076,7 @@ class ThinkerCell(MultipotentCell):
         conclave.state = ConclaveState.CONCLUDED
         conclave.concluded_at = datetime.now(timezone.utc)
         
-        logger.info(f"🧠 Conclave concluded: {conclave_id}")
+        logger.info("🧠 Conclave concluded: %s", conclave_id)
         
         return CellSignal(
             signal_type="conclave_concluded",
@@ -1163,9 +1163,9 @@ class ThinkerCell(MultipotentCell):
 Now, please respond to the following query:
 
 {query}"""
-                        logger.info(f"💎 Injected crystal context ({len(crystal_context)} chars) into process {process.id}")
-                except Exception as e:
-                    logger.warning(f"💎 Context injection failed: {e}")
+                        logger.info("💎 Injected crystal context (%d chars) into process %s", len(crystal_context), process.id)
+                except (RuntimeError, OSError, ValueError) as e:
+                    logger.warning("💎 Context injection failed: %s", e)
             
             response = await self._query_agent(agent_id, enhanced_query)
             
@@ -1179,7 +1179,7 @@ Now, please respond to the following query:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
             
-            logger.info(f"🔮 Fractal process started: {process.id} at tier {tier.value}")
+            logger.info("🔮 Fractal process started: %s at tier %s", process.id, tier.value)
             
             # Crystallize the exchange for persistent memory
             asyncio.create_task(self._crystallize_process(process))
@@ -1197,7 +1197,7 @@ Now, please respond to the following query:
                 },
             )
             
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError) as e:
             return CellSignal(
                 signal_type="fractal_error",
                 source_cell=self.config.cell_id,
@@ -1290,7 +1290,7 @@ Your elevated synthesis:"""
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
             
-            logger.info(f"🔮 Thought elevated: {process_id} → {next_tier.value}")
+            logger.info("🔮 Thought elevated: %s → %s", process_id, next_tier.value)
             
             # Crystallize after elevation for persistent memory
             asyncio.create_task(self._crystallize_process(process))
@@ -1309,7 +1309,7 @@ Your elevated synthesis:"""
                 },
             )
             
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError) as e:
             return CellSignal(
                 signal_type="fractal_error",
                 source_cell=self.config.cell_id,
@@ -1452,19 +1452,19 @@ Your elevated synthesis:"""
                         score, tier, breakdown = QualityScorer.score_exchange(exchange)
                         exchange.quality_score = score
                         exchange.quality_tier = tier
-                        logger.debug(f"💎 Scored {exchange.exchange_id}: {score:.2f} ({tier.value})")
+                        logger.debug("💎 Scored %s: %.2f (%s)", exchange.exchange_id, score, tier.value)
                 
                 # Log overall process quality
                 avg_score, peak_score, _ = QualityScorer.score_process(crystallized)
-                logger.info(f"💎 Process quality: avg={avg_score:.2f}, peak={peak_score:.2f}")
+                logger.info("💎 Process quality: avg=%.2f, peak=%.2f", avg_score, peak_score)
             
             # Persist to crystal
             result = await self._crystal.crystallize_process(crystallized)
-            logger.info(f"💎 Crystallized process {process.id} ({len(crystallized.exchanges)} exchanges)")
+            logger.info("💎 Crystallized process %s (%d exchanges)", process.id, len(crystallized.exchanges))
             return result
             
-        except Exception as e:
-            logger.error(f"💎 Crystallization failed: {e}")
+        except (RuntimeError, OSError, ValueError) as e:
+            logger.error("💎 Crystallization failed: %s", e)
             return None
     
     def _extract_topics(self, query: str) -> List[str]:
@@ -1495,8 +1495,8 @@ Your elevated synthesis:"""
         
         try:
             return await self._crystal.generate_context(query, max_tokens)
-        except Exception as e:
-            logger.error(f"💎 Context generation failed: {e}")
+        except (RuntimeError, OSError, ValueError) as e:
+            logger.error("💎 Context generation failed: %s", e)
             return ""
     
     async def _handle_query_crystal(self, signal: CellSignal) -> CellSignal:
@@ -1614,8 +1614,8 @@ Your elevated synthesis:"""
                     payload={"error": f"unknown_query_type: {query_type}"},
                 )
                 
-        except Exception as e:
-            logger.error(f"💎 Crystal query failed: {e}")
+        except (RuntimeError, OSError, ValueError) as e:
+            logger.error("💎 Crystal query failed: %s", e)
             return CellSignal(
                 signal_type="crystal_error",
                 source_cell=self.config.cell_id,
@@ -1641,7 +1641,7 @@ Your elevated synthesis:"""
                 target_cell=signal.source_cell,
                 payload=stats,
             )
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError) as e:
             return CellSignal(
                 signal_type="crystal_error",
                 source_cell=self.config.cell_id,
@@ -1685,10 +1685,10 @@ Your elevated synthesis:"""
                 
                 if process_updated:
                     # Re-persist the updated process
-                    await self._crystal.crystallize_process(process, overwrite=True)
+                    await self._crystal.crystallize_process(process)
                     updated_processes += 1
             
-            logger.info(f"💎 Rescored {rescored_count} exchanges in {updated_processes} processes")
+            logger.info("💎 Rescored %d exchanges in %d processes", rescored_count, updated_processes)
             
             return CellSignal(
                 signal_type="rescore_complete",
@@ -1700,8 +1700,8 @@ Your elevated synthesis:"""
                 },
             )
             
-        except Exception as e:
-            logger.error(f"💎 Rescoring failed: {e}")
+        except (RuntimeError, OSError, ValueError) as e:
+            logger.error("💎 Rescoring failed: %s", e)
             return CellSignal(
                 signal_type="crystal_error",
                 source_cell=self.config.cell_id,
@@ -1818,8 +1818,8 @@ Your elevated synthesis:"""
                 },
             )
             
-        except Exception as e:
-            logger.error(f"💎 Quality context generation failed: {e}")
+        except (RuntimeError, OSError, ValueError) as e:
+            logger.error("💎 Quality context generation failed: %s", e)
             return CellSignal(
                 signal_type="crystal_error",
                 source_cell=self.config.cell_id,
@@ -1961,7 +1961,7 @@ Your elevated synthesis:"""
                     "crystal_tier_low": float(stats.get("tier_distribution", {}).get("low", 0)),
                     "crystal_tier_minimal": float(stats.get("tier_distribution", {}).get("minimal", 0)),
                 })
-            except Exception:
+            except (RuntimeError, OSError, ValueError):
                 pass  # Crystal stats unavailable
         
         return metrics

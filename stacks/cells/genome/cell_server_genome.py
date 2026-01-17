@@ -136,7 +136,7 @@ class GenomeScanner:
                     config_file
                 ):  # Exclude docker port maps
                     issues += 1
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 pass
 
         coherence = 1.0 - (issues / max(checks, 1))
@@ -159,6 +159,7 @@ class GenomeScanner:
                         capture_output=True,
                         text=True,
                         timeout=5,
+                        check=False,  # We handle returncode manually
                     )
                     if result.returncode == 0 and result.stdout.strip():
                         last_modified = datetime.fromtimestamp(
@@ -166,7 +167,7 @@ class GenomeScanner:
                         )
                         days_ago = (datetime.now() - last_modified).days
                         freshness[doc_name] = days_ago
-                except Exception:
+                except (subprocess.TimeoutExpired, OSError, ValueError):
                     # Fallback to file mtime
                     mtime = datetime.fromtimestamp(doc_path.stat().st_mtime)
                     days_ago = (datetime.now() - mtime).days
@@ -198,9 +199,9 @@ class GenomeScanner:
                         content = file_path.read_text(encoding="utf-8", errors="ignore")
                         if re.search(pattern, content):
                             return True
-                    except Exception:
+                    except (OSError, UnicodeDecodeError):
                         continue
-        except Exception:
+        except OSError:
             pass
         return False
 

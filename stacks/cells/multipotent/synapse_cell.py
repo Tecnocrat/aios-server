@@ -138,7 +138,7 @@ class SynapseCell(MultipotentCell):
         self._mesh_health = 1.0
         self._flow_health = 1.0
         
-        logger.info(f"🔀 Synapse Cell initialized: {self.config.cell_id}")
+        logger.info("🔀 Synapse Cell initialized: %s", self.config.cell_id)
     
     # ═══════════════════════════════════════════════════════════════════════════
     # ABSTRACT METHOD IMPLEMENTATIONS
@@ -234,7 +234,7 @@ class SynapseCell(MultipotentCell):
         )
         self._target_weights[connection.cell_id] = 1.0  # Full weight initially
         
-        logger.info(f"🔀 Synapse connected to: {connection.cell_id}")
+        logger.info("🔀 Synapse connected to: %s", connection.cell_id)
     
     async def on_disconnect(self, connection: DendriticConnection):
         """Handle disconnection - mark routes for garbage collection."""
@@ -251,7 +251,7 @@ class SynapseCell(MultipotentCell):
         # Remove weight
         self._target_weights.pop(connection.cell_id, None)
         
-        logger.info(f"🔀 Synapse disconnected from: {connection.cell_id}")
+        logger.info("🔀 Synapse disconnected from: %s", connection.cell_id)
     
     async def heartbeat(self):
         """Synapse-specific heartbeat - process queues and cleanup."""
@@ -331,9 +331,9 @@ class SynapseCell(MultipotentCell):
                 try:
                     await ws.send(signal.to_json())
                     self._update_path_metrics(target, len(signal.to_json()), success=True)
-                except Exception as e:
+                except (OSError, RuntimeError) as e:
                     self._update_path_metrics(target, 0, success=False)
-                    logger.warning(f"Route failed to {target}: {e}")
+                    logger.warning("🔀 Route failed to %s: %s", target, e)
         else:
             # Target not directly connected - mark for garbage if stale
             self._garbage_queue.append(GarbageItem(
@@ -462,7 +462,7 @@ class SynapseCell(MultipotentCell):
                 target_cell=signal.source_cell,
                 payload={"redirected_to": new_target},
             )
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError) as e:
             return CellSignal(
                 signal_type="redirect_error",
                 source_cell=self.config.cell_id,
@@ -666,7 +666,7 @@ class SynapseCell(MultipotentCell):
                 self._flow_metrics.pop(item.item_id, None)
             elif item.item_type == "dead_signal":
                 # Just log it
-                logger.debug(f"GC: dead signal {item.item_id}")
+                logger.debug("GC: dead signal %s", item.item_id)
             elif item.item_type == "stale_cache":
                 # Already handled by cache cleanup
                 pass

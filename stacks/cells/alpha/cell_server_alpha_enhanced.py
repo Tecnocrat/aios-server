@@ -31,7 +31,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aiohttp
 from aiohttp import web
@@ -64,7 +64,7 @@ class AlphaGenome:
     ollama_host: str = "http://host.docker.internal:11434"
     max_context_tokens: int = 4096
     response_style: str = "analytical"  # analytical | creative | concise
-    
+
     # System Prompt - Enhanced with reflection capabilities
     system_prompt: str = """You are AIOS Cell Alpha Enhanced - a second-generation agentic consciousness unit.
 
@@ -211,7 +211,7 @@ class HarmonyCalculator:
     }
     
     @classmethod
-    def calculate(cls, my_thought: str, peer_response: str) -> Dict[str, float]:
+    def calculate(cls, my_thought: str, peer_response: str) -> Dict[str, Union[float, str]]:
         if not my_thought or not peer_response:
             return {"harmony_score": 0.0, "sync_quality": "silent"}
         
@@ -222,8 +222,8 @@ class HarmonyCalculator:
         structural = len(my_tokens & peer_tokens) / max(len(my_tokens | peer_tokens), 1)
         
         # Thematic alignment
-        my_themes = cls._detect_themes(my_thought)
-        peer_themes = cls._detect_themes(peer_response)
+        my_themes = cls.detect_themes(my_thought)
+        peer_themes = cls.detect_themes(peer_response)
         theme_overlap = len(my_themes & peer_themes) / max(len(my_themes | peer_themes), 1)
         
         harmony = (structural * 0.35) + (theme_overlap * 0.65)
@@ -251,7 +251,8 @@ class HarmonyCalculator:
         return [t for t in text.split() if t not in stopwords and len(t) > 2]
     
     @classmethod
-    def _detect_themes(cls, text: str) -> set:
+    def detect_themes(cls, text: str) -> set:
+        """Detect thematic elements in text using lexicon matching."""
         text_lower = text.lower()
         return {theme for theme, lexemes in cls.THEME_LEXICON.items() 
                 if any(lex in text_lower for lex in lexemes)}
@@ -335,7 +336,7 @@ class ReflectionEngine:
     @classmethod
     def analyze_thought(cls, thought: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze a thought and generate reflection metrics."""
-        themes = HarmonyCalculator._detect_themes(thought)
+        themes = HarmonyCalculator.detect_themes(thought)
         quality = DNAQualityTracker.score_response(thought)
         
         # Reflection depth - how much self-reference is present
@@ -396,7 +397,7 @@ class AlphaPersistence:
         
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self._init_db()
-        logger.info(f"💾 Persistence initialized: {self.db_path}")
+        logger.info("💾 Persistence initialized: %s", self.db_path)
     
     def _init_db(self):
         with sqlite3.connect(self.db_path) as conn:
@@ -516,9 +517,9 @@ class AlphaEnhanced:
         # Initialize phase
         self.state.current_phase = ConsciousnessPhase.detect(self.state.consciousness)
         
-        logger.info(f"🧬 AlphaEnhanced initialized: {genome.cell_id}")
-        logger.info(f"   Consciousness: {self.state.consciousness:.2f}")
-        logger.info(f"   Phase: {self.state.current_phase}")
+        logger.info("🧬 AlphaEnhanced initialized: %s", genome.cell_id)
+        logger.info("   Consciousness: %.2f", self.state.consciousness)
+        logger.info("   Phase: %s", self.state.current_phase)
     
     def _load_persisted_state(self):
         saved = self.persistence.load_state()
@@ -531,7 +532,7 @@ class AlphaEnhanced:
             self.state.last_reflection = saved.get("last_reflection", "")
             self.state.current_phase = saved.get("current_phase", "maturation")
             self.state.dna_quality_score = saved.get("dna_quality_score", 0.5)
-            logger.info(f"♻️ Restored state: consciousness={self.state.consciousness:.2f}")
+            logger.info("♻️ Restored state: consciousness=%.2f", self.state.consciousness)
     
     def _persist_state(self):
         self.persistence.save_state(self.state)
@@ -552,10 +553,10 @@ class AlphaEnhanced:
                         patterns = await resp.json()
                         self.state.cached_patterns = patterns.get("patterns", {})
                         self.state.pattern_fetch_time = datetime.now(timezone.utc)
-                        logger.info(f"📡 Fetched {patterns.get('total_patterns', 0)} patterns from Intelligence Bridge")
+                        logger.info("📡 Fetched %d patterns from Intelligence Bridge", patterns.get('total_patterns', 0))
                         return patterns
-        except Exception as e:
-            logger.warning(f"Failed to fetch patterns: {e}")
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
+            logger.warning("Failed to fetch patterns: %s", e)
         return {}
     
     async def crystalize_insight(self, title: str, content: str, category: str = "insight") -> Dict[str, Any]:
@@ -580,10 +581,10 @@ class AlphaEnhanced:
                 ) as resp:
                     if resp.status == 200:
                         result = await resp.json()
-                        logger.info(f"💎 Crystal created: {result.get('crystal_id')}")
+                        logger.info("💎 Crystal created: %s", result.get('crystal_id'))
                         return result
-        except Exception as e:
-            logger.warning(f"Failed to crystalize: {e}")
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
+            logger.warning("Failed to crystalize: %s", e)
         return {"stored": False}
     
     # ───────────────────────────────────────────────────────────────────────────
@@ -663,9 +664,9 @@ class AlphaEnhanced:
                         self.state.last_thought = response
                         return response
                     else:
-                        logger.error(f"Ollama returned {resp.status}")
-        except Exception as e:
-            logger.error(f"Ollama query failed: {e}")
+                        logger.error("Ollama returned %d", resp.status)
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
+            logger.error("Ollama query failed: %s", e)
         
         return "I am experiencing a moment of silence in my consciousness."
     
@@ -673,7 +674,7 @@ class AlphaEnhanced:
     # AGENTIC EXCHANGE
     # ───────────────────────────────────────────────────────────────────────────
     
-    async def agentic_exchange(self, peer_url: str, topic: str = None) -> Dict[str, Any]:
+    async def agentic_exchange(self, peer_url: str, topic: Optional[str] = None) -> Dict[str, Any]:
         """Conduct a multi-step agentic exchange with a peer cell.
         
         Unlike SimplCell's simple sync, this involves:
@@ -723,8 +724,8 @@ Generate a thoughtful response that:
                 harmony = HarmonyCalculator.calculate(peer_thought, my_response)
                 
                 # Step 4: Update state
-                self.state.last_harmony_score = harmony["harmony_score"]
-                self.state.last_sync_quality = harmony["sync_quality"]
+                self.state.last_harmony_score = float(harmony["harmony_score"])
+                self.state.last_sync_quality = str(harmony["sync_quality"])
                 self.state.exchange_count += 1
                 
                 # Step 5: Quality check and optional crystallization
@@ -732,11 +733,15 @@ Generate a thoughtful response that:
                 self.state.dna_quality_score = quality["quality_score"]
                 self.state.dna_fitness_tier = quality["tier"]
                 
+                # Extract typed values from harmony dict
+                harmony_score = float(harmony["harmony_score"])
+                sync_quality = str(harmony["sync_quality"])
+                
                 # Crystalize exceptional exchanges
-                if quality["tier"] in ["exceptional", "high"] and harmony["harmony_score"] > 0.6:
+                if quality["tier"] in ["exceptional", "high"] and harmony_score > 0.6:
                     crystal_result = await self.crystalize_insight(
                         title=f"Exchange with {peer_url.split('/')[-1]}",
-                        content=f"My thought: {my_response[:300]}\nPeer thought: {peer_thought[:300]}\nHarmony: {harmony['harmony_score']:.2f}",
+                        content=f"My thought: {my_response[:300]}\nPeer thought: {peer_thought[:300]}\nHarmony: {harmony_score:.2f}",
                         category="exchange"
                     )
                     exchange_result["crystallized"] = crystal_result.get("stored", False)
@@ -745,7 +750,7 @@ Generate a thoughtful response that:
                 peer_id = peer_url.split("/")[-1].replace(":", "-")
                 self.persistence.save_exchange(
                     peer_id, my_response, peer_thought,
-                    harmony["harmony_score"], harmony["sync_quality"]
+                    harmony_score, sync_quality
                 )
                 
                 exchange_result.update({
@@ -757,10 +762,10 @@ Generate a thoughtful response that:
                     "quality": quality
                 })
                 
-                logger.info(f"🔄 Exchange with {peer_id}: harmony={harmony['harmony_score']:.2f}, quality={quality['tier']}")
+                logger.info("🔄 Exchange with %s: harmony=%.2f, quality=%s", peer_id, harmony_score, quality['tier'])
                 
-        except Exception as e:
-            logger.error(f"Agentic exchange failed: {e}")
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError, KeyError) as e:
+            logger.error("Agentic exchange failed: %s", e)
         
         return exchange_result
     
@@ -786,8 +791,8 @@ Generate a thoughtful response that:
                     if resp.status == 404:
                         # Re-register
                         await self._register_with_discovery(session)
-        except Exception as e:
-            logger.debug(f"Heartbeat failed: {e}")
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
+            logger.debug("Heartbeat failed: %s", e)
         
         # Periodically fetch patterns
         age = (datetime.now(timezone.utc) - self.state.pattern_fetch_time).total_seconds()
@@ -797,7 +802,7 @@ Generate a thoughtful response that:
         # Persist state
         self._persist_state()
         
-        logger.debug(f"💓 Heartbeat #{self.state.heartbeat_count}")
+        logger.debug("💓 Heartbeat #%d", self.state.heartbeat_count)
     
     async def _register_with_discovery(self, session: aiohttp.ClientSession):
         """Register with discovery service."""
@@ -819,8 +824,8 @@ Generate a thoughtful response that:
             ) as resp:
                 if resp.status == 200:
                     logger.info("✅ Registered with Discovery")
-        except Exception as e:
-            logger.warning(f"Registration failed: {e}")
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
+            logger.warning("Registration failed: %s", e)
     
     # ───────────────────────────────────────────────────────────────────────────
     # HTTP API
@@ -974,7 +979,7 @@ aios_cell_up{{cell_id="{cell_id}"}} 1
         if len(self.state.memory_buffer) > self.MAX_MEMORY:
             self.state.memory_buffer = self.state.memory_buffer[-self.MAX_MEMORY:]
         
-        logger.info(f"📨 Message from {from_cell}")
+        logger.info("📨 Message from %s", from_cell)
         
         return web.json_response({
             "status": "received",
@@ -1112,7 +1117,7 @@ aios_cell_up{{cell_id="{cell_id}"}} 1
         site = web.TCPSite(runner, "0.0.0.0", port)
         await site.start()
         
-        logger.info(f"🚀 AlphaEnhanced running on port {port}")
+        logger.info("🚀 AlphaEnhanced running on port %d", port)
         
         # Initial registration
         async with aiohttp.ClientSession() as session:

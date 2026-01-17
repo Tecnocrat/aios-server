@@ -140,7 +140,12 @@ class GenesisCenter:
         self._http_app = None
         self._monitor_task = None
         
-        logger.info(f"🌱 Genesis Center initialized: {self._genesis_id} (spawn_enabled={spawn_enabled})")
+        logger.info("🌱 Genesis Center initialized: %s (spawn_enabled=%s)", self._genesis_id, spawn_enabled)
+
+    @property
+    def is_running(self) -> bool:
+        """Check if Genesis Center is running."""
+        return self._running
     
     # ═══════════════════════════════════════════════════════════════════════════
     # CELL SPAWNING
@@ -175,7 +180,7 @@ class GenesisCenter:
         elif request.spawn_method == "docker":
             await self._spawn_docker(cell, request)
         else:
-            logger.warning(f"Unknown spawn method: {request.spawn_method}")
+            logger.warning("Unknown spawn method: %s", request.spawn_method)
         
         # Update population metrics
         pop = self._populations.get(request.cell_type)
@@ -184,7 +189,7 @@ class GenesisCenter:
             if pop.state == PopulationState.EMPTY:
                 pop.state = PopulationState.SPAWNING
         
-        logger.info(f"🌱 Spawned {request.cell_type} cell: {cell_id}")
+        logger.info("🌱 Spawned %s cell: %s", request.cell_type, cell_id)
         return cell
     
     async def _spawn_subprocess(self, cell: SpawnedCell, request: CellSpawnRequest):
@@ -233,8 +238,8 @@ class GenesisCenter:
             cell.process_id = process.pid
             cell.state = "starting"
             
-        except Exception as e:
-            logger.error(f"Subprocess spawn failed: {e}")
+        except (OSError, subprocess.SubprocessError) as e:
+            logger.error("Subprocess spawn failed: %s", e)
             cell.state = "failed"
     
     async def _spawn_docker(self, cell: SpawnedCell, request: CellSpawnRequest):
@@ -262,17 +267,17 @@ class GenesisCenter:
                 f"aios-{cell.cell_type}-cell:latest"
             ]
             
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
             
             if result.returncode == 0:
                 cell.container_id = result.stdout.strip()[:12]
                 cell.state = "starting"
             else:
-                logger.error(f"Docker spawn failed: {result.stderr}")
+                logger.error("Docker spawn failed: %s", result.stderr)
                 cell.state = "failed"
                 
-        except Exception as e:
-            logger.error(f"Docker spawn error: {e}")
+        except (OSError, subprocess.SubprocessError) as e:
+            logger.error("Docker spawn error: %s", e)
             cell.state = "failed"
     
     async def terminate_cell(self, cell_id: str) -> bool:
@@ -288,21 +293,21 @@ class GenesisCenter:
         if ws:
             try:
                 await ws.close()
-            except Exception:
+            except (OSError, RuntimeError):
                 pass
         
         # Terminate process or container
         if cell.process_id:
             try:
                 os.kill(cell.process_id, 15)  # SIGTERM
-            except Exception as e:
-                logger.warning(f"Process termination error: {e}")
+            except (OSError, ProcessLookupError) as e:
+                logger.warning("Process termination error: %s", e)
         
         if cell.container_id:
             try:
-                subprocess.run(["docker", "stop", cell.container_id], capture_output=True)
-            except Exception as e:
-                logger.warning(f"Container stop error: {e}")
+                subprocess.run(["docker", "stop", cell.container_id], capture_output=True, check=False)
+            except (OSError, subprocess.SubprocessError) as e:
+                logger.warning("Container stop error: %s", e)
         
         cell.state = "terminated"
         
@@ -312,7 +317,7 @@ class GenesisCenter:
             pop.current_count = max(0, pop.current_count - 1)
             pop.alive_count = max(0, pop.alive_count - 1)
         
-        logger.info(f"🌱 Terminated cell: {cell_id}")
+        logger.info("🌱 Terminated cell: %s", cell_id)
         return True
     
     # ═══════════════════════════════════════════════════════════════════════════
@@ -331,7 +336,7 @@ class GenesisCenter:
         directive_id = directive.get("directive_id", "unknown")
         target_agent = directive.get("target_agent_id")
         
-        logger.info(f"🧬 Received mutation directive: {mutation_type} for {target_agent or 'new'}")
+        logger.info("🧬 Received mutation directive: %s for %s", mutation_type, target_agent or 'new')
         
         response = {
             "type": "mutation_response",
@@ -347,8 +352,8 @@ class GenesisCenter:
                 parent_id = directive.get("parent_ids", [None])[0]
                 
                 # Log the intent (actual spawning requires spawn_enabled=True)
-                logger.info(f"🧬 SPAWN_VARIANT directive: parent={parent_id}")
-                logger.info(f"🧬   Config: {json.dumps(config)[:200]}")
+                logger.info("🧬 SPAWN_VARIANT directive: parent=%s", parent_id)
+                logger.info("🧬   Config: %s", json.dumps(config)[:200])
                 
                 if self.spawn_enabled:
                     # TODO: Implement variant spawning logic
@@ -362,20 +367,20 @@ class GenesisCenter:
             
             elif mutation_type == "amplify":
                 # Scale up a successful configuration
-                logger.info(f"🧬 AMPLIFY directive: {target_agent}")
+                logger.info("🧬 AMPLIFY directive: %s", target_agent)
                 # For now, log the intent. Future: increase replica count
                 response["action_taken"] = "amplify_logged"
                 response["note"] = f"Agent {target_agent} marked for amplification"
             
             elif mutation_type == "deprecate":
                 # Mark an agent for gradual phase-out
-                logger.info(f"🧬 DEPRECATE directive: {target_agent}")
+                logger.info("🧬 DEPRECATE directive: %s", target_agent)
                 response["action_taken"] = "deprecate_logged"
                 response["note"] = f"Agent {target_agent} marked for deprecation"
             
             elif mutation_type == "prune":
                 # Immediately remove a failing agent
-                logger.info(f"🧬 PRUNE directive: {target_agent}")
+                logger.info("🧬 PRUNE directive: %s", target_agent)
                 if target_agent and target_agent in self._cells:
                     await self.terminate_cell(target_agent)
                     response["action_taken"] = "pruned"
@@ -386,21 +391,21 @@ class GenesisCenter:
                 # Combine traits from multiple high performers
                 parent_ids = directive.get("parent_ids", [])
                 config = directive.get("new_config", {})
-                logger.info(f"🧬 CROSSOVER directive: parents={parent_ids}")
-                logger.info(f"🧬   Config: {json.dumps(config)[:200]}")
+                logger.info("🧬 CROSSOVER directive: parents=%s", parent_ids)
+                logger.info("🧬   Config: %s", json.dumps(config)[:200])
                 
                 response["action_taken"] = "crossover_logged"
                 response["note"] = "Crossover requires manual implementation for now"
             
             else:
-                logger.warning(f"🧬 Unknown mutation type: {mutation_type}")
+                logger.warning("🧬 Unknown mutation type: %s", mutation_type)
                 response["status"] = "unknown_mutation_type"
             
             # Send response back to Genome
             await websocket.send(json.dumps(response))
             
-        except Exception as e:
-            logger.error(f"🧬 Mutation directive handling failed: {e}")
+        except (RuntimeError, ValueError, KeyError) as e:
+            logger.error("🧬 Mutation directive handling failed: %s", e)
             response["status"] = "error"
             response["error"] = str(e)
             await websocket.send(json.dumps(response))
@@ -429,7 +434,7 @@ class GenesisCenter:
                     # Track genome cells specially
                     if cell_type == "genome":
                         self._cell_connections[cell_id] = websocket
-                        logger.info(f"🧬 Genome Cell connected: {cell_id}")
+                        logger.info("🧬 Genome Cell connected: %s", cell_id)
                         await websocket.send(json.dumps({
                             "id": data.get("id", ""),
                             "signal_type": "ack",
@@ -470,7 +475,7 @@ class GenesisCenter:
                             "genesis_id": self._genesis_id,
                         }))
                         
-                        logger.info(f"🌱 Cell registered: {cell_id}")
+                        logger.info("🌱 Cell registered: %s", cell_id)
                 
                 elif msg_type == "heartbeat" and cell_id:
                     if cell_id in self._cells:
@@ -482,7 +487,7 @@ class GenesisCenter:
                         self._cells[cell_id].state = data.get("state", "active")
                 
                 elif msg_type == "shutdown" and cell_id:
-                    logger.info(f"🌱 Cell requested shutdown: {cell_id}")
+                    logger.info("🌱 Cell requested shutdown: %s", cell_id)
                     await self.terminate_cell(cell_id)
                 
                 # Genome mutation directives
@@ -491,8 +496,8 @@ class GenesisCenter:
                 
         except websockets.exceptions.ConnectionClosed:
             pass
-        except Exception as e:
-            logger.error(f"Cell connection error: {e}")
+        except (OSError, RuntimeError, ValueError) as e:
+            logger.error("Cell connection error: %s", e)
         finally:
             if cell_id:
                 self._cell_connections.pop(cell_id, None)
@@ -514,7 +519,7 @@ class GenesisCenter:
             "0.0.0.0",
             self.ws_port
         )
-        logger.info(f"🌱 Genesis WS server on port {self.ws_port}")
+        logger.info("🌱 Genesis WS server on port %d", self.ws_port)
     
     # ═══════════════════════════════════════════════════════════════════════════
     # HTTP API
@@ -572,7 +577,7 @@ class GenesisCenter:
                     "http_port": cell.http_port,
                     "state": cell.state,
                 })
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError) as e:
                 return web.json_response({"error": str(e)}, status=400)
         
         # Terminate endpoint
@@ -595,7 +600,7 @@ class GenesisCenter:
                         "target": target,
                     })
                 return web.json_response({"error": "unknown type"}, status=400)
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError) as e:
                 return web.json_response({"error": str(e)}, status=400)
         
         # Health endpoint
@@ -614,7 +619,6 @@ class GenesisCenter:
                 try:
                     from stacks.shared.prometheus_metrics import format_prometheus_metrics
                 except ImportError:
-                    import sys
                     if '/app/shared' not in sys.path:
                         sys.path.insert(0, '/app/shared')
                     from prometheus_metrics import format_prometheus_metrics
@@ -668,8 +672,8 @@ class GenesisCenter:
                     content_type="text/plain",
                     charset="utf-8"
                 )
-            except Exception as e:
-                logger.error(f"Metrics error: {e}")
+            except (RuntimeError, ValueError, ImportError) as e:
+                logger.error("Metrics error: %s", e)
                 return web.Response(text=f"# Error: {e}\n", status=500)
         
         app.router.add_get("/status", handle_status)
@@ -694,7 +698,7 @@ class GenesisCenter:
             for cell_id, cell in list(self._cells.items()):
                 if cell.state == "active" and not cell.is_alive:
                     cell.state = "unresponsive"
-                    logger.warning(f"🌱 Cell unresponsive: {cell_id}")
+                    logger.warning("🌱 Cell unresponsive: %s", cell_id)
                     
                     pop = self._populations.get(cell.cell_type)
                     if pop:
@@ -713,7 +717,7 @@ class GenesisCenter:
                     attempts = self._spawn_attempts.get(pop_name, 0)
                     if attempts >= self.max_spawn_attempts:
                         if pop.state != PopulationState.DORMANT:
-                            logger.warning(f"🌱 Max spawn attempts reached for {pop_name}, entering dormant state")
+                            logger.warning("🌱 Max spawn attempts reached for %s, entering dormant state", pop_name)
                             pop.state = PopulationState.DORMANT
                         continue
                     
@@ -791,10 +795,10 @@ class GenesisCenter:
                                         pop.state = PopulationState.ACTIVE
                                     
                                     discovered += 1
-                                    logger.info(f"🌱 Discovered external cell: {cell_id} ({cell_type}) at {url}")
+                                    logger.info("🌱 Discovered external cell: %s (%s) at %s", cell_id, cell_type, url)
                                     break  # Found, no need to try other URLs
-                except Exception as e:
-                    logger.debug(f"Cell discovery failed for {cell_id} at {url}: {e}")
+                except (OSError, aiohttp.ClientError, asyncio.TimeoutError) as e:
+                    logger.debug("Cell discovery failed for %s at %s: %s", cell_id, url, e)
         
         return discovered
     
@@ -816,12 +820,12 @@ class GenesisCenter:
             await runner.setup()
             site = web.TCPSite(runner, "0.0.0.0", self.http_port)
             await site.start()
-            logger.info(f"🌱 Genesis HTTP API on port {self.http_port}")
+            logger.info("🌱 Genesis HTTP API on port %d", self.http_port)
         
         # Start monitor
         self._monitor_task = asyncio.create_task(self._monitor_loop())
         
-        logger.info(f"🌱 Genesis Center started: {self._genesis_id}")
+        logger.info("🌱 Genesis Center started: %s", self._genesis_id)
     
     async def stop(self):
         """Stop the Genesis Center."""
@@ -844,7 +848,7 @@ class GenesisCenter:
             self._ws_server.close()
             await self._ws_server.wait_closed()
         
-        logger.info(f"🌱 Genesis Center stopped: {self._genesis_id}")
+        logger.info("🌱 Genesis Center stopped: %s", self._genesis_id)
     
     async def run_forever(self):
         """Run Genesis Center until interrupted."""
@@ -884,14 +888,14 @@ async def main():
                 await genesis.start()  # Start first to enable HTTP
                 await asyncio.sleep(2)  # Let cells initialize
                 discovered = await genesis.discover_external_cells(external_cells)
-                logger.info(f"🌱 Discovered {discovered} external cells")
+                logger.info("🌱 Discovered %d external cells", discovered)
         except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse GENESIS_EXTERNAL_CELLS: {e}")
+            logger.warning("Failed to parse GENESIS_EXTERNAL_CELLS: %s", e)
     else:
         await genesis.start()
     
     try:
-        while genesis._running:
+        while genesis.is_running:
             await asyncio.sleep(1)
     except KeyboardInterrupt:
         await genesis.stop()

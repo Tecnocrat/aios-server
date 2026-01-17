@@ -229,7 +229,7 @@ class MemoryStorage:
                 crystal.crystal_id, crystal.crystal_type
             )
             return True
-        except Exception as e:
+        except (sqlite3.Error, json.JSONDecodeError) as e:
             logger.error("Crystal storage failed: %s", e)
             return False
     
@@ -266,7 +266,7 @@ class MemoryStorage:
                         last_accessed=now
                     )
                 return None
-        except Exception as e:
+        except (sqlite3.Error, json.JSONDecodeError, KeyError) as e:
             logger.error("Crystal retrieval failed: %s", e)
             return None
     
@@ -315,7 +315,7 @@ class MemoryStorage:
                     ))
                 
                 return crystals
-        except Exception as e:
+        except (sqlite3.Error, json.JSONDecodeError, KeyError) as e:
             logger.error("Crystal query failed: %s", e)
             return []
     
@@ -347,7 +347,7 @@ class MemoryStorage:
                     memory.expires_at
                 ))
             return True
-        except Exception as e:
+        except (sqlite3.Error, json.JSONDecodeError) as e:
             logger.error("Memory storage failed: %s", e)
             return False
     
@@ -386,7 +386,7 @@ class MemoryStorage:
                     )
                     for row in rows
                 ]
-        except Exception as e:
+        except (sqlite3.Error, json.JSONDecodeError, KeyError) as e:
             logger.error("Memory query failed: %s", e)
             return []
     
@@ -428,7 +428,7 @@ class MemoryStorage:
                         json.dumps(pattern.source_files)
                     ))
             return True
-        except Exception as e:
+        except (sqlite3.Error, json.JSONDecodeError) as e:
             logger.error("Pattern storage failed: %s", e)
             return False
     
@@ -454,7 +454,7 @@ class MemoryStorage:
                     "patterns": pattern_count,
                     "total_consciousness_contribution": total_consciousness
                 }
-        except Exception as e:
+        except sqlite3.Error as e:
             logger.error("Stats query failed: %s", e)
             return {}
 
@@ -612,7 +612,7 @@ class MemoryCell:
         try:
             hostname = socket.gethostname()
             ip = socket.gethostbyname(hostname)
-        except:
+        except socket.error:
             ip = "aios-cell-memory"  # Docker service name fallback
         
         registration = {
@@ -636,7 +636,7 @@ class MemoryCell:
                     return True
                 else:
                     logger.warning("Discovery registration failed: %s", response.text)
-        except Exception as e:
+        except (httpx.RequestError, OSError) as e:
             logger.warning("Could not register with Discovery: %s", e)
         return False
     
@@ -661,8 +661,8 @@ class MemoryCell:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    port = int(os.environ.get("MEMORY_PORT", 8007))
-    db_path = os.environ.get("MEMORY_DB_PATH", "/app/data/memory.db")
+    server_port = int(os.environ.get("MEMORY_PORT", 8007))
+    storage_db_path = os.environ.get("MEMORY_DB_PATH", "/app/data/memory.db")
     
-    cell = MemoryCell(port=port, db_path=db_path)
+    cell = MemoryCell(port=server_port, db_path=storage_db_path)
     cell.run()
