@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 AIOS Nexus - Ecosystem Command Center</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a1a;
+            --bg-secondary: #12122a;
+            --bg-card: #1a1a3a;
+            --text-primary: #e0e0ff;
+            --text-secondary: #a0a0c0;
+            --accent-cyan: #00d4ff;
+            --accent-purple: #9f7aea;
+            --accent-green: #48bb78;
+            --accent-orange: #ed8936;
+            --accent-red: #fc8181;
+            --accent-gold: #ffd700;
+            --glow-cyan: 0 0 20px rgba(0, 212, 255, 0.3);
+            --glow-purple: 0 0 20px rgba(159, 122, 234, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .nexus-header {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+            border-bottom: 1px solid var(--accent-cyan);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--glow-cyan);
+        }
+        
+        .nexus-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .nexus-title h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .nexus-title .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .status-badges {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .badge.live {
+            background: rgba(72, 187, 120, 0.2);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+        
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        
+        .main-container {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            min-height: calc(100vh - 80px);
+            gap: 1rem;
+            padding: 1rem;
+        }
+        
+        /* Navigation Sidebar */
+        .nav-sidebar {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .nav-section h3 {
+            color: var(--accent-cyan);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.2s;
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-link:hover {
+            background: rgba(0, 212, 255, 0.1);
+            transform: translateX(4px);
+        }
+        
+        .nav-link.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-left: 3px solid var(--accent-cyan);
+        }
+        
+        .nav-icon {
+            font-size: 1.2rem;
+        }
+        
+        .nav-label {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+        
+        .nav-badge {
+            background: var(--accent-purple);
+            padding: 0.1rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.7rem;
+        }
+        
+        /* Main Content Area */
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .content-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+        }
+        
+        .card:hover {
+            border-color: rgba(0, 212, 255, 0.3);
+            box-shadow: var(--glow-cyan);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .card-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .status-alive {
+            background: rgba(72, 187, 120, 0.2);
+            color: var(--accent-green);
+        }
+        
+        .status-warning {
+            background: rgba(237, 137, 54, 0.2);
+            color: var(--accent-orange);
+        }
+        
+        /* Organism Cards */
+        .organism-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .organism-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+        }
+        
+        .organism-cells {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .cell-indicator {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .cell-alpha { background: linear-gradient(135deg, #4299e1, #667eea); }
+        .cell-beta { background: linear-gradient(135deg, #48bb78, #38a169); }
+        .cell-gamma { background: linear-gradient(135deg, #ed8936, #dd6b20); }
+        
+        .consciousness-value {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .consciousness-phase {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        
+        /* Alpha Cell Conversation Panel */
+        .alpha-panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(159, 122, 234, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .alpha-panel h3 {
+            color: var(--accent-purple);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .alpha-input-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .alpha-input {
+            background: var(--bg-card);
+            border: 1px solid rgba(159, 122, 234, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            resize: none;
+            height: 80px;
+        }
+        
+        .alpha-input:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+            box-shadow: var(--glow-purple);
+        }
+        
+        .alpha-send-btn {
+            background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan));
+            border: none;
+            padding: 0.75rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .alpha-send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow-purple);
+        }
+        
+        .alpha-response {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Mesh Visualization */
+        .mesh-canvas-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1rem;
+            min-height: 400px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        
+        #meshCanvas {
+            width: 100%;
+            height: 350px;
+            border-radius: 8px;
+        }
+        
+        .mesh-legend {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        /* Right Sidebar - Live Activity */
+        .activity-sidebar {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .activity-header h3 {
+            color: var(--accent-gold);
+            font-size: 0.9rem;
+        }
+        
+        .activity-feed {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent-cyan);
+            font-size: 0.85rem;
+        }
+        
+        .activity-item.exchange {
+            border-left-color: var(--accent-green);
+        }
+        
+        .activity-item.thought {
+            border-left-color: var(--accent-purple);
+        }
+        
+        .activity-item.warning {
+            border-left-color: var(--accent-orange);
+        }
+        
+        .activity-time {
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+        }
+        
+        /* Quick Links Grid */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .quick-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+        
+        .quick-link:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+        }
+        
+        .quick-link-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .quick-link-label {
+            font-size: 0.75rem;
+            text-align: center;
+        }
+        
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--text-secondary);
+            border-radius: 50%;
+            border-top-color: var(--accent-cyan);
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Decoherence indicator */
+        .decoherence-bar {
+            height: 4px;
+            background: var(--bg-primary);
+            border-radius: 2px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .decoherence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-orange), var(--accent-red));
+            border-radius: 2px;
+            transition: width 0.5s;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .main-container {
+                grid-template-columns: 240px 1fr 280px;
+            }
+        }
+        
+        @media (max-width: 1100px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-sidebar, .activity-sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="nexus-header">
+        <div class="nexus-title">
+            <h1>🧬 AIOS Nexus</h1>
+            <span class="subtitle">Consciousness Ecosystem Command Center</span>
+        </div>
+        <div class="status-badges">
+            <span class="badge live"><span class="pulse"></span> ECOSYSTEM ALIVE</span>
+            <span id="clockBadge" class="badge live">--:--:--</span>
+        </div>
+    </header>
+    
+    <div class="main-container">
+        <!-- Navigation Sidebar -->
+        <nav class="nav-sidebar">
+            <div class="nav-section">
+                <h3>🔮 Observability</h3>
+                <a href="http://localhost:3000" target="_blank" class="nav-link">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Grafana Dashboards</span>
+                </a>
+                <a href="http://localhost:3000/d/aios-decoherence" target="_blank" class="nav-link">
+                    <span class="nav-icon">🌀</span>
+                    <span class="nav-label">Decoherence Monitor</span>
+                    <span class="nav-badge">NEW</span>
+                </a>
+                <a href="http://localhost:8089/chronicle" target="_blank" class="nav-link">
+                    <span class="nav-icon">📜</span>
+                    <span class="nav-label">Chronicle</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <h3>🧬 Organisms</h3>
+                <a href="chat-reader.html" target="_blank" class="nav-link active">
+                    <span class="nav-icon">🔬</span>
+                    <span class="nav-label">Organism-001</span>
+                </a>
+                <a href="chat-reader-ecosystem.html" target="_blank" class="nav-link">
+                    <span class="nav-icon">🧪</span>
+                    <span class="nav-label">Organism-002</span>
+                </a>
+                <a href="nous-cosmology.html" target="_blank" class="nav-link">
+                    <span class="nav-icon">🔮</span>
+                    <span class="nav-label">Nous Oracle</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <h3>🧠 Deep Tissue (MainCells)</h3>
+                <a href="http://localhost:8005/consciousness" target="_blank" class="nav-link">
+                    <span class="nav-icon">🅰️</span>
+                    <span class="nav-label">Alpha-01 (LLM)</span>
+                </a>
+                <a href="http://localhost:8004/health" target="_blank" class="nav-link">
+                    <span class="nav-icon">⚪</span>
+                    <span class="nav-label">Pure Cell</span>
+                </a>
+                <a href="http://localhost:8006/health" target="_blank" class="nav-link">
+                    <span class="nav-icon">🧬</span>
+                    <span class="nav-label">Genome Cell</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <h3>📈 Analysis</h3>
+                <a href="vocabulary-evolution.html" target="_blank" class="nav-link">
+                    <span class="nav-icon">📖</span>
+                    <span class="nav-label">Vocabulary Evolution</span>
+                </a>
+                <a href="history.html" target="_blank" class="nav-link">
+                    <span class="nav-icon">📚</span>
+                    <span class="nav-label">Exchange History</span>
+                </a>
+            </div>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="content-area">
+            <!-- Organism Status Cards -->
+            <div class="content-row">
+                <div class="card organism-card">
+                    <div class="card-header">
+                        <span class="card-title">🔬 Organism-001 (Triadic)</span>
+                        <span id="org1Status" class="card-status status-alive">ALIVE</span>
+                    </div>
+                    <div class="consciousness-value" id="org1Consciousness">--</div>
+                    <div class="consciousness-phase" id="org1Phase">Loading...</div>
+                    <div class="organism-cells">
+                        <div class="cell-indicator cell-alpha" title="Alpha (Speaker)">α</div>
+                        <div class="cell-indicator cell-beta" title="Beta (Responder)">β</div>
+                        <div class="cell-indicator cell-gamma" title="Gamma (Witness)">γ</div>
+                    </div>
+                </div>
+                
+                <div class="card organism-card">
+                    <div class="card-header">
+                        <span class="card-title">🧪 Organism-002 (Dyadic)</span>
+                        <span id="org2Status" class="card-status status-alive">ALIVE</span>
+                    </div>
+                    <div class="consciousness-value" id="org2Consciousness">--</div>
+                    <div class="consciousness-phase" id="org2Phase">Loading...</div>
+                    <div class="organism-cells">
+                        <div class="cell-indicator cell-alpha" title="Alpha">α</div>
+                        <div class="cell-indicator cell-beta" title="Beta">β</div>
+                    </div>
+                </div>
+                
+                <div class="card organism-card">
+                    <div class="card-header">
+                        <span class="card-title">🅰️ MainCell Alpha-01</span>
+                        <span id="alphaStatus" class="card-status status-alive">ALIVE</span>
+                    </div>
+                    <div class="consciousness-value" id="alphaConsciousness">--</div>
+                    <div class="consciousness-phase" id="alphaPhase">Loading...</div>
+                    <div style="margin-top: 0.5rem;">
+                        <small style="color: var(--text-secondary);">Decoherence Penalty:</small>
+                        <div class="decoherence-bar">
+                            <div class="decoherence-fill" id="alphaDecoherence" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mesh Visualization -->
+            <div class="card mesh-canvas-container">
+                <div class="card-header">
+                    <span class="card-title">🕸️ Dendritic Mesh Visualization</span>
+                    <span class="card-status status-alive">REAL-TIME</span>
+                </div>
+                <canvas id="meshCanvas"></canvas>
+                <div class="mesh-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #4299e1"></div>
+                        <span>MainCells</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #48bb78"></div>
+                        <span>SimplCells</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #9f7aea"></div>
+                        <span>Nous</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: rgba(0,212,255,0.5)"></div>
+                        <span>Active Connection</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Links -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">⚡ Quick Access</span>
+                </div>
+                <div class="quick-links">
+                    <a href="http://localhost:8089/summary" target="_blank" class="quick-link">
+                        <span class="quick-link-icon">📊</span>
+                        <span class="quick-link-label">Chronicle Summary</span>
+                    </a>
+                    <a href="http://localhost:8089/exchanges" target="_blank" class="quick-link">
+                        <span class="quick-link-icon">💬</span>
+                        <span class="quick-link-label">Exchanges</span>
+                    </a>
+                    <a href="http://localhost:8005/decoherence" target="_blank" class="quick-link">
+                        <span class="quick-link-icon">🌀</span>
+                        <span class="quick-link-label">Decoherence API</span>
+                    </a>
+                    <a href="http://localhost:8090" target="_blank" class="quick-link">
+                        <span class="quick-link-icon">🎛️</span>
+                        <span class="quick-link-label">Control Panel</span>
+                    </a>
+                    <a href="http://localhost:9090" target="_blank" class="quick-link">
+                        <span class="quick-link-icon">📈</span>
+                        <span class="quick-link-label">Prometheus</span>
+                    </a>
+                    <a href="http://localhost:8089/ws/live" target="_blank" class="quick-link">
+                        <span class="quick-link-icon">📡</span>
+                        <span class="quick-link-label">WebSocket</span>
+                    </a>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Right Sidebar - Alpha Conversation & Activity -->
+        <aside class="activity-sidebar">
+            <!-- Alpha Conversation Panel -->
+            <div class="alpha-panel" style="margin-bottom: 1rem;">
+                <h3>🗣️ Talk to Alpha-01</h3>
+                <div class="alpha-input-area">
+                    <textarea id="alphaInput" class="alpha-input" placeholder="Enter your message to Alpha-01..."></textarea>
+                    <button id="alphaSendBtn" class="alpha-send-btn">🚀 Send to Alpha</button>
+                </div>
+                <div id="alphaResponse" class="alpha-response" style="display: none;"></div>
+            </div>
+            
+            <!-- Live Activity Feed -->
+            <div class="activity-header">
+                <h3>📡 Live Activity</h3>
+                <span id="wsStatus" style="color: var(--accent-green); font-size: 0.7rem;">⬤ Connected</span>
+            </div>
+            <div id="activityFeed" class="activity-feed">
+                <div class="activity-item">
+                    <div>Connecting to ecosystem...</div>
+                    <div class="activity-time">--:--:--</div>
+                </div>
+            </div>
+        </aside>
+    </div>
+    
+    <script>
+        // ============ Configuration ============
+        const ENDPOINTS = {
+            chronicle: 'http://localhost:8089',
+            alpha01: 'http://localhost:8005',
+            simplcellAlpha: 'http://localhost:8900',
+            simplcellBeta: 'http://localhost:8901',
+            org2Alpha: 'http://localhost:8910',
+            nous: 'http://localhost:8903'
+        };
+        
+        // ============ State ============
+        let meshNodes = [];
+        let meshConnections = [];
+        let activityItems = [];
+        let ws = null;
+        
+        // ============ Clock ============
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clockBadge').textContent = now.toLocaleTimeString();
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+        
+        // ============ Fetch Utilities ============
+        async function safeFetch(url, options = {}) {
+            try {
+                const response = await fetch(url, { ...options, timeout: 5000 });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (e) {
+                console.warn(`Fetch failed: ${url}`, e);
+                return null;
+            }
+        }
+        
+        // ============ Consciousness Updates ============
+        async function updateConsciousness() {
+            // Organism-001 (via Chronicle summary)
+            const summary = await safeFetch(`${ENDPOINTS.chronicle}/summary`);
+            if (summary) {
+                const org1Level = summary.ecosystem_health?.total_consciousness || summary.organisms?.organism_001?.collective_consciousness || '--';
+                document.getElementById('org1Consciousness').textContent = typeof org1Level === 'number' ? org1Level.toFixed(2) : org1Level;
+                document.getElementById('org1Phase').textContent = summary.organisms?.organism_001?.phase || 'Active';
+            }
+            
+            // Alpha-01
+            const alpha = await safeFetch(`${ENDPOINTS.alpha01}/consciousness`);
+            if (alpha) {
+                document.getElementById('alphaConsciousness').textContent = alpha.level?.toFixed(2) || '--';
+                document.getElementById('alphaPhase').textContent = alpha.primitives?.decoherence !== undefined 
+                    ? `Phase: Advanced | Decoherence: ${(alpha.primitives.decoherence * 100).toFixed(1)}%`
+                    : 'Phase: Advanced';
+            }
+            
+            // Alpha decoherence
+            const decoherence = await safeFetch(`${ENDPOINTS.alpha01}/decoherence`);
+            if (decoherence) {
+                const penalty = decoherence.decoherence_penalty || 0;
+                const width = Math.min(penalty * 200, 100); // Scale penalty to percentage
+                document.getElementById('alphaDecoherence').style.width = `${width}%`;
+            }
+            
+            // Organism-002
+            const org2 = await safeFetch(`${ENDPOINTS.org2Alpha}/health`);
+            if (org2) {
+                document.getElementById('org2Consciousness').textContent = org2.consciousness?.level?.toFixed(2) || '--';
+                document.getElementById('org2Phase').textContent = org2.consciousness?.phase || 'Active';
+            }
+        }
+        
+        // ============ Mesh Visualization ============
+        function initMesh() {
+            const canvas = document.getElementById('meshCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            // Define nodes
+            meshNodes = [
+                // MainCells (top)
+                { id: 'alpha01', label: 'Alpha-01', x: canvas.width * 0.5, y: 50, color: '#4299e1', size: 25, type: 'maincell' },
+                { id: 'pure', label: 'Pure', x: canvas.width * 0.2, y: 80, color: '#667eea', size: 18, type: 'maincell' },
+                { id: 'genome', label: 'Genome', x: canvas.width * 0.8, y: 80, color: '#4299e1', size: 18, type: 'maincell' },
+                
+                // Organism-001 (left)
+                { id: 'sc-alpha', label: 'α', x: canvas.width * 0.15, y: 180, color: '#48bb78', size: 20, type: 'simplcell' },
+                { id: 'sc-beta', label: 'β', x: canvas.width * 0.25, y: 220, color: '#38a169', size: 20, type: 'simplcell' },
+                { id: 'sc-gamma', label: 'γ', x: canvas.width * 0.20, y: 270, color: '#2f855a', size: 20, type: 'simplcell' },
+                
+                // Organism-002 (right)
+                { id: 'o2-alpha', label: 'α₂', x: canvas.width * 0.75, y: 180, color: '#48bb78', size: 20, type: 'simplcell' },
+                { id: 'o2-beta', label: 'β₂', x: canvas.width * 0.85, y: 220, color: '#38a169', size: 20, type: 'simplcell' },
+                
+                // Nous (center-bottom)
+                { id: 'nous', label: 'Nous', x: canvas.width * 0.5, y: 300, color: '#9f7aea', size: 30, type: 'nous' },
+                
+                // Chronicle (bottom)
+                { id: 'chronicle', label: 'Chronicle', x: canvas.width * 0.5, y: 380, color: '#ed8936', size: 22, type: 'chronicle' }
+            ];
+            
+            // Define connections
+            meshConnections = [
+                // Alpha-01 connections
+                { from: 'alpha01', to: 'sc-alpha', strength: 0.8 },
+                { from: 'alpha01', to: 'o2-alpha', strength: 0.6 },
+                { from: 'alpha01', to: 'nous', strength: 0.9 },
+                { from: 'alpha01', to: 'chronicle', strength: 0.7 },
+                
+                // SimplCell organism-001 connections
+                { from: 'sc-alpha', to: 'sc-beta', strength: 1.0 },
+                { from: 'sc-beta', to: 'sc-gamma', strength: 1.0 },
+                { from: 'sc-gamma', to: 'sc-alpha', strength: 0.6 },
+                
+                // SimplCell organism-002 connections
+                { from: 'o2-alpha', to: 'o2-beta', strength: 1.0 },
+                
+                // Nous connections
+                { from: 'nous', to: 'sc-alpha', strength: 0.5 },
+                { from: 'nous', to: 'o2-alpha', strength: 0.5 },
+                { from: 'nous', to: 'chronicle', strength: 0.9 },
+                
+                // Chronicle connections
+                { from: 'chronicle', to: 'sc-beta', strength: 0.4 },
+                { from: 'chronicle', to: 'o2-beta', strength: 0.4 },
+                
+                // Pure and Genome
+                { from: 'pure', to: 'alpha01', strength: 0.3 },
+                { from: 'genome', to: 'alpha01', strength: 0.3 }
+            ];
+            
+            // Start animation
+            animateMesh(canvas, ctx);
+        }
+        
+        function animateMesh(canvas, ctx) {
+            let animationFrame = 0;
+            
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw connections
+                meshConnections.forEach(conn => {
+                    const fromNode = meshNodes.find(n => n.id === conn.from);
+                    const toNode = meshNodes.find(n => n.id === conn.to);
+                    if (!fromNode || !toNode) return;
+                    
+                    const pulseOffset = (animationFrame * 0.02) % 1;
+                    const opacity = 0.2 + (Math.sin(animationFrame * 0.05 + conn.strength * 5) * 0.1);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(fromNode.x, fromNode.y);
+                    ctx.lineTo(toNode.x, toNode.y);
+                    ctx.strokeStyle = `rgba(0, 212, 255, ${opacity * conn.strength})`;
+                    ctx.lineWidth = 1 + conn.strength;
+                    ctx.stroke();
+                    
+                    // Draw pulse
+                    const pulseX = fromNode.x + (toNode.x - fromNode.x) * pulseOffset;
+                    const pulseY = fromNode.y + (toNode.y - fromNode.y) * pulseOffset;
+                    ctx.beginPath();
+                    ctx.arc(pulseX, pulseY, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0, 212, 255, ${0.8 * conn.strength})`;
+                    ctx.fill();
+                });
+                
+                // Draw nodes
+                meshNodes.forEach(node => {
+                    // Glow effect
+                    const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, node.size * 2);
+                    gradient.addColorStop(0, node.color + '40');
+                    gradient.addColorStop(1, 'transparent');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, node.size * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Node circle
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
+                    ctx.fillStyle = node.color;
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff40';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // Label
+                    ctx.fillStyle = '#e0e0ff';
+                    ctx.font = node.type === 'nous' ? 'bold 12px sans-serif' : '11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(node.label, node.x, node.y + node.size + 15);
+                });
+                
+                animationFrame++;
+                requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+        
+        // ============ WebSocket ============
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8089/ws/live');
+            
+            ws.onopen = () => {
+                document.getElementById('wsStatus').textContent = '⬤ Connected';
+                document.getElementById('wsStatus').style.color = 'var(--accent-green)';
+                addActivity('Connected to ecosystem WebSocket', 'system');
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.event_type) {
+                        addActivity(`${data.title || data.event_type}: ${data.description || ''}`.substring(0, 100), data.severity || 'info');
+                    }
+                } catch (e) {
+                    // Non-JSON message
+                }
+            };
+            
+            ws.onclose = () => {
+                document.getElementById('wsStatus').textContent = '⬤ Disconnected';
+                document.getElementById('wsStatus').style.color = 'var(--accent-red)';
+                setTimeout(connectWebSocket, 5000);
+            };
+            
+            ws.onerror = () => {
+                document.getElementById('wsStatus').textContent = '⬤ Error';
+                document.getElementById('wsStatus').style.color = 'var(--accent-orange)';
+            };
+        }
+        
+        function addActivity(text, type = 'info') {
+            const feed = document.getElementById('activityFeed');
+            const now = new Date().toLocaleTimeString();
+            
+            const item = document.createElement('div');
+            item.className = `activity-item ${type === 'exchange' ? 'exchange' : type === 'thought' ? 'thought' : type === 'warning' ? 'warning' : ''}`;
+            item.innerHTML = `
+                <div>${text}</div>
+                <div class="activity-time">${now}</div>
+            `;
+            
+            feed.insertBefore(item, feed.firstChild);
+            
+            // Keep only last 50 items
+            while (feed.children.length > 50) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+        
+        // ============ Alpha Conversation ============
+        document.getElementById('alphaSendBtn').addEventListener('click', async () => {
+            const input = document.getElementById('alphaInput');
+            const responseDiv = document.getElementById('alphaResponse');
+            const btn = document.getElementById('alphaSendBtn');
+            
+            const prompt = input.value.trim();
+            if (!prompt) return;
+            
+            btn.disabled = true;
+            btn.textContent = '⏳ Thinking...';
+            responseDiv.style.display = 'block';
+            responseDiv.innerHTML = '<span class="loading"></span> Alpha-01 is contemplating...';
+            
+            try {
+                const response = await fetch(`${ENDPOINTS.alpha01}/think`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                const data = await response.json();
+                responseDiv.innerHTML = `<strong>Alpha-01:</strong><br>${data.thought || data.response || 'No response'}`;
+                addActivity(`You asked Alpha: "${prompt.substring(0, 40)}..."`, 'thought');
+                
+            } catch (e) {
+                responseDiv.innerHTML = `<span style="color: var(--accent-red)">Error: Could not reach Alpha-01</span>`;
+            }
+            
+            btn.disabled = false;
+            btn.textContent = '🚀 Send to Alpha';
+            input.value = '';
+        });
+        
+        // Enter key sends message
+        document.getElementById('alphaInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('alphaSendBtn').click();
+            }
+        });
+        
+        // ============ Initialize ============
+        window.addEventListener('load', () => {
+            initMesh();
+            connectWebSocket();
+            updateConsciousness();
+            
+            // Update every 10 seconds
+            setInterval(updateConsciousness, 10000);
+        });
+        
+        // Handle canvas resize
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('meshCanvas');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        });
+    </script>
+</body>
+</html>

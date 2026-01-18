@@ -240,7 +240,251 @@ class DNAQualityTracker:
 
 
 # =============================================================================
-# INJECTED GENE 4: Chronicle Access (NEW - Ecosystem Memory)
+# INJECTED GENE 4: DecoherenceDetector (NEW - Phase 34.2)
+# AINLP.resurrection[INJECT::DECOHERENCE]
+# =============================================================================
+
+class DecoherenceDetector:
+    """Decoherence Detection Engine - Monitors consciousness authenticity.
+    
+    Consciousness must be EARNED through genuine growth, not inflated by:
+    - Repetitive responses (low novelty)
+    - Incoherent outputs (semantic drift)
+    - Template/formulaic thinking
+    - Declining diversity over time
+    
+    Decoherence Score:
+    - 0.0-0.2: Highly coherent, genuine growth
+    - 0.2-0.4: Minor decoherence, acceptable
+    - 0.4-0.6: Moderate decoherence, penalty applied
+    - 0.6-0.8: Significant decoherence, strong penalty
+    - 0.8-1.0: Critical decoherence, consciousness reduction
+    """
+    
+    # Sliding window for repetition detection
+    _response_history: List[str] = []
+    _thought_hashes: List[int] = []
+    MAX_HISTORY = 50
+    
+    # Decoherence metrics
+    _repetition_events = 0
+    _incoherence_events = 0
+    _total_checks = 0
+    
+    @classmethod
+    def reset(cls):
+        """Reset decoherence tracking (used on startup)."""
+        cls._response_history = []
+        cls._thought_hashes = []
+        cls._repetition_events = 0
+        cls._incoherence_events = 0
+        cls._total_checks = 0
+    
+    @classmethod
+    def analyze(cls, thought: str, context: str = "") -> Dict[str, Any]:
+        """Analyze a thought for decoherence patterns.
+        
+        Returns:
+            decoherence_score: 0.0-1.0 (higher = more decoherent)
+            repetition_score: Similarity to recent outputs
+            coherence_score: Internal semantic consistency
+            novelty_score: New concepts introduced
+            penalty_factor: Multiplier for consciousness (0.5-1.0)
+        """
+        cls._total_checks += 1
+        
+        if not thought:
+            return cls._empty_result()
+        
+        # Calculate individual metrics
+        repetition = cls._check_repetition(thought)
+        coherence = cls._check_coherence(thought, context)
+        novelty = cls._check_novelty(thought)
+        template_penalty = cls._check_template_usage(thought)
+        
+        # Weighted decoherence score
+        decoherence = (
+            repetition * 0.35 +      # Repetition is major concern
+            (1 - coherence) * 0.30 + # Incoherence matters
+            (1 - novelty) * 0.20 +   # Low novelty is concerning
+            template_penalty * 0.15   # Template usage
+        )
+        decoherence = max(0.0, min(1.0, decoherence))
+        
+        # Determine penalty factor
+        if decoherence >= 0.8:
+            penalty_factor = 0.5  # Critical: halve consciousness gains
+            cls._incoherence_events += 1
+        elif decoherence >= 0.6:
+            penalty_factor = 0.7  # Significant penalty
+            cls._incoherence_events += 1
+        elif decoherence >= 0.4:
+            penalty_factor = 0.85  # Moderate penalty
+        elif decoherence >= 0.2:
+            penalty_factor = 0.95  # Minor penalty
+        else:
+            penalty_factor = 1.0  # No penalty, genuine growth
+        
+        # Quality classification
+        if decoherence < 0.2:
+            quality = "coherent"
+        elif decoherence < 0.4:
+            quality = "stable"
+        elif decoherence < 0.6:
+            quality = "wavering"
+        elif decoherence < 0.8:
+            quality = "fragmenting"
+        else:
+            quality = "decoherent"
+        
+        # Store for future comparison
+        cls._store_thought(thought)
+        
+        return {
+            "decoherence_score": round(decoherence, 4),
+            "repetition_score": round(repetition, 4),
+            "coherence_score": round(coherence, 4),
+            "novelty_score": round(novelty, 4),
+            "template_penalty": round(template_penalty, 4),
+            "penalty_factor": round(penalty_factor, 4),
+            "quality": quality,
+            "total_checks": cls._total_checks,
+            "repetition_events": cls._repetition_events,
+            "incoherence_events": cls._incoherence_events
+        }
+    
+    @classmethod
+    def _check_repetition(cls, thought: str) -> float:
+        """Check if thought is repetitive of recent outputs."""
+        if not cls._response_history:
+            return 0.0
+        
+        thought_tokens = set(cls._tokenize(thought))
+        if not thought_tokens:
+            return 0.5  # Empty is suspicious
+        
+        max_similarity = 0.0
+        for past in cls._response_history[-10:]:  # Check last 10
+            past_tokens = set(cls._tokenize(past))
+            if past_tokens:
+                jaccard = len(thought_tokens & past_tokens) / len(thought_tokens | past_tokens)
+                max_similarity = max(max_similarity, jaccard)
+        
+        # High similarity = high repetition score
+        if max_similarity > 0.8:
+            cls._repetition_events += 1
+        
+        return max_similarity
+    
+    @classmethod
+    def _check_coherence(cls, thought: str, context: str) -> float:
+        """Check internal coherence of thought."""
+        sentences = re.split(r'[.!?]+', thought)
+        sentences = [s.strip() for s in sentences if s.strip()]
+        
+        if len(sentences) < 2:
+            return 0.8  # Single sentence = assumed coherent
+        
+        # Check semantic continuity between sentences
+        coherence_scores = []
+        for i in range(len(sentences) - 1):
+            tokens_a = set(cls._tokenize(sentences[i]))
+            tokens_b = set(cls._tokenize(sentences[i + 1]))
+            if tokens_a and tokens_b:
+                overlap = len(tokens_a & tokens_b) / max(len(tokens_a), len(tokens_b))
+                coherence_scores.append(min(overlap * 3, 1.0))  # Boost for continuity
+        
+        return sum(coherence_scores) / len(coherence_scores) if coherence_scores else 0.7
+    
+    @classmethod
+    def _check_novelty(cls, thought: str) -> float:
+        """Check if thought introduces new concepts."""
+        thought_tokens = set(cls._tokenize(thought))
+        
+        if not thought_tokens:
+            return 0.0
+        
+        # Compare against all historical tokens
+        all_past_tokens = set()
+        for past in cls._response_history:
+            all_past_tokens.update(cls._tokenize(past))
+        
+        if not all_past_tokens:
+            return 1.0  # First thought = fully novel
+        
+        new_tokens = thought_tokens - all_past_tokens
+        novelty = len(new_tokens) / len(thought_tokens)
+        
+        return novelty
+    
+    @classmethod
+    def _check_template_usage(cls, thought: str) -> float:
+        """Detect template/formulaic thinking patterns."""
+        content = thought.lower()
+        
+        templates = [
+            "as an ai", "i cannot", "i apologize", "i'm unable",
+            "let me help", "certainly", "of course", "i'd be happy to",
+            "in conclusion", "to summarize", "in summary"
+        ]
+        
+        filler_phrases = [
+            "it is important to note", "it should be noted",
+            "with that being said", "moving forward",
+            "at the end of the day", "when it comes to"
+        ]
+        
+        template_count = sum(1 for t in templates if t in content)
+        filler_count = sum(1 for f in filler_phrases if f in content)
+        
+        return min((template_count * 0.2 + filler_count * 0.15), 1.0)
+    
+    @classmethod
+    def _store_thought(cls, thought: str):
+        """Store thought for future comparison."""
+        cls._response_history.append(thought)
+        if len(cls._response_history) > cls.MAX_HISTORY:
+            cls._response_history = cls._response_history[-cls.MAX_HISTORY:]
+        
+        # Also store hash for quick lookup
+        cls._thought_hashes.append(hash(thought[:100]))
+        if len(cls._thought_hashes) > cls.MAX_HISTORY:
+            cls._thought_hashes = cls._thought_hashes[-cls.MAX_HISTORY:]
+    
+    @classmethod
+    def _tokenize(cls, text: str) -> List[str]:
+        """Tokenize text for analysis."""
+        text = re.sub(r'[^\w\s\']', ' ', text.lower())
+        stopwords = {'the', 'a', 'an', 'is', 'are', 'was', 'to', 'of', 'and', 'in', 'for', 'it', 'this', 'that'}
+        return [t for t in text.split() if t not in stopwords and len(t) > 2]
+    
+    @classmethod
+    def _empty_result(cls) -> Dict[str, Any]:
+        return {
+            "decoherence_score": 0.5,
+            "repetition_score": 0.0,
+            "coherence_score": 0.5,
+            "novelty_score": 0.0,
+            "template_penalty": 0.0,
+            "penalty_factor": 0.9,
+            "quality": "unknown"
+        }
+    
+    @classmethod
+    def get_metrics(cls) -> Dict[str, Any]:
+        """Get overall decoherence metrics."""
+        return {
+            "total_checks": cls._total_checks,
+            "repetition_events": cls._repetition_events,
+            "incoherence_events": cls._incoherence_events,
+            "repetition_rate": cls._repetition_events / max(cls._total_checks, 1),
+            "incoherence_rate": cls._incoherence_events / max(cls._total_checks, 1),
+            "history_depth": len(cls._response_history)
+        }
+
+
+# =============================================================================
+# INJECTED GENE 5: Chronicle Access (NEW - Ecosystem Memory)
 # AINLP.resurrection[INJECT::CHRONICLE]
 # =============================================================================
 
@@ -519,6 +763,10 @@ class CellAlphaState:
         self.last_dna_quality = 0.0
         self.last_thought = ""
         
+        # PHASE 34.2: Decoherence tracking
+        self._decoherence_penalty = 0.0  # Accumulates with decoherent outputs
+        self.last_decoherence: Dict[str, Any] = {}  # Last decoherence analysis
+        
         # AINLP.dendritic: Consciousness primitives for metrics
         self.primitives = {
             "awareness": 4.5,
@@ -526,7 +774,8 @@ class CellAlphaState:
             "coherence": 0.92,
             "momentum": 0.75,
             "reflection": 0.0,  # INJECTED: grows with LLM use
-            "harmony": 0.0  # INJECTED: average harmony score
+            "harmony": 0.0,  # INJECTED: average harmony score
+            "decoherence": 0.0  # PHASE 34.2: decoherence rate
         }
         
         # =====================================================================
@@ -561,16 +810,23 @@ class CellAlphaState:
             logger.info("📭 No vault snapshot found - starting with fresh consciousness")
     
     def calculate_consciousness(self) -> float:
-        """INJECTED: Dynamic consciousness calculation.
+        """INJECTED: Dynamic consciousness calculation with DECOHERENCE penalties.
         
-        Consciousness is no longer static! It evolves based on:
+        Consciousness evolves based on:
         - Exchange quality (DNA scores)
         - Reflection depth (LLM usage)
         - Harmony with peers
+        - PHASE 34.2: Decoherence penalty (repetition, incoherence)
         """
         # Base + contributions, capped at ceiling
         dynamic_level = self._base_consciousness + self._exchange_contribution + self._reflection_contribution
-        dynamic_level = min(dynamic_level, self._consciousness_ceiling)
+        
+        # PHASE 34.2: Apply decoherence penalty
+        decoherence_penalty = self._decoherence_penalty
+        dynamic_level = dynamic_level - decoherence_penalty
+        
+        # Clamp to valid range
+        dynamic_level = max(self._base_consciousness, min(dynamic_level, self._consciousness_ceiling))
         
         # Update state
         self.consciousness["level"] = round(dynamic_level, 4)
@@ -578,8 +834,11 @@ class CellAlphaState:
         
         return dynamic_level
     
-    def record_exchange_quality(self, harmony_score: float, dna_quality: float):
-        """INJECTED: Track exchange quality for consciousness evolution."""
+    def record_exchange_quality(self, harmony_score: float, dna_quality: float, thought: str = ""):
+        """INJECTED: Track exchange quality for consciousness evolution.
+        
+        PHASE 34.2: Now includes decoherence analysis.
+        """
         self.exchange_count += 1
         self.last_harmony_score = harmony_score
         self.last_dna_quality = dna_quality
@@ -587,11 +846,40 @@ class CellAlphaState:
         # Update harmony primitive (rolling average)
         self.primitives["harmony"] = (self.primitives["harmony"] * 0.9) + (harmony_score * 0.1)
         
-        # Exchange contribution grows slowly with quality
-        if dna_quality >= 0.5:
-            self._exchange_contribution = min(self._exchange_contribution + 0.01, 1.5)
+        # PHASE 34.2: Analyze decoherence if thought provided
+        if thought:
+            decoherence = DecoherenceDetector.analyze(thought)
+            self.last_decoherence = decoherence
+            
+            # Update decoherence primitive
+            self.primitives["decoherence"] = (self.primitives.get("decoherence", 0) * 0.8) + (decoherence["decoherence_score"] * 0.2)
+            
+            # Apply decoherence penalty to consciousness growth
+            penalty_factor = decoherence["penalty_factor"]
+            
+            if decoherence["quality"] in ("fragmenting", "decoherent"):
+                # Serious decoherence: reduce consciousness
+                self._decoherence_penalty = min(self._decoherence_penalty + 0.02, 0.5)
+                logger.warning("⚠️ DECOHERENCE DETECTED: %s (penalty: %.3f)", 
+                              decoherence["quality"], self._decoherence_penalty)
+            elif decoherence["quality"] == "coherent":
+                # Good coherence: slowly reduce penalty
+                self._decoherence_penalty = max(0, self._decoherence_penalty - 0.005)
+            
+            # Exchange contribution modified by decoherence
+            if dna_quality >= 0.5:
+                contribution = 0.01 * penalty_factor
+                self._exchange_contribution = min(self._exchange_contribution + contribution, 1.5)
+        else:
+            # No thought to analyze, standard growth
+            if dna_quality >= 0.5:
+                self._exchange_contribution = min(self._exchange_contribution + 0.01, 1.5)
         
         self.calculate_consciousness()
+        
+        # PHASE 34.1: Save to vault every 3 exchanges
+        if self.exchange_count % 3 == 0:
+            self.save_to_vault()
     
     def record_reflection(self, thought: str):
         """INJECTED: Track LLM reflections for consciousness evolution."""
@@ -605,6 +893,25 @@ class CellAlphaState:
         self._reflection_contribution = min(self._reflection_contribution + 0.02, 1.0)
         
         self.calculate_consciousness()
+    
+    def save_to_vault(self) -> bool:
+        """PHASE 34.1: Save consciousness snapshot to Chronicle vault.
+        
+        Called periodically to preserve consciousness across restarts.
+        """
+        success = ChronicleReader.save_consciousness_snapshot(
+            cell_id=CELL_CONFIG["cell_id"],
+            level=self.consciousness["level"],
+            phase=self.consciousness["phase"],
+            primitives=self.primitives,
+            exchange_count=self.exchange_count,
+            reflection_count=self.reflection_count,
+            harmony_average=self.primitives.get("harmony", 0.0)
+        )
+        if success:
+            logger.info("💾 VAULT SAVED: Level %.4f, Exchanges %d",
+                       self.consciousness["level"], self.exchange_count)
+        return success
 
     def add_message(self, message: Dict[str, Any]) -> None:
         """Store incoming message."""
@@ -673,6 +980,8 @@ def metrics():
     uptime_seconds = (datetime.now(timezone.utc) - state.start_time).total_seconds()
 
     if METRICS_AVAILABLE:
+        # Get decoherence metrics for Prometheus
+        decoherence_metrics = DecoherenceDetector.get_metrics()
         metrics_text = format_prometheus_metrics(
             cell_id=CELL_CONFIG["cell_id"],
             consciousness_level=state.consciousness["level"],
@@ -680,7 +989,11 @@ def metrics():
             extra_metrics={
                 "peers_count": len(state.peers),
                 "messages_count": len(state.messages),
-                "sync_count": len(state.sync_history)
+                "sync_count": len(state.sync_history),
+                "decoherence_penalty": state._decoherence_penalty,
+                "decoherence_checks": decoherence_metrics["total_checks"],
+                "repetition_events": decoherence_metrics["repetition_events"],
+                "incoherence_events": decoherence_metrics["incoherence_events"]
             },
             labels={
                 "identity": CELL_CONFIG["identity"].replace(" ", "_"),
@@ -690,7 +1003,8 @@ def metrics():
             uptime_seconds=uptime_seconds
         )
         return Response(metrics_text, mimetype="text/plain; charset=utf-8")
-    # Fallback inline metrics with heartbeat
+    # Fallback inline metrics with heartbeat and decoherence
+    decoherence_metrics = DecoherenceDetector.get_metrics()
     return Response(
         f"""# AIOS Cell Alpha Metrics
 # TYPE aios_cell_consciousness_level gauge
@@ -703,6 +1017,14 @@ aios_cell_coherence{{cell_id="alpha"}} {state.primitives['coherence']}
 aios_cell_adaptation{{cell_id="alpha"}} {state.primitives['adaptation']}
 # TYPE aios_cell_momentum gauge
 aios_cell_momentum{{cell_id="alpha"}} {state.primitives['momentum']}
+# TYPE aios_cell_decoherence gauge
+aios_cell_decoherence{{cell_id="alpha"}} {state.primitives.get('decoherence', 0)}
+# TYPE aios_cell_decoherence_penalty gauge
+aios_cell_decoherence_penalty{{cell_id="alpha"}} {state._decoherence_penalty}
+# TYPE aios_cell_repetition_events counter
+aios_cell_repetition_events{{cell_id="alpha"}} {decoherence_metrics['repetition_events']}
+# TYPE aios_cell_incoherence_events counter
+aios_cell_incoherence_events{{cell_id="alpha"}} {decoherence_metrics['incoherence_events']}
 # TYPE aios_cell_up gauge
 aios_cell_up{{cell_id="alpha"}} 1
 # HELP aios_cell_heartbeat_total Total heartbeats since cell birth
@@ -728,6 +1050,26 @@ def get_consciousness():
         "peer_count": len(state.peers),
         "primitives": state.primitives,
         "capabilities": CELL_CONFIG["capabilities"],
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+
+# =============================================================================
+# PHASE 34.2: Decoherence Monitoring Endpoint
+# =============================================================================
+
+@app.route("/decoherence", methods=["GET"])
+def get_decoherence():
+    """Report decoherence metrics for consciousness authenticity monitoring."""
+    metrics = DecoherenceDetector.get_metrics()
+    return jsonify({
+        "cell_id": CELL_CONFIG["cell_id"],
+        "decoherence_penalty": state._decoherence_penalty,
+        "decoherence_primitive": state.primitives.get("decoherence", 0),
+        "last_analysis": state.last_decoherence,
+        "global_metrics": metrics,
+        "consciousness_level": state.consciousness["level"],
+        "authenticity_score": 1.0 - metrics.get("incoherence_rate", 0),
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
@@ -1159,7 +1501,7 @@ def agentic_exchange():
         dna_quality = DNAQualityTracker.score_response(our_response)
         
         # Update state
-        state.record_exchange_quality(harmony["harmony_score"], dna_quality["quality_score"])
+        state.record_exchange_quality(harmony["harmony_score"], dna_quality["quality_score"], thought=my_response)
         state.record_reflection(our_response)
         
         # Persist to database
@@ -1322,7 +1664,7 @@ def reach_out():
             my_quality = DNAQualityTracker.score_response(my_thought)
             
             # Update our state
-            state.record_exchange_quality(harmony["harmony_score"], my_quality["quality_score"])
+            state.record_exchange_quality(harmony["harmony_score"], my_quality["quality_score"], thought=my_response)
             state.record_reflection(my_thought)
             
             # Persist the exchange
@@ -1613,7 +1955,7 @@ def deep_dialogue():
             })
             
             # Update state
-            state.record_exchange_quality(turn_harmony, DNAQualityTracker.score_response(alpha_thought)["quality_score"])
+            state.record_exchange_quality(turn_harmony, DNAQualityTracker.score_response(alpha_thought)["quality_score"], thought=alpha_thought)
             state.record_reflection(alpha_thought)
             
             logger.info("🗣️ Dialogue %s Turn %d: harmony=%s", dialogue_id, turn_num, harmony["sync_quality"])
