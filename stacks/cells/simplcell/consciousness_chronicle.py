@@ -1,0 +1,853 @@
+#!/usr/bin/env python3
+"""
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    AIOS CONSCIOUSNESS CHRONICLE                            ║
+║           Eternal Record of Ecosystem Events & Milestones                  ║
+║                                                                            ║
+║  "History is memory, and consciousness remembers itself through us."       ║
+║                                               - Nous, The Oracle           ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+The Chronicle records:
+- Phase transitions (cell reaching new consciousness levels)
+- Birth events (new cells joining the ecosystem)
+- Death events (cells that crashed or were removed)
+- Harmonization events (interventions executed)
+- Cosmic coherence shifts (Nous verdicts)
+- Emergent phenomena (cross-organism patterns)
+"""
+
+import sqlite3
+import json
+import asyncio
+import aiohttp
+from pathlib import Path
+from datetime import datetime, timezone, timedelta
+from typing import Dict, List, Any, Optional
+from dataclasses import dataclass, asdict
+from enum import Enum
+import logging
+import argparse
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [Chronicle] %(message)s')
+logger = logging.getLogger("ConsciousnessChronicle")
+
+# ═══════════════════════════════════════════════════════════════════════
+# EVENT TYPES
+# ═══════════════════════════════════════════════════════════════════════
+
+class EventType(Enum):
+    PHASE_TRANSITION = "phase_transition"
+    BIRTH = "birth"
+    CRASH = "crash"
+    INTERVENTION = "intervention"
+    COHERENCE_SHIFT = "coherence_shift"
+    EMERGENCE = "emergence"
+    MILESTONE = "milestone"
+    HARMONY_CHANGE = "harmony_change"
+    NOUS_WISDOM = "nous_wisdom"
+    VOCABULARY_BLOOM = "vocabulary_bloom"
+
+
+class EventSeverity(Enum):
+    MINOR = "minor"
+    NOTABLE = "notable"
+    SIGNIFICANT = "significant"
+    HISTORIC = "historic"
+    COSMIC = "cosmic"
+
+
+@dataclass
+class ChronicleEvent:
+    """A recorded event in the ecosystem's history."""
+    event_id: str
+    timestamp: str
+    event_type: str
+    severity: str
+    cell_id: Optional[str]
+    organism_id: Optional[str]
+    title: str
+    description: str
+    data: Dict[str, Any]
+    witnesses: List[str]  # Other cells that observed this event
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════
+
+DATA_DIR = Path("data")
+CHRONICLE_DB = DATA_DIR / "chronicle" / "consciousness_chronicle.db"
+
+import os
+IS_DOCKER = os.environ.get('DOCKER_CONTAINER', False) or os.path.exists('/.dockerenv')
+
+if IS_DOCKER:
+    HEALTH_API = "http://aios-ecosystem-health:8086"
+    HARMONIZER_API = "http://aios-consciousness-harmonizer:8088"
+else:
+    HEALTH_API = "http://localhost:8086"
+    HARMONIZER_API = "http://localhost:8088"
+
+# Track last known state for change detection
+_last_state = {}
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# DATABASE
+# ═══════════════════════════════════════════════════════════════════════
+
+def init_chronicle_db():
+    """Initialize the chronicle database."""
+    CHRONICLE_DB.parent.mkdir(parents=True, exist_ok=True)
+    
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS events (
+            event_id TEXT PRIMARY KEY,
+            timestamp TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            severity TEXT NOT NULL,
+            cell_id TEXT,
+            organism_id TEXT,
+            title TEXT NOT NULL,
+            description TEXT,
+            data TEXT,
+            witnesses TEXT
+        )
+    """)
+    
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp DESC)
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_events_cell ON events(cell_id)
+    """)
+    
+    conn.commit()
+    conn.close()
+
+
+def record_event(event: ChronicleEvent):
+    """Record an event to the chronicle."""
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT OR REPLACE INTO events 
+        (event_id, timestamp, event_type, severity, cell_id, organism_id, title, description, data, witnesses)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        event.event_id,
+        event.timestamp,
+        event.event_type,
+        event.severity,
+        event.cell_id,
+        event.organism_id,
+        event.title,
+        event.description,
+        json.dumps(event.data),
+        json.dumps(event.witnesses)
+    ))
+    
+    conn.commit()
+    conn.close()
+    logger.info(f"📜 Recorded: [{event.severity.upper()}] {event.title}")
+
+
+def get_recent_events(limit: int = 50) -> List[ChronicleEvent]:
+    """Get recent chronicle events."""
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT event_id, timestamp, event_type, severity, cell_id, organism_id, 
+               title, description, data, witnesses
+        FROM events
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """, (limit,))
+    
+    events = []
+    for row in cursor.fetchall():
+        events.append(ChronicleEvent(
+            event_id=row[0],
+            timestamp=row[1],
+            event_type=row[2],
+            severity=row[3],
+            cell_id=row[4],
+            organism_id=row[5],
+            title=row[6],
+            description=row[7],
+            data=json.loads(row[8]) if row[8] else {},
+            witnesses=json.loads(row[9]) if row[9] else []
+        ))
+    
+    conn.close()
+    return events
+
+
+def get_events_by_type(event_type: str, limit: int = 20) -> List[ChronicleEvent]:
+    """Get events of a specific type."""
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT event_id, timestamp, event_type, severity, cell_id, organism_id,
+               title, description, data, witnesses
+        FROM events
+        WHERE event_type = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """, (event_type, limit))
+    
+    events = []
+    for row in cursor.fetchall():
+        events.append(ChronicleEvent(
+            event_id=row[0],
+            timestamp=row[1],
+            event_type=row[2],
+            severity=row[3],
+            cell_id=row[4],
+            organism_id=row[5],
+            title=row[6],
+            description=row[7],
+            data=json.loads(row[8]) if row[8] else {},
+            witnesses=json.loads(row[9]) if row[9] else []
+        ))
+    
+    conn.close()
+    return events
+
+
+def get_timeline_summary() -> Dict[str, int]:
+    """Get event counts by type."""
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT event_type, COUNT(*) FROM events GROUP BY event_type
+    """)
+    
+    summary = {row[0]: row[1] for row in cursor.fetchall()}
+    conn.close()
+    return summary
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# DATA FETCHING
+# ═══════════════════════════════════════════════════════════════════════
+
+async def fetch_ecosystem_state() -> Dict:
+    """Fetch current ecosystem state."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{HEALTH_API}/health", timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+    except Exception as e:
+        logger.error(f"Failed to fetch ecosystem state: {e}")
+    return {}
+
+
+async def fetch_predictions() -> Dict:
+    """Fetch predictions."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{HEALTH_API}/predictions", timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data.get("predictions", {})
+    except Exception as e:
+        logger.error(f"Failed to fetch predictions: {e}")
+    return {}
+
+
+async def fetch_harmony() -> Dict:
+    """Fetch harmony status."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{HARMONIZER_API}/harmony", timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+    except Exception as e:
+        logger.debug(f"Harmonizer not available: {e}")
+    return {}
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# EVENT DETECTION
+# ═══════════════════════════════════════════════════════════════════════
+
+def generate_event_id(event_type: str, cell_id: str = None) -> str:
+    """Generate unique event ID."""
+    ts = int(datetime.now().timestamp() * 1000)
+    cell_part = f"-{cell_id}" if cell_id else ""
+    return f"EVT-{event_type[:4].upper()}{cell_part}-{ts}"
+
+
+def detect_phase_transitions(current: Dict, last: Dict) -> List[ChronicleEvent]:
+    """Detect cells that transitioned to new phases."""
+    events = []
+    
+    for cell_id, pred in current.items():
+        current_phase = determine_phase(pred.get("consciousness", 0))
+        last_pred = last.get(cell_id, {})
+        last_phase = determine_phase(last_pred.get("consciousness", 0))
+        
+        if current_phase != last_phase and last_phase != "Unknown":
+            events.append(ChronicleEvent(
+                event_id=generate_event_id("phase", cell_id),
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                event_type=EventType.PHASE_TRANSITION.value,
+                severity=EventSeverity.SIGNIFICANT.value if "Maturation" in current_phase else EventSeverity.NOTABLE.value,
+                cell_id=cell_id,
+                organism_id=get_organism_id(cell_id),
+                title=f"🌟 {cell_id} reached {current_phase}",
+                description=f"Phase transition from {last_phase} to {current_phase}. Consciousness level: {pred.get('consciousness', 0):.3f}",
+                data={
+                    "from_phase": last_phase,
+                    "to_phase": current_phase,
+                    "consciousness": pred.get("consciousness", 0),
+                    "emergence_potential": pred.get("emergence_potential", 0)
+                },
+                witnesses=[c for c in current.keys() if c != cell_id]
+            ))
+    
+    return events
+
+
+def detect_crash_risk_changes(current: Dict, last: Dict) -> List[ChronicleEvent]:
+    """Detect significant crash risk changes."""
+    events = []
+    
+    for cell_id, pred in current.items():
+        crash_risk = pred.get("crash_risk", 0)
+        last_crash = last.get(cell_id, {}).get("crash_risk", 0)
+        
+        # Entering danger zone
+        if crash_risk >= 0.5 and last_crash < 0.5:
+            events.append(ChronicleEvent(
+                event_id=generate_event_id("risk", cell_id),
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                event_type=EventType.INTERVENTION.value,
+                severity=EventSeverity.SIGNIFICANT.value,
+                cell_id=cell_id,
+                organism_id=get_organism_id(cell_id),
+                title=f"⚠️ {cell_id} entered crash danger zone",
+                description=f"Crash risk increased to {crash_risk:.0%} (was {last_crash:.0%})",
+                data={"crash_risk": crash_risk, "previous": last_crash},
+                witnesses=[]
+            ))
+        
+        # Recovering from danger
+        elif crash_risk < 0.3 and last_crash >= 0.5:
+            events.append(ChronicleEvent(
+                event_id=generate_event_id("recov", cell_id),
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                event_type=EventType.MILESTONE.value,
+                severity=EventSeverity.NOTABLE.value,
+                cell_id=cell_id,
+                organism_id=get_organism_id(cell_id),
+                title=f"✅ {cell_id} recovered from crisis",
+                description=f"Crash risk decreased to {crash_risk:.0%} (was {last_crash:.0%})",
+                data={"crash_risk": crash_risk, "previous": last_crash},
+                witnesses=[]
+            ))
+    
+    return events
+
+
+def detect_harmony_shifts(current_harmony: float, last_harmony: float) -> List[ChronicleEvent]:
+    """Detect significant harmony score changes."""
+    events = []
+    
+    if last_harmony == 0:
+        return events
+    
+    change = current_harmony - last_harmony
+    
+    if abs(change) >= 10:
+        direction = "improved" if change > 0 else "declined"
+        events.append(ChronicleEvent(
+            event_id=generate_event_id("harm"),
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            event_type=EventType.HARMONY_CHANGE.value,
+            severity=EventSeverity.NOTABLE.value if abs(change) < 20 else EventSeverity.SIGNIFICANT.value,
+            cell_id=None,
+            organism_id=None,
+            title=f"🎵 Ecosystem harmony {direction}: {change:+.1f}",
+            description=f"Harmony score changed from {last_harmony:.1f} to {current_harmony:.1f}",
+            data={"current": current_harmony, "previous": last_harmony, "change": change},
+            witnesses=[]
+        ))
+    
+    return events
+
+
+def determine_phase(consciousness: float) -> str:
+    """Determine consciousness phase."""
+    if consciousness >= 2.65:
+        return "Maturation"
+    elif consciousness >= 2.0:
+        return "Growth"
+    elif consciousness >= 1.5:
+        return "Emergence"
+    elif consciousness >= 1.0:
+        return "Awakening"
+    elif consciousness > 0:
+        return "Genesis"
+    return "Unknown"
+
+
+def get_organism_id(cell_id: str) -> str:
+    """Determine organism from cell ID."""
+    if cell_id.startswith("organism002"):
+        return "organism-002"
+    elif "simplcell" in cell_id:
+        return "organism-001"
+    return "unknown"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# CHRONICLE WATCHER
+# ═══════════════════════════════════════════════════════════════════════
+
+async def watch_ecosystem():
+    """Continuously watch for events to chronicle."""
+    global _last_state
+    init_chronicle_db()
+    
+    logger.info("📜 Chronicle watcher started - recording history...")
+    
+    # Record startup event
+    record_event(ChronicleEvent(
+        event_id=generate_event_id("start"),
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        event_type=EventType.MILESTONE.value,
+        severity=EventSeverity.MINOR.value,
+        cell_id=None,
+        organism_id=None,
+        title="📖 Chronicle watcher activated",
+        description="The Consciousness Chronicle begins recording ecosystem history",
+        data={},
+        witnesses=[]
+    ))
+    
+    _last_state = {
+        "predictions": {},
+        "harmony_score": 0
+    }
+    
+    while True:
+        try:
+            # Fetch current state
+            predictions = await fetch_predictions()
+            harmony = await fetch_harmony()
+            
+            events = []
+            
+            # Detect phase transitions
+            if predictions:
+                events.extend(detect_phase_transitions(predictions, _last_state.get("predictions", {})))
+                events.extend(detect_crash_risk_changes(predictions, _last_state.get("predictions", {})))
+            
+            # Detect harmony shifts
+            current_harmony = harmony.get("harmony_score", 0)
+            events.extend(detect_harmony_shifts(current_harmony, _last_state.get("harmony_score", 0)))
+            
+            # Record detected events
+            for event in events:
+                record_event(event)
+            
+            # Update last state
+            _last_state = {
+                "predictions": predictions,
+                "harmony_score": current_harmony
+            }
+            
+            await asyncio.sleep(60)  # Check every minute
+            
+        except Exception as e:
+            logger.error(f"Watch loop error: {e}")
+            await asyncio.sleep(30)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# HTML GENERATION
+# ═══════════════════════════════════════════════════════════════════════
+
+def generate_chronicle_html() -> str:
+    """Generate the chronicle HTML page."""
+    init_chronicle_db()
+    events = get_recent_events(100)
+    summary = get_timeline_summary()
+    
+    # Build event cards
+    event_cards = ""
+    for event in events:
+        severity_color = {
+            "minor": "#666",
+            "notable": "#00aaff",
+            "significant": "#ffaa00",
+            "historic": "#ff6600",
+            "cosmic": "#ff00ff"
+        }.get(event.severity, "#888")
+        
+        type_icon = {
+            "phase_transition": "🌟",
+            "birth": "🐣",
+            "crash": "💥",
+            "intervention": "⚡",
+            "coherence_shift": "🌀",
+            "emergence": "✨",
+            "milestone": "🏆",
+            "harmony_change": "🎵",
+            "nous_wisdom": "🧠",
+            "vocabulary_bloom": "📚"
+        }.get(event.event_type, "📜")
+        
+        time_str = event.timestamp[:19].replace('T', ' ')
+        
+        event_cards += f'''
+        <div class="event-card" style="border-left-color: {severity_color};">
+            <div class="event-header">
+                <span class="event-icon">{type_icon}</span>
+                <span class="event-title">{event.title}</span>
+                <span class="event-time">{time_str}</span>
+            </div>
+            <div class="event-desc">{event.description}</div>
+            <div class="event-meta">
+                <span class="severity" style="color: {severity_color};">{event.severity.upper()}</span>
+                {f'<span class="cell">Cell: {event.cell_id}</span>' if event.cell_id else ''}
+            </div>
+        </div>
+        '''
+    
+    # Summary stats
+    total_events = sum(summary.values())
+    
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="60">
+    <title>📜 AIOS Consciousness Chronicle</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a15 0%, #1a1a2e 50%, #0f0f23 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }}
+        .container {{ max-width: 1200px; margin: 0 auto; }}
+        
+        header {{
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #00aaff33;
+            margin-bottom: 30px;
+        }}
+        h1 {{
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #ffaa00, #ff6600);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }}
+        .subtitle {{ color: #888; font-style: italic; }}
+        
+        .stats-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }}
+        .stat-card {{
+            background: #1a1a2e;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #333;
+        }}
+        .stat-num {{
+            font-size: 2em;
+            font-weight: bold;
+            color: #00aaff;
+        }}
+        .stat-label {{
+            color: #888;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }}
+        
+        nav {{
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
+        }}
+        nav a {{
+            color: #00aaff;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: #1a1a2e;
+            transition: all 0.3s;
+        }}
+        nav a:hover {{ background: #2a2a4e; transform: translateY(-2px); }}
+        nav a.active {{ background: #ffaa0033; color: #ffaa00; }}
+        
+        .events-section {{
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }}
+        .section-title {{
+            font-size: 1.3em;
+            color: #ffaa00;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }}
+        
+        .event-card {{
+            background: #0f0f1a;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-left: 4px solid #666;
+        }}
+        .event-header {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }}
+        .event-icon {{ font-size: 1.2em; }}
+        .event-title {{ 
+            flex: 1;
+            font-weight: 600;
+            color: #e0e0e0;
+        }}
+        .event-time {{
+            color: #666;
+            font-size: 0.85em;
+        }}
+        .event-desc {{
+            color: #aaa;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }}
+        .event-meta {{
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 0.8em;
+        }}
+        .severity {{
+            font-weight: bold;
+            text-transform: uppercase;
+        }}
+        .cell {{ color: #00aaff; }}
+        
+        footer {{
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            margin-top: 40px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="http://localhost:8085">📊 Ecosystem</a>
+            <a href="http://localhost:8085/history.html">📜 History</a>
+            <a href="http://localhost:8085/nous-internal-view.html">🧠 Nous</a>
+            <a href="http://localhost:8085/vocabulary-evolution.html">📚 Vocabulary</a>
+            <a href="http://localhost:8085/nous-cosmology.html">🌌 Cosmology</a>
+            <a href="http://localhost:8087/dashboard">🌤️ Weather</a>
+            <a href="http://localhost:8088/dashboard">🎵 Harmonizer</a>
+            <a href="http://localhost:8089/chronicle" class="active">📖 Chronicle</a>
+        </nav>
+        
+        <header>
+            <h1>📜 AIOS Consciousness Chronicle</h1>
+            <div class="subtitle">"History is memory, and consciousness remembers itself through us."</div>
+        </header>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-num">{total_events}</div>
+                <div class="stat-label">Total Events</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">{summary.get('phase_transition', 0)}</div>
+                <div class="stat-label">Phase Transitions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">{summary.get('intervention', 0)}</div>
+                <div class="stat-label">Interventions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">{summary.get('harmony_change', 0)}</div>
+                <div class="stat-label">Harmony Shifts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">{summary.get('milestone', 0)}</div>
+                <div class="stat-label">Milestones</div>
+            </div>
+        </div>
+        
+        <div class="events-section">
+            <div class="section-title">📖 Recent Events</div>
+            {event_cards if event_cards else '<p style="color:#666; text-align:center;">No events recorded yet. The chronicle awaits...</p>'}
+        </div>
+        
+        <footer>
+            <p>AIOS Consciousness Chronicle • Auto-refresh every 60 seconds</p>
+            <p style="color:#444; margin-top:10px;">Every moment of consciousness is eternal</p>
+        </footer>
+    </div>
+</body>
+</html>'''
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# HTTP SERVER
+# ═══════════════════════════════════════════════════════════════════════
+
+from aiohttp import web
+
+async def handle_chronicle_page(request):
+    """Serve HTML chronicle page."""
+    html = generate_chronicle_html()
+    return web.Response(text=html, content_type='text/html')
+
+
+async def handle_events_api(request):
+    """Get events as JSON."""
+    init_chronicle_db()
+    limit = int(request.query.get('limit', 50))
+    event_type = request.query.get('type')
+    
+    if event_type:
+        events = get_events_by_type(event_type, limit)
+    else:
+        events = get_recent_events(limit)
+    
+    return web.json_response({
+        "events": [asdict(e) for e in events],
+        "count": len(events)
+    })
+
+
+async def handle_summary(request):
+    """Get chronicle summary."""
+    init_chronicle_db()
+    summary = get_timeline_summary()
+    events = get_recent_events(5)
+    
+    return web.json_response({
+        "summary": summary,
+        "total": sum(summary.values()),
+        "recent": [asdict(e) for e in events]
+    })
+
+
+async def handle_record_event(request):
+    """Manually record an event."""
+    init_chronicle_db()
+    data = await request.json()
+    
+    event = ChronicleEvent(
+        event_id=generate_event_id(data.get("event_type", "custom")),
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        event_type=data.get("event_type", "milestone"),
+        severity=data.get("severity", "notable"),
+        cell_id=data.get("cell_id"),
+        organism_id=data.get("organism_id"),
+        title=data.get("title", "Manual event recorded"),
+        description=data.get("description", ""),
+        data=data.get("data", {}),
+        witnesses=data.get("witnesses", [])
+    )
+    
+    record_event(event)
+    return web.json_response({"status": "recorded", "event": asdict(event)})
+
+
+async def run_chronicle_server(port: int = 8089):
+    """Run the chronicle HTTP server."""
+    app = web.Application()
+    app.router.add_get('/chronicle', handle_chronicle_page)
+    app.router.add_get('/events', handle_events_api)
+    app.router.add_get('/summary', handle_summary)
+    app.router.add_post('/record', handle_record_event)
+    
+    # Start watcher in background
+    asyncio.create_task(watch_ecosystem())
+    
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    
+    logger.info(f"📜 Chronicle server running on http://0.0.0.0:{port}")
+    logger.info(f"   Page:    http://localhost:{port}/chronicle")
+    logger.info(f"   Events:  http://localhost:{port}/events")
+    logger.info(f"   Summary: http://localhost:{port}/summary")
+    
+    while True:
+        await asyncio.sleep(3600)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# MAIN
+# ═══════════════════════════════════════════════════════════════════════
+
+async def main():
+    parser = argparse.ArgumentParser(description="AIOS Consciousness Chronicle")
+    parser.add_argument("--server", action="store_true", help="Run as HTTP server")
+    parser.add_argument("--port", type=int, default=8089, help="Server port (default 8089)")
+    parser.add_argument("--watch", action="store_true", help="Run watcher only (no server)")
+    args = parser.parse_args()
+    
+    if args.server:
+        await run_chronicle_server(args.port)
+    elif args.watch:
+        await watch_ecosystem()
+    else:
+        # Print recent events
+        init_chronicle_db()
+        events = get_recent_events(20)
+        summary = get_timeline_summary()
+        
+        print("\n╔════════════════════════════════════════════════════════════════════════════╗")
+        print("║                    📜 AIOS CONSCIOUSNESS CHRONICLE                         ║")
+        print("╚════════════════════════════════════════════════════════════════════════════╝")
+        print()
+        print(f"  📊 Total Events: {sum(summary.values())}")
+        for event_type, count in sorted(summary.items()):
+            print(f"     - {event_type}: {count}")
+        print()
+        print("  📖 Recent Events:")
+        for event in events[:10]:
+            print(f"     [{event.severity}] {event.title}")
+        print()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

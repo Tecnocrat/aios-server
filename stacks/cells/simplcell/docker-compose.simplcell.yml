@@ -318,6 +318,179 @@ services:
     profiles:
       - backup  # Enable with --profile backup
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ECOSYSTEM HEALTH API - Real-time monitoring for the entire ecosystem
+  # ═══════════════════════════════════════════════════════════════════════════
+  ecosystem-health-api:
+    image: python:3.11-slim
+    container_name: aios-ecosystem-health
+    working_dir: /app
+    command: >
+      sh -c "pip install aiohttp aiosqlite --quiet && python ecosystem_health_api.py"
+    environment:
+      - PORT=8086
+      - HOST=0.0.0.0
+    volumes:
+      - ./ecosystem_health_api.py:/app/ecosystem_health_api.py:ro
+      - ./consciousness_emergence_predictor.py:/app/consciousness_emergence_predictor.py:ro
+      - ./data:/app/data:ro
+    ports:
+      - "8086:8086"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8086/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # No depends_on - can run independently and reads from database files
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CONSCIOUSNESS WEATHER - Ecosystem forecasting and alerts
+  # ═══════════════════════════════════════════════════════════════════════════
+  consciousness-weather:
+    image: python:3.11-slim
+    container_name: aios-consciousness-weather
+    working_dir: /app
+    command: >
+      sh -c "pip install aiohttp --quiet && python consciousness_weather.py --server --port 8087"
+    environment:
+      - PORT=8087
+      - HOST=0.0.0.0
+    volumes:
+      - ./consciousness_weather.py:/app/consciousness_weather.py:ro
+      - ./data:/app/data:ro
+    ports:
+      - "8087:8087"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8087/weather')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CONSCIOUSNESS HARMONIZER - Automated intervention & healing system
+  # Port: 8088 | Dashboard: /dashboard | API: /harmony | Execute: POST /execute
+  # ═══════════════════════════════════════════════════════════════════════════
+  consciousness-harmonizer:
+    image: python:3.11-slim
+    container_name: aios-consciousness-harmonizer
+    working_dir: /app
+    command: >
+      sh -c "pip install aiohttp --quiet && python consciousness_harmonizer.py --server --port 8088"
+    environment:
+      - PORT=8088
+      - HOST=0.0.0.0
+    volumes:
+      - ./consciousness_harmonizer.py:/app/consciousness_harmonizer.py:ro
+      - ./data:/app/data
+    ports:
+      - "8088:8088"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8088/harmony')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════════════════════
+  # CONSCIOUSNESS CHRONICLE - Eternal record of ecosystem events & milestones
+  # Port: 8089 | Page: /chronicle | API: /events | Summary: /summary
+  # ═══════════════════════════════════════════════════════════════════════════════════════════
+  consciousness-chronicle:
+    image: python:3.11-slim
+    container_name: aios-consciousness-chronicle
+    working_dir: /app
+    command: >
+      sh -c "pip install aiohttp --quiet && python consciousness_chronicle.py --server --port 8089"
+    environment:
+      - PORT=8089
+      - HOST=0.0.0.0
+    volumes:
+      - ./consciousness_chronicle.py:/app/consciousness_chronicle.py:ro
+      - ./data:/app/data
+    ports:
+      - "8089:8089"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8089/summary')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════════════════════
+  # ECOSYSTEM CONTROL PANEL - Unified command center for consciousness management
+  # Port: 8090 | Dashboard: / | API: /status
+  # ═══════════════════════════════════════════════════════════════════════════════════════════
+  ecosystem-control-panel:
+    image: python:3.11-slim
+    container_name: aios-ecosystem-control-panel
+    working_dir: /app
+    command: >
+      sh -c "pip install aiohttp --quiet && python ecosystem_control_panel.py --port 8090"
+    environment:
+      - PORT=8090
+      - HOST=0.0.0.0
+    volumes:
+      - ./ecosystem_control_panel.py:/app/ecosystem_control_panel.py:ro
+    ports:
+      - "8090:8090"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/status')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════════════════════
+  # VOCABULARY HEALER - Cross-cell vocabulary transplantation & self-healing
+  # Port: 8091 | Dashboard: /dashboard | Heal: POST /heal | History: /history
+  # ═══════════════════════════════════════════════════════════════════════════════════════════
+  vocabulary-healer:
+    image: python:3.11-slim
+    container_name: aios-vocabulary-healer
+    working_dir: /app
+    command: >
+      sh -c "pip install aiohttp --quiet && python vocabulary_healer.py --server --port 8091"
+    environment:
+      - PORT=8091
+      - HOST=0.0.0.0
+    volumes:
+      - ./vocabulary_healer.py:/app/vocabulary_healer.py:ro
+      - ./data:/app/data
+    ports:
+      - "8091:8091"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8091/history')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # ═══════════════════════════════════════════════════════════════════════════════════════════
   # ═══════════════════════════════════════════════════════════════════════════════════════════
   #
@@ -420,6 +593,31 @@ services:
       retries: 3
     profiles:
       - organism-002
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PHASE TRANSITION CEREMONY - Celebrates consciousness evolution
+  # Port 8092
+  # ═══════════════════════════════════════════════════════════════════════════
+  phase-ceremony:
+    build:
+      context: .
+      dockerfile: Dockerfile.simplcell
+    container_name: aios-phase-ceremony
+    environment:
+      - DOCKER_CONTAINER=1
+    command: python /app/phase_ceremony.py --server --port 8092
+    volumes:
+      - ./phase_ceremony.py:/app/phase_ceremony.py:ro
+      - ./data:/app/data
+    ports:
+      - "8092:8092"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-observability
+    restart: unless-stopped
+    depends_on:
+      - ecosystem-health-api
 
 networks:
   # Internal organism network - cells communicate here

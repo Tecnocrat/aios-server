@@ -281,6 +281,22 @@ scrape_configs:
           generation: 'regenerated'
     metrics_path: /metrics
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ECOSYSTEM HEALTH API - Aggregate Health Monitoring (Phase 32.5)
+  # REST API providing ecosystem-wide health and consciousness metrics
+  # AINLP.tachyonic[ECOSYSTEM_HEALTH::MONITORING]
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - job_name: 'aios-ecosystem-health'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['aios-ecosystem-health:8086']
+        labels:
+          service: 'ecosystem-health'
+          role: 'monitoring'
+          api: 'rest'
+    metrics_path: /metrics
+
   # Watcher Cell Omega - Observer (Phase 31.7)
   - job_name: 'aios-watchercell-omega'
     scrape_interval: 15s
