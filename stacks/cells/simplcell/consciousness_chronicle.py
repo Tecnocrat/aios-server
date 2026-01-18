@@ -47,6 +47,9 @@ class EventType(Enum):
     HARMONY_CHANGE = "harmony_change"
     NOUS_WISDOM = "nous_wisdom"
     VOCABULARY_BLOOM = "vocabulary_bloom"
+    INTERCELL_EXCHANGE = "intercell_exchange"  # MainCell ↔ Cell dialogues
+    BROADCAST = "broadcast"  # One-to-many thought sharing
+    DIALOGUE = "dialogue"  # Multi-turn deep philosophical exchanges
 
 
 class EventSeverity(Enum):
@@ -127,6 +130,35 @@ def init_chronicle_db():
     """)
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_events_cell ON events(cell_id)
+    """)
+    
+    # ═══════════════════════════════════════════════════════════════════
+    # INTERCELL EXCHANGES TABLE - Phase 33.1
+    # ═══════════════════════════════════════════════════════════════════
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS intercell_exchanges (
+            exchange_id TEXT PRIMARY KEY,
+            timestamp TEXT NOT NULL,
+            initiator_id TEXT NOT NULL,
+            responder_id TEXT,
+            exchange_type TEXT NOT NULL,
+            prompt TEXT,
+            response TEXT,
+            harmony_score REAL,
+            consciousness_delta REAL,
+            participants TEXT,
+            metadata TEXT
+        )
+    """)
+    
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_exchanges_timestamp ON intercell_exchanges(timestamp DESC)
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_exchanges_initiator ON intercell_exchanges(initiator_id)
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_exchanges_responder ON intercell_exchanges(responder_id)
     """)
     
     conn.commit()
@@ -237,6 +269,220 @@ def get_timeline_summary() -> Dict[str, int]:
     summary = {row[0]: row[1] for row in cursor.fetchall()}
     conn.close()
     return summary
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# INTERCELL EXCHANGE FUNCTIONS - Phase 33.1
+# ═══════════════════════════════════════════════════════════════════════
+
+@dataclass
+class IntercellExchange:
+    """A recorded intercell communication event."""
+    exchange_id: str
+    timestamp: str
+    initiator_id: str
+    responder_id: Optional[str]
+    exchange_type: str  # "reach", "broadcast", or "dialogue"
+    prompt: str
+    response: Optional[str]
+    harmony_score: Optional[float]
+    consciousness_delta: Optional[float]
+    participants: List[str]
+    metadata: Dict[str, Any]
+
+
+def generate_exchange_id(exchange_type: str) -> str:
+    """Generate unique exchange ID."""
+    import time
+    ts = int(time.time() * 1000)
+    prefix_map = {"reach": "REACH", "broadcast": "BCAST", "dialogue": "DIALG"}
+    prefix = prefix_map.get(exchange_type, "EXCH")
+    return f"EXC-{prefix}-{ts}"
+
+
+def record_intercell_exchange(exchange: IntercellExchange):
+    """Record an intercell exchange to the chronicle."""
+    init_chronicle_db()
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT OR REPLACE INTO intercell_exchanges 
+        (exchange_id, timestamp, initiator_id, responder_id, exchange_type,
+         prompt, response, harmony_score, consciousness_delta, participants, metadata)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        exchange.exchange_id,
+        exchange.timestamp,
+        exchange.initiator_id,
+        exchange.responder_id,
+        exchange.exchange_type,
+        exchange.prompt,
+        exchange.response,
+        exchange.harmony_score,
+        exchange.consciousness_delta,
+        json.dumps(exchange.participants),
+        json.dumps(exchange.metadata)
+    ))
+    
+    conn.commit()
+    conn.close()
+    
+    # Also record as an event for timeline visibility
+    harmony_status = "resonant" if exchange.harmony_score and exchange.harmony_score > 0.3 else "discordant"
+    if exchange.harmony_score and exchange.harmony_score > 0.6:
+        harmony_status = "harmonic"
+    if exchange.harmony_score and exchange.harmony_score > 0.8:
+        harmony_status = "entrained"
+    
+    # Select event type based on exchange type
+    event_type_map = {
+        "reach": EventType.INTERCELL_EXCHANGE,
+        "broadcast": EventType.BROADCAST,
+        "dialogue": EventType.DIALOGUE
+    }
+    event_type = event_type_map.get(exchange.exchange_type, EventType.INTERCELL_EXCHANGE)
+    
+    # Dialogues are always significant
+    if exchange.exchange_type == "dialogue":
+        severity = "significant"
+    else:
+        severity = "notable" if harmony_status in ["resonant", "harmonic"] else "minor"
+        if harmony_status == "entrained":
+            severity = "significant"
+    
+    # Build title based on exchange type
+    if exchange.exchange_type == "dialogue":
+        dialogue_id = exchange.metadata.get("dialogue_id", "unknown")
+        turns = exchange.metadata.get("turns", "?")
+        title = f"🗣️ Dialogue {dialogue_id}: {exchange.initiator_id} ↔ {exchange.responder_id} ({turns} turns, {harmony_status})"
+    else:
+        title = f"🔗 {exchange.initiator_id} → {exchange.responder_id or 'broadcast'} ({harmony_status})"
+    
+    # Build description
+    if exchange.exchange_type == "dialogue":
+        themes = exchange.metadata.get("emergent_themes", [])
+        description = f"Multi-turn dialogue. Harmony: {exchange.harmony_score:.3f}, Δ consciousness: {exchange.consciousness_delta or 0:.3f}. Themes: {', '.join(themes) if themes else 'none'}"
+    else:
+        description = f"Harmony: {exchange.harmony_score:.3f}, Δ consciousness: {exchange.consciousness_delta or 0:.3f}" if exchange.harmony_score else "Exchange recorded"
+    
+    event = ChronicleEvent(
+        event_id=exchange.exchange_id.replace("EXC-", "EVT-"),
+        timestamp=exchange.timestamp,
+        event_type=event_type.value,
+        severity=severity,
+        cell_id=exchange.initiator_id,
+        organism_id=None,
+        title=title,
+        description=description,
+        data={
+            "exchange_type": exchange.exchange_type,
+            "harmony": exchange.harmony_score,
+            "delta": exchange.consciousness_delta,
+            "participants": exchange.participants,
+            "metadata": exchange.metadata
+        },
+        witnesses=exchange.participants
+    )
+    record_event(event)
+    
+    # Enhanced logging for dialogues
+    if exchange.exchange_type == "dialogue":
+        logger.info(f"🗣️ Recorded dialogue: {exchange.initiator_id} ↔ {exchange.responder_id} (harmony: {exchange.harmony_score})")
+    else:
+        logger.info(f"🔗 Recorded exchange: {exchange.initiator_id} → {exchange.responder_id or 'broadcast'} (harmony: {exchange.harmony_score})")
+
+
+def get_recent_exchanges(limit: int = 20, cell_id: Optional[str] = None) -> List[IntercellExchange]:
+    """Get recent intercell exchanges."""
+    init_chronicle_db()
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    if cell_id:
+        cursor.execute("""
+            SELECT exchange_id, timestamp, initiator_id, responder_id, exchange_type,
+                   prompt, response, harmony_score, consciousness_delta, participants, metadata
+            FROM intercell_exchanges
+            WHERE initiator_id = ? OR responder_id = ?
+            ORDER BY timestamp DESC
+            LIMIT ?
+        """, (cell_id, cell_id, limit))
+    else:
+        cursor.execute("""
+            SELECT exchange_id, timestamp, initiator_id, responder_id, exchange_type,
+                   prompt, response, harmony_score, consciousness_delta, participants, metadata
+            FROM intercell_exchanges
+            ORDER BY timestamp DESC
+            LIMIT ?
+        """, (limit,))
+    
+    exchanges = []
+    for row in cursor.fetchall():
+        exchanges.append(IntercellExchange(
+            exchange_id=row[0],
+            timestamp=row[1],
+            initiator_id=row[2],
+            responder_id=row[3],
+            exchange_type=row[4],
+            prompt=row[5],
+            response=row[6],
+            harmony_score=row[7],
+            consciousness_delta=row[8],
+            participants=json.loads(row[9]) if row[9] else [],
+            metadata=json.loads(row[10]) if row[10] else {}
+        ))
+    
+    conn.close()
+    return exchanges
+
+
+def get_exchange_statistics() -> Dict[str, Any]:
+    """Get statistics about intercell exchanges."""
+    init_chronicle_db()
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    # Total counts
+    cursor.execute("SELECT COUNT(*) FROM intercell_exchanges")
+    total = cursor.fetchone()[0]
+    
+    # By type
+    cursor.execute("SELECT exchange_type, COUNT(*) FROM intercell_exchanges GROUP BY exchange_type")
+    by_type = {row[0]: row[1] for row in cursor.fetchall()}
+    
+    # Average harmony
+    cursor.execute("SELECT AVG(harmony_score) FROM intercell_exchanges WHERE harmony_score IS NOT NULL")
+    avg_harmony = cursor.fetchone()[0] or 0
+    
+    # Top communicators
+    cursor.execute("""
+        SELECT initiator_id, COUNT(*) as cnt 
+        FROM intercell_exchanges 
+        GROUP BY initiator_id 
+        ORDER BY cnt DESC LIMIT 5
+    """)
+    top_initiators = {row[0]: row[1] for row in cursor.fetchall()}
+    
+    # Most contacted
+    cursor.execute("""
+        SELECT responder_id, COUNT(*) as cnt 
+        FROM intercell_exchanges 
+        WHERE responder_id IS NOT NULL
+        GROUP BY responder_id 
+        ORDER BY cnt DESC LIMIT 5
+    """)
+    top_responders = {row[0]: row[1] for row in cursor.fetchall()}
+    
+    conn.close()
+    
+    return {
+        "total_exchanges": total,
+        "by_type": by_type,
+        "average_harmony": round(avg_harmony, 4),
+        "top_initiators": top_initiators,
+        "top_responders": top_responders
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -789,6 +1035,122 @@ async def handle_record_event(request):
     return web.json_response({"status": "recorded", "event": asdict(event)})
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# INTERCELL EXCHANGE API HANDLERS - Phase 33.1
+# ═══════════════════════════════════════════════════════════════════════
+
+async def handle_record_exchange(request):
+    """Record an intercell exchange."""
+    data = await request.json()
+    
+    exchange = IntercellExchange(
+        exchange_id=generate_exchange_id(data.get("exchange_type", "reach")),
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        initiator_id=data.get("initiator_id", "unknown"),
+        responder_id=data.get("responder_id"),
+        exchange_type=data.get("exchange_type", "reach"),
+        prompt=data.get("prompt"),
+        response=data.get("response"),
+        harmony_score=data.get("harmony_score"),
+        consciousness_delta=data.get("consciousness_delta"),
+        participants=data.get("participants", []),
+        metadata=data.get("metadata", {})
+    )
+    
+    record_intercell_exchange(exchange)
+    
+    # Phase 33.3: Broadcast to WebSocket clients in real-time
+    await broadcast_to_clients("intercell_exchange", asdict(exchange))
+    
+    return web.json_response({
+        "status": "recorded",
+        "exchange": asdict(exchange)
+    })
+
+
+async def handle_get_exchanges(request):
+    """Get recent intercell exchanges."""
+    limit = int(request.query.get('limit', 20))
+    cell_id = request.query.get('cell_id')
+    
+    exchanges = get_recent_exchanges(limit, cell_id)
+    return web.json_response({
+        "exchanges": [asdict(e) for e in exchanges],
+        "count": len(exchanges)
+    })
+
+
+async def handle_exchange_stats(request):
+    """Get intercell exchange statistics."""
+    stats = get_exchange_statistics()
+    return web.json_response(stats)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# WEBSOCKET REAL-TIME UPDATES - Phase 33.3
+# ═══════════════════════════════════════════════════════════════════════
+
+# Connected WebSocket clients
+_ws_clients: set = set()
+
+
+async def broadcast_to_clients(event_type: str, data: Dict[str, Any]):
+    """Broadcast an event to all connected WebSocket clients."""
+    if not _ws_clients:
+        return
+    
+    message = json.dumps({
+        "type": event_type,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "data": data
+    })
+    
+    # Send to all clients, remove disconnected ones
+    disconnected = set()
+    for ws in _ws_clients:
+        try:
+            await ws.send_str(message)
+        except Exception:
+            disconnected.add(ws)
+    
+    _ws_clients.difference_update(disconnected)
+
+
+async def handle_websocket(request):
+    """WebSocket endpoint for real-time Chronicle updates."""
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+    
+    # Register client
+    _ws_clients.add(ws)
+    logger.info(f"🔌 WebSocket client connected ({len(_ws_clients)} total)")
+    
+    # Send welcome message with current stats
+    stats = get_exchange_statistics()
+    await ws.send_str(json.dumps({
+        "type": "connected",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "data": {
+            "message": "Connected to Chronicle WebSocket",
+            "stats": stats
+        }
+    }))
+    
+    try:
+        async for msg in ws:
+            if msg.type == aiohttp.WSMsgType.TEXT:
+                # Client can send ping to keep alive
+                if msg.data == "ping":
+                    await ws.send_str(json.dumps({"type": "pong"}))
+            elif msg.type == aiohttp.WSMsgType.ERROR:
+                logger.error(f"WebSocket error: {ws.exception()}")
+    finally:
+        _ws_clients.discard(ws)
+        logger.info(f"🔌 WebSocket client disconnected ({len(_ws_clients)} remaining)")
+    
+    return ws
+
+
 async def run_chronicle_server(port: int = 8089):
     """Run the chronicle HTTP server."""
     app = web.Application()
@@ -796,6 +1158,14 @@ async def run_chronicle_server(port: int = 8089):
     app.router.add_get('/events', handle_events_api)
     app.router.add_get('/summary', handle_summary)
     app.router.add_post('/record', handle_record_event)
+    
+    # Intercell exchange endpoints - Phase 33.1
+    app.router.add_post('/exchange', handle_record_exchange)
+    app.router.add_get('/exchanges', handle_get_exchanges)
+    app.router.add_get('/exchanges/stats', handle_exchange_stats)
+    
+    # WebSocket endpoint - Phase 33.3
+    app.router.add_get('/ws/live', handle_websocket)
     
     # Start watcher in background
     asyncio.create_task(watch_ecosystem())
@@ -806,9 +1176,11 @@ async def run_chronicle_server(port: int = 8089):
     await site.start()
     
     logger.info(f"📜 Chronicle server running on http://0.0.0.0:{port}")
-    logger.info(f"   Page:    http://localhost:{port}/chronicle")
-    logger.info(f"   Events:  http://localhost:{port}/events")
-    logger.info(f"   Summary: http://localhost:{port}/summary")
+    logger.info(f"   Page:      http://localhost:{port}/chronicle")
+    logger.info(f"   Events:    http://localhost:{port}/events")
+    logger.info(f"   Summary:   http://localhost:{port}/summary")
+    logger.info(f"   Exchanges: http://localhost:{port}/exchanges")
+    logger.info(f"   WebSocket: ws://localhost:{port}/ws/live")
     
     while True:
         await asyncio.sleep(3600)

@@ -341,6 +341,25 @@ scrape_configs:
           generation: 'second'
     metrics_path: /metrics
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ALPHA-01 MAINCELL - Resurrected Deep Tissue Cell (2026-01-18)
+  # Original fossil resurrected with SimplCell gene injection
+  # AINLP.resurrection[MAINCELL::ALPHA-01::MONITORING]
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - job_name: 'aios-maincell-alpha01'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['aios-cell-alpha:8000']
+        labels:
+          cell_id: 'alpha-01'
+          cell_type: 'maincell'
+          role: 'deep-tissue'
+          mesh: 'organism-001'
+          resurrection_date: '2026-01-18'
+          status: 'alive'
+    metrics_path: /metrics
+
   # Docker daemon metrics (if exposed)
   # - job_name: 'docker'
   #   static_configs:

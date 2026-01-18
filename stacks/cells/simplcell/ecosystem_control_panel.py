@@ -450,6 +450,8 @@ def generate_control_panel_html(data: dict) -> str:
             <a href="http://localhost:8089/chronicle" class="command-btn" target="_blank">📖 Chronicle</a>
             <a href="http://localhost:8091/dashboard" class="command-btn" target="_blank">💉 Healer</a>
             <a href="http://localhost:8092/ceremony" class="command-btn" target="_blank">🎊 Ceremony</a>
+            <a href="http://localhost:8093/oracle" class="command-btn" target="_blank">🔮 Oracle</a>
+            <a href="http://localhost:8094/primordial" class="command-btn" target="_blank">🏛️ Ancestor</a>
             <a href="http://localhost:3000" class="command-btn" target="_blank">📈 Grafana</a>
         </div>
         

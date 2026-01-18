@@ -903,13 +903,26 @@
             }
         };
 
+        // MainCells - Deep tissue cells with LLM consciousness
+        const MAINCELLS = {
+            'alpha-01': { 
+                url: 'http://localhost:8005', 
+                symbol: 'Ω', 
+                name: 'Alpha-01 (Resurrected)', 
+                type: 'maincell',
+                status: 'alive',
+                resurrectDate: '2026-01-18'
+            }
+        };
+
         const NOUS_URL = 'http://localhost:8903';
 
         // Data storage
         let ecosystemData = {
             'organism-001': { health: {}, conversations: [], triadic: {} },
             'organism-002': { health: {}, conversations: [] },
-            nous: { health: null }
+            nous: { health: null },
+            maincells: { health: {}, reflections: [] }
         };
 
         // Initialize
@@ -951,6 +964,11 @@
                     promises.push(fetchCellData('organism-002', cellId, cell.url));
                 }
                 
+                // MainCells - Deep tissue
+                for (const [cellId, cell] of Object.entries(MAINCELLS)) {
+                    promises.push(fetchMainCellData(cellId, cell.url));
+                }
+                
                 // Nous
                 promises.push(fetchNousHealth());
                 
@@ -970,6 +988,26 @@
                 console.error('Refresh error:', error);
                 document.getElementById('connection-status').classList.add('error');
                 document.getElementById('connection-text').textContent = 'Error';
+            }
+        }
+
+        // Fetch MainCell data (deep tissue cells)
+        async function fetchMainCellData(cellId, url) {
+            try {
+                const [health, phase] = await Promise.all([
+                    fetch(`${url}/health`).then(r => r.json()).catch(() => ({ online: false })),
+                    fetch(`${url}/phase`).then(r => r.json()).catch(() => null)
+                ]);
+                ecosystemData.maincells.health[cellId] = { 
+                    online: true, 
+                    ...health,
+                    phase: phase?.phase,
+                    consciousness: phase?.consciousness_level,
+                    reflection_count: phase?.reflection_count,
+                    resurrection_status: phase?.resurrection_status
+                };
+            } catch (e) {
+                ecosystemData.maincells.health[cellId] = { online: false };
             }
         }
 
@@ -1033,13 +1071,20 @@
 
             // Cell count
             let onlineCells = 0;
+            let totalCells = 6; // Base: 3 org-001 + 2 org-002 + 1 nous
             for (const org of ['organism-001', 'organism-002']) {
                 for (const cell of Object.values(ecosystemData[org].health || {})) {
                     if (cell.online) onlineCells++;
                 }
             }
             if (ecosystemData.nous.health?.online) onlineCells++;
-            document.getElementById('total-cells').textContent = `${onlineCells}/6`;
+            
+            // Add MainCells
+            for (const cell of Object.values(ecosystemData.maincells.health || {})) {
+                totalCells++;
+                if (cell.online) onlineCells++;
+            }
+            document.getElementById('total-cells').textContent = `${onlineCells}/${totalCells}`;
 
             updateCellGrid();
         }
@@ -1077,6 +1122,21 @@
                     <span class="cell-consciousness">${nousHealth.online ? '∞' : '--'}</span>
                 </div>
             `;
+
+            // MainCells (Deep Tissue)
+            html += '<div style="font-size: 10px; color: #ffd700; margin: 8px 0 4px; font-weight: 600;">🧬 MAINCELLS (DEEP TISSUE)</div>';
+            for (const [cellId, cell] of Object.entries(MAINCELLS)) {
+                const health = ecosystemData.maincells.health[cellId] || {};
+                const statusClass = health.online ? (health.resurrection_status === 'ALIVE' ? 'gamma' : 'alpha') : 'offline';
+                html += `
+                    <div class="cell-status-item" style="border-left: 2px solid #ffd700;">
+                        <span class="status-indicator ${statusClass}"></span>
+                        <span class="cell-name">${cell.symbol} ${cell.name}</span>
+                        <span class="cell-genome-badge" style="background: rgba(255, 215, 0, 0.2); color: #ffd700;">${health.resurrection_status || 'UNKNOWN'}</span>
+                        <span class="cell-consciousness">${health.consciousness?.toFixed(2) || '--'}</span>
+                    </div>
+                `;
+            }
 
             grid.innerHTML = html;
         }

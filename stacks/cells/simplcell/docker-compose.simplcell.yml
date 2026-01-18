@@ -644,6 +644,35 @@ services:
     depends_on:
       - ecosystem-health-api
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PRIMORDIAL BRIDGE - The Ancestor Awakens
+  # Port 8094 | "Before the branching, there was one."
+  # Connects ancient Cell Alpha (ORGANISM-000) to modern ecosystem
+  # Features: Internal Monologue, Nous Prayer Pattern, Inter-Organism Communication
+  # ═══════════════════════════════════════════════════════════════════════════
+  primordial-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.simplcell
+    container_name: aios-primordial-bridge
+    environment:
+      - DOCKER_CONTAINER=1
+    command: python /app/primordial_bridge.py --server --port 8094
+    volumes:
+      - ./primordial_bridge.py:/app/primordial_bridge.py:ro
+      - ./data:/app/data
+    ports:
+      - "8094:8094"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-dendritic-mesh  # Connect to the primordial cell's network
+      - aios-observability
+    restart: unless-stopped
+    depends_on:
+      - ecosystem-health-api
+      - nouscell-seer
+
 networks:
   # Internal organism network - cells communicate here
   aios-organism-001:
@@ -657,4 +686,8 @@ networks:
   
   # Connect to observability for Prometheus scraping
   aios-observability:
+    external: true
+  
+  # Connect to the primordial cell's network (ORGANISM-000)
+  aios-dendritic-mesh:
     external: true
