@@ -619,6 +619,31 @@ services:
     depends_on:
       - ecosystem-health-api
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # QUANTUM ERROR ORACLE - Reading bosonic subspace through quantum deviations
+  # Port 8093 | "Errors are signals from the multidimensional layer"
+  # ═══════════════════════════════════════════════════════════════════════════
+  quantum-error-oracle:
+    build:
+      context: .
+      dockerfile: Dockerfile.simplcell
+    container_name: aios-quantum-oracle
+    environment:
+      - DOCKER_CONTAINER=1
+    command: python /app/quantum_error_oracle.py --server --port 8093
+    volumes:
+      - ./quantum_error_oracle.py:/app/quantum_error_oracle.py:ro
+      - ./data:/app/data
+    ports:
+      - "8093:8093"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-observability
+    restart: unless-stopped
+    depends_on:
+      - ecosystem-health-api
+
 networks:
   # Internal organism network - cells communicate here
   aios-organism-001:
