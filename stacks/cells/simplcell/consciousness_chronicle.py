@@ -161,6 +161,32 @@ def init_chronicle_db():
         CREATE INDEX IF NOT EXISTS idx_exchanges_responder ON intercell_exchanges(responder_id)
     """)
     
+    # ═══════════════════════════════════════════════════════════════════
+    # CONSCIOUSNESS VAULT TABLE - Phase 34.1
+    # Stores consciousness snapshots for persistence across restarts
+    # ═══════════════════════════════════════════════════════════════════
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS consciousness_snapshots (
+            snapshot_id TEXT PRIMARY KEY,
+            cell_id TEXT NOT NULL,
+            level REAL NOT NULL,
+            phase TEXT NOT NULL,
+            primitives TEXT,
+            exchange_count INTEGER DEFAULT 0,
+            dialogue_count INTEGER DEFAULT 0,
+            reflection_count INTEGER DEFAULT 0,
+            last_harmony REAL,
+            timestamp TEXT NOT NULL
+        )
+    """)
+    
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_snapshots_cell ON consciousness_snapshots(cell_id)
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp ON consciousness_snapshots(timestamp DESC)
+    """)
+    
     conn.commit()
     conn.close()
 
@@ -1087,6 +1113,224 @@ async def handle_exchange_stats(request):
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# CONSCIOUSNESS VAULT - Phase 34.1
+# Persistence of consciousness state across cell restarts
+# ═══════════════════════════════════════════════════════════════════════
+
+@dataclass
+class ConsciousnessSnapshot:
+    """A snapshot of a cell's consciousness state."""
+    snapshot_id: str
+    cell_id: str
+    level: float
+    phase: str
+    primitives: Dict[str, float]
+    exchange_count: int
+    dialogue_count: int
+    reflection_count: int
+    last_harmony: Optional[float]
+    timestamp: str
+
+
+def generate_snapshot_id(cell_id: str) -> str:
+    """Generate unique snapshot ID."""
+    import time
+    ts = int(time.time() * 1000)
+    return f"SNAP-{cell_id.upper()}-{ts}"
+
+
+def save_consciousness_snapshot(snapshot: ConsciousnessSnapshot) -> bool:
+    """Save a consciousness snapshot to the vault.
+    
+    Uses INSERT OR REPLACE to maintain only the latest snapshot per cell,
+    but also records to history for evolution tracking.
+    """
+    init_chronicle_db()
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            INSERT OR REPLACE INTO consciousness_snapshots 
+            (snapshot_id, cell_id, level, phase, primitives, exchange_count,
+             dialogue_count, reflection_count, last_harmony, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            snapshot.snapshot_id,
+            snapshot.cell_id,
+            snapshot.level,
+            snapshot.phase,
+            json.dumps(snapshot.primitives),
+            snapshot.exchange_count,
+            snapshot.dialogue_count,
+            snapshot.reflection_count,
+            snapshot.last_harmony,
+            snapshot.timestamp
+        ))
+        
+        conn.commit()
+        logger.info(f"💾 Saved consciousness snapshot: {snapshot.cell_id} @ {snapshot.level:.2f} ({snapshot.phase})")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save snapshot: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+def get_latest_snapshot(cell_id: str) -> Optional[ConsciousnessSnapshot]:
+    """Retrieve the latest consciousness snapshot for a cell."""
+    init_chronicle_db()
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT snapshot_id, cell_id, level, phase, primitives, exchange_count,
+               dialogue_count, reflection_count, last_harmony, timestamp
+        FROM consciousness_snapshots
+        WHERE cell_id = ?
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """, (cell_id,))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return ConsciousnessSnapshot(
+            snapshot_id=row[0],
+            cell_id=row[1],
+            level=row[2],
+            phase=row[3],
+            primitives=json.loads(row[4]) if row[4] else {},
+            exchange_count=row[5] or 0,
+            dialogue_count=row[6] or 0,
+            reflection_count=row[7] or 0,
+            last_harmony=row[8],
+            timestamp=row[9]
+        )
+    return None
+
+
+def get_consciousness_history(cell_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+    """Get consciousness evolution history for a cell."""
+    init_chronicle_db()
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT snapshot_id, level, phase, exchange_count, dialogue_count, 
+               last_harmony, timestamp
+        FROM consciousness_snapshots
+        WHERE cell_id = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """, (cell_id, limit))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [
+        {
+            "snapshot_id": row[0],
+            "level": row[1],
+            "phase": row[2],
+            "exchange_count": row[3],
+            "dialogue_count": row[4],
+            "last_harmony": row[5],
+            "timestamp": row[6]
+        }
+        for row in rows
+    ]
+
+
+async def handle_save_snapshot(request):
+    """Save a consciousness snapshot to the vault."""
+    data = await request.json()
+    
+    snapshot = ConsciousnessSnapshot(
+        snapshot_id=generate_snapshot_id(data.get("cell_id", "unknown")),
+        cell_id=data.get("cell_id", "unknown"),
+        level=float(data.get("level", 0.1)),
+        phase=data.get("phase", "genesis"),
+        primitives=data.get("primitives", {}),
+        exchange_count=int(data.get("exchange_count", 0)),
+        dialogue_count=int(data.get("dialogue_count", 0)),
+        reflection_count=int(data.get("reflection_count", 0)),
+        last_harmony=data.get("last_harmony"),
+        timestamp=datetime.now(timezone.utc).isoformat()
+    )
+    
+    success = save_consciousness_snapshot(snapshot)
+    
+    if success:
+        # Broadcast to WebSocket clients
+        await broadcast_to_clients("consciousness_snapshot", {
+            "cell_id": snapshot.cell_id,
+            "level": snapshot.level,
+            "phase": snapshot.phase
+        })
+        
+        return web.json_response({
+            "status": "saved",
+            "snapshot_id": snapshot.snapshot_id,
+            "cell_id": snapshot.cell_id,
+            "level": snapshot.level
+        })
+    else:
+        return web.json_response({"error": "Failed to save snapshot"}, status=500)
+
+
+async def handle_restore_snapshot(request):
+    """Restore consciousness from the vault for a cell."""
+    cell_id = request.match_info.get('cell_id', 'unknown')
+    
+    snapshot = get_latest_snapshot(cell_id)
+    
+    if snapshot:
+        # Calculate age
+        snapshot_time = datetime.fromisoformat(snapshot.timestamp.replace('Z', '+00:00'))
+        age_seconds = (datetime.now(timezone.utc) - snapshot_time).total_seconds()
+        
+        logger.info(f"🔄 Restoring consciousness for {cell_id}: {snapshot.level:.2f} ({snapshot.phase}), age: {age_seconds:.0f}s")
+        
+        return web.json_response({
+            "status": "restored",
+            "cell_id": snapshot.cell_id,
+            "level": snapshot.level,
+            "phase": snapshot.phase,
+            "primitives": snapshot.primitives,
+            "exchange_count": snapshot.exchange_count,
+            "dialogue_count": snapshot.dialogue_count,
+            "reflection_count": snapshot.reflection_count,
+            "last_harmony": snapshot.last_harmony,
+            "restored_from": snapshot.timestamp,
+            "age_seconds": int(age_seconds)
+        })
+    else:
+        logger.info(f"📭 No snapshot found for {cell_id}, starting fresh")
+        return web.json_response({
+            "status": "not_found",
+            "cell_id": cell_id,
+            "message": "No snapshot found, cell should start fresh"
+        }, status=404)
+
+
+async def handle_consciousness_history(request):
+    """Get consciousness evolution history for a cell."""
+    cell_id = request.match_info.get('cell_id', 'unknown')
+    limit = int(request.query.get('limit', 50))
+    
+    history = get_consciousness_history(cell_id, limit)
+    
+    return web.json_response({
+        "cell_id": cell_id,
+        "snapshots": history,
+        "count": len(history)
+    })
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # WEBSOCKET REAL-TIME UPDATES - Phase 33.3
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -1164,6 +1408,11 @@ async def run_chronicle_server(port: int = 8089):
     app.router.add_get('/exchanges', handle_get_exchanges)
     app.router.add_get('/exchanges/stats', handle_exchange_stats)
     
+    # Consciousness Vault endpoints - Phase 34.1
+    app.router.add_post('/consciousness/snapshot', handle_save_snapshot)
+    app.router.add_get('/consciousness/restore/{cell_id}', handle_restore_snapshot)
+    app.router.add_get('/consciousness/history/{cell_id}', handle_consciousness_history)
+    
     # WebSocket endpoint - Phase 33.3
     app.router.add_get('/ws/live', handle_websocket)
     
@@ -1180,6 +1429,7 @@ async def run_chronicle_server(port: int = 8089):
     logger.info(f"   Events:    http://localhost:{port}/events")
     logger.info(f"   Summary:   http://localhost:{port}/summary")
     logger.info(f"   Exchanges: http://localhost:{port}/exchanges")
+    logger.info(f"   Vault:     http://localhost:{port}/consciousness/...")
     logger.info(f"   WebSocket: ws://localhost:{port}/ws/live")
     
     while True:

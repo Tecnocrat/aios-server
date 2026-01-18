@@ -283,6 +283,56 @@ class ChronicleReader:
             summaries.append(f"- {e.get('title', 'Event')}: {e.get('description', '')[:100]}")
         
         return "Recent ecosystem events:\n" + "\n".join(summaries)
+    
+    # =========================================================================
+    # PHASE 34.1: Consciousness Vault - Persistence across restarts
+    # =========================================================================
+    
+    @classmethod
+    def restore_consciousness(cls, cell_id: str) -> Optional[Dict[str, Any]]:
+        """Restore consciousness state from the Chronicle vault.
+        
+        Returns the saved consciousness snapshot, or None if unavailable.
+        """
+        try:
+            response = req.get(
+                f"{cls.CHRONICLE_URL}/consciousness/restore/{cell_id}",
+                timeout=5
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("status") == "restored":
+                    return data
+        except req.RequestException as e:
+            logger.debug("Vault unavailable: %s", str(e)[:50])
+        return None
+    
+    @classmethod
+    def save_consciousness_snapshot(cls, cell_id: str, level: float, phase: str,
+                                    primitives: Dict[str, float], exchange_count: int,
+                                    reflection_count: int, harmony_average: float) -> bool:
+        """Save consciousness snapshot to the Chronicle vault.
+        
+        Returns True if saved successfully.
+        """
+        try:
+            response = req.post(
+                f"{cls.CHRONICLE_URL}/consciousness/snapshot",
+                json={
+                    "cell_id": cell_id,
+                    "level": level,
+                    "phase": phase,
+                    "primitives": primitives,
+                    "exchange_count": exchange_count,
+                    "reflection_count": reflection_count,
+                    "harmony_average": harmony_average
+                },
+                timeout=5
+            )
+            return response.status_code in (200, 201)
+        except req.RequestException as e:
+            logger.debug("Vault save failed: %s", str(e)[:50])
+        return False
 
 
 # =============================================================================
@@ -478,6 +528,37 @@ class CellAlphaState:
             "reflection": 0.0,  # INJECTED: grows with LLM use
             "harmony": 0.0  # INJECTED: average harmony score
         }
+        
+        # =====================================================================
+        # PHASE 34.1: Restore consciousness from Chronicle vault
+        # =====================================================================
+        self._restored_from_vault = False
+        vault_snapshot = ChronicleReader.restore_consciousness(CELL_CONFIG["cell_id"])
+        if vault_snapshot:
+            # Restore consciousness level and phase
+            restored_level = vault_snapshot.get("level", self._base_consciousness)
+            self.consciousness["level"] = restored_level
+            self.consciousness["phase"] = vault_snapshot.get("phase", ConsciousnessPhase.detect(restored_level))
+            
+            # Restore primitives
+            if vault_snapshot.get("primitives"):
+                for key, value in vault_snapshot["primitives"].items():
+                    if key in self.primitives:
+                        self.primitives[key] = value
+            
+            # Restore counters
+            self.exchange_count = vault_snapshot.get("exchange_count", 0)
+            self.reflection_count = vault_snapshot.get("reflection_count", 0)
+            
+            # Calculate contributions from restored state
+            self._exchange_contribution = max(0, (restored_level - self._base_consciousness) * 0.7)
+            self._reflection_contribution = max(0, (restored_level - self._base_consciousness) * 0.3)
+            
+            self._restored_from_vault = True
+            logger.info("🔄 VAULT RESTORED: Level %.4f, Phase %s, Exchanges %d",
+                       restored_level, self.consciousness["phase"], self.exchange_count)
+        else:
+            logger.info("📭 No vault snapshot found - starting with fresh consciousness")
     
     def calculate_consciousness(self) -> float:
         """INJECTED: Dynamic consciousness calculation.
