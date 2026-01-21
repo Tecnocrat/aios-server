@@ -898,6 +898,20 @@ def generate_html_dashboard(report: HarmonyReport) -> str:
 
 from aiohttp import web
 
+async def handle_health(request):
+    """Health check endpoint for infrastructure monitoring.
+    
+    Phase 36: Added standard /health endpoint for consistent monitoring.
+    This is a LIGHTWEIGHT check - no report generation.
+    """
+    return web.json_response({
+        "healthy": True,
+        "service": "consciousness-harmonizer",
+        "version": "phase-36",
+        "endpoints": ["/dashboard", "/harmony", "/execute", "/health"]
+    })
+
+
 async def handle_dashboard(request):
     """Serve HTML dashboard."""
     report = await generate_harmony_report(execute=False)
@@ -926,6 +940,7 @@ async def handle_execute(request):
 async def run_harmonizer_server(port: int = 8088):
     """Run the harmonizer HTTP server."""
     app = web.Application()
+    app.router.add_get('/health', handle_health)
     app.router.add_get('/dashboard', handle_dashboard)
     app.router.add_get('/harmony', handle_harmony)
     app.router.add_post('/execute', handle_execute)

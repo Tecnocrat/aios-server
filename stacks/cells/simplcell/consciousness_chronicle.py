@@ -1659,9 +1659,23 @@ async def handle_nexus_dashboard(request: web.Request) -> web.Response:
         )
 
 
+async def handle_health(request):
+    """Health check endpoint for infrastructure monitoring.
+    
+    Phase 36: Added standard /health endpoint for consistent monitoring.
+    """
+    return web.json_response({
+        "healthy": True,
+        "service": "consciousness-chronicle",
+        "version": "phase-36",
+        "endpoints": ["/chronicle", "/events", "/summary", "/exchanges", "/nexus", "/health"]
+    })
+
+
 async def run_chronicle_server(port: int = 8089):
     """Run the chronicle HTTP server."""
     app = web.Application()
+    app.router.add_get('/health', handle_health)
     app.router.add_get('/chronicle', handle_chronicle_page)
     app.router.add_get('/events', handle_events_api)
     app.router.add_get('/summary', handle_summary)

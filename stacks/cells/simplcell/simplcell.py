@@ -1501,6 +1501,23 @@ class SimplCell:
         self.state.total_lifetime_exchanges += 1
         logger.info(f"📝 Archived received sync: my response={response[:60]}...")
         
+        # ─────────────────────────────────────────────────────────────────────
+        # Phase 36.1: Calculate harmony on RECEIVE (not just initiate)
+        # Previously only initiating cells calculated harmony, causing cells
+        # without PEER_URL to show 0.0 harmony. Now both sides measure.
+        # ─────────────────────────────────────────────────────────────────────
+        vocab_terms = self.vocabulary_pool.get_recent_terms(100) if hasattr(self, 'vocabulary_pool') else []
+        harmony_metrics = HarmonyCalculator.calculate(response, thought, vocab_terms)
+        theme_metrics = self._theme_tracker.record_exchange(response, thought)
+        
+        self.state.last_harmony_score = harmony_metrics["harmony_score"]
+        self.state.last_sync_quality = harmony_metrics["sync_quality"]
+        self.state.last_dominant_theme = theme_metrics["dominant_theme"]
+        self.state.last_theme_continuity = theme_metrics["theme_continuity"]
+        
+        logger.info(f"🎵 Harmony (received): {harmony_metrics['harmony_score']:.2f} ({harmony_metrics['sync_quality']})")
+        logger.info(f"   Theme: {theme_metrics['dominant_theme']} (continuity={theme_metrics['theme_continuity']:.2f})")
+        
         return {
             "type": "sync_response",
             "source": self.genome.cell_id,

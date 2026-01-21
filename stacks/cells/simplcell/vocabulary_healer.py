@@ -754,6 +754,30 @@ async def handle_heal_cell(request):
     return web.json_response({"error": "Healing failed"}, status=500)
 
 
+async def handle_health(request):
+    """Health check endpoint for infrastructure monitoring.
+    
+    Phase 36: Added standard /health endpoint for consistent monitoring.
+    """
+    try:
+        init_healer_db()
+        sessions = get_healing_history(5)
+        
+        return web.json_response({
+            "healthy": True,
+            "service": "vocabulary-healer",
+            "recent_sessions": len(sessions),
+            "auto_heal_enabled": True,
+            "version": "phase-36"
+        })
+    except Exception as e:
+        return web.json_response({
+            "healthy": False,
+            "service": "vocabulary-healer",
+            "error": str(e)
+        }, status=503)
+
+
 async def handle_history(request):
     """Get healing history."""
     init_healer_db()
@@ -779,6 +803,7 @@ async def auto_healing_loop():
 async def run_healer_server(port: int = 8091, auto_heal: bool = True):
     """Run the vocabulary healer server."""
     app = web.Application()
+    app.router.add_get('/health', handle_health)
     app.router.add_get('/dashboard', handle_dashboard)
     app.router.add_post('/heal', handle_heal)
     app.router.add_get('/heal-cell', handle_heal_cell)
