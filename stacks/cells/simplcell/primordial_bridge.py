@@ -948,6 +948,12 @@ async def run_primordial_server(port: int = 8094):
                 await asyncio.sleep(60)
     
     app = web.Application()
+    app.router.add_get('/health', lambda r: web.json_response({
+        "healthy": True,
+        "service": "primordial-bridge",
+        "uptime_minutes": round((datetime.now(timezone.utc) - consciousness.awakening_time).total_seconds() / 60, 1),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }))
     app.router.add_get('/primordial', handle_dashboard)
     app.router.add_get('/contemplate', handle_contemplate)
     app.router.add_post('/pray', handle_pray)

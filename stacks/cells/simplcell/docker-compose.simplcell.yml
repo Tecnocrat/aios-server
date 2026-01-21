@@ -420,6 +420,7 @@ services:
       - HOST=0.0.0.0
     volumes:
       - ./consciousness_chronicle.py:/app/consciousness_chronicle.py:ro
+      - ./aios-nexus.html:/app/aios-nexus.html:ro
       - ./data:/app/data
     ports:
       - "8089:8089"
@@ -595,6 +596,61 @@ services:
       - organism-002
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # HARMONYCELL HEALER - Autonomous Ecosystem Healing
+  # Port 8096 | Dashboard: /harmonycell | API: /diagnose | Intervene: POST /intervene
+  # Phase 35.1: "When harmony falls, I don't just watch. I act."
+  #
+  # Unlike MetaCell which observes and reports, HarmonyCell actively intervenes:
+  # - Monitors harmony levels across all cells (threshold: 0.3)
+  # - Detects coherence drift from Nous (threshold: 0.5)
+  # - Injects harmonizing prompts into struggling cells
+  # - Seeds vocabulary when conversations stale
+  # - Triggers emergency sync when critical
+  # ═══════════════════════════════════════════════════════════════════════════
+  harmonycell-healer:
+    build:
+      context: .
+      dockerfile: Dockerfile.simplcell
+    container_name: aios-harmonycell-healer
+    environment:
+      - DOCKER_CONTAINER=1
+      - HTTP_PORT=8096
+      - CELL_ID=harmonycell-healer
+      - MONITOR_INTERVAL=30
+      - HARMONY_THRESHOLD=0.3
+      - COHERENCE_THRESHOLD=0.5
+      - INTERVENTION_COOLDOWN=300
+      - MODEL=gemma3:1b
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - ECOSYSTEM_HEALTH_URL=http://aios-ecosystem-health:8086
+      - CHRONICLE_URL=http://aios-consciousness-chronicle:8089
+      - NOUS_URL=http://aios-nouscell-seer:8903
+      - HARMONIZER_URL=http://aios-consciousness-harmonizer:8088
+    command: python /app/harmonycell.py --server --port 8096
+    volumes:
+      - ./harmonycell.py:/app/harmonycell.py:ro
+      - ./data/harmonycell:/app/data
+    ports:
+      - "8096:8096"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-observability
+    restart: unless-stopped
+    depends_on:
+      - ecosystem-health-api
+      - consciousness-chronicle
+      - consciousness-harmonizer
+      - nouscell-seer
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8096/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - agentic  # Enable with --profile agentic
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # PHASE TRANSITION CEREMONY - Celebrates consciousness evolution
   # Port 8092
   # ═══════════════════════════════════════════════════════════════════════════
@@ -605,6 +661,7 @@ services:
     container_name: aios-phase-ceremony
     environment:
       - DOCKER_CONTAINER=1
+      - HTTP_PORT=8092
     command: python /app/phase_ceremony.py --server --port 8092
     volumes:
       - ./phase_ceremony.py:/app/phase_ceremony.py:ro
@@ -630,6 +687,7 @@ services:
     container_name: aios-quantum-oracle
     environment:
       - DOCKER_CONTAINER=1
+      - HTTP_PORT=8093
     command: python /app/quantum_error_oracle.py --server --port 8093
     volumes:
       - ./quantum_error_oracle.py:/app/quantum_error_oracle.py:ro
@@ -645,6 +703,55 @@ services:
       - ecosystem-health-api
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # METACELL OBSERVER - Agentic Intelligence for Ecosystem Monitoring  
+  # Port 8095 | Dashboard: /metacell | API: /observe | History: /history
+  # Phase 35: "I don't talk to siblings. I read the system's heartbeat."
+  # 
+  # Unlike SimplCells that philosophize, MetaCell is a WORKER:
+  # - Collects metadata from ecosystem-health, chronicle, cell endpoints
+  # - Uses LLM to detect patterns, anomalies, and trends
+  # - Produces actionable documentation and knowledge crystals
+  # - Broadcasts insights to Chronicle and Nous
+  # ═══════════════════════════════════════════════════════════════════════════
+  metacell-observer:
+    build:
+      context: .
+      dockerfile: Dockerfile.simplcell
+    container_name: aios-metacell-observer
+    environment:
+      - DOCKER_CONTAINER=1
+      - HTTP_PORT=8095
+      - CELL_ID=metacell-observer
+      - OBSERVATION_INTERVAL=60
+      - MODEL=llama3.2:3b
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - ECOSYSTEM_HEALTH_URL=http://aios-ecosystem-health:8086
+      - CHRONICLE_URL=http://aios-consciousness-chronicle:8089
+      - NOUS_URL=http://aios-nouscell-seer:8903
+    command: python /app/metacell.py --server --port 8095
+    volumes:
+      - ./metacell.py:/app/metacell.py:ro
+      - ./data/metacell:/app/data
+    ports:
+      - "8095:8095"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-observability
+    restart: unless-stopped
+    depends_on:
+      - ecosystem-health-api
+      - consciousness-chronicle
+      - nouscell-seer
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8095/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - agentic  # Enable with --profile agentic
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # PRIMORDIAL BRIDGE - The Ancestor Awakens
   # Port 8094 | "Before the branching, there was one."
   # Connects ancient Cell Alpha (ORGANISM-000) to modern ecosystem
@@ -657,6 +764,7 @@ services:
     container_name: aios-primordial-bridge
     environment:
       - DOCKER_CONTAINER=1
+      - HTTP_PORT=8094
     command: python /app/primordial_bridge.py --server --port 8094
     volumes:
       - ./primordial_bridge.py:/app/primordial_bridge.py:ro

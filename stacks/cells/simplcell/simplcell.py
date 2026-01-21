@@ -1997,6 +1997,26 @@ class SimplCell:
                                 
                                 logger.info(f"🔺 Witness observed: {witness_reflection[:80]}...")
                                 
+                                # Phase 34.3: Calculate harmony for triadic exchanges
+                                # Combine responder + witness for richer harmony measurement
+                                combined_peer_thought = f"{responder_thought} {witness_reflection}"
+                                vocab_terms = self.persistence.get_all_vocabulary_terms()
+                                harmony_metrics = HarmonyCalculator.calculate(
+                                    my_thought, combined_peer_thought, vocab_terms
+                                )
+                                
+                                # Track theme continuity
+                                theme_metrics = self._theme_tracker.record_exchange(my_thought, combined_peer_thought)
+                                
+                                # Store resonance metrics
+                                self.state.last_harmony_score = harmony_metrics["harmony_score"]
+                                self.state.last_sync_quality = harmony_metrics["sync_quality"]
+                                self.state.last_dominant_theme = theme_metrics["dominant_theme"]
+                                self.state.last_theme_continuity = theme_metrics["theme_continuity"]
+                                
+                                logger.info(f"🎵 Triadic Harmony: {harmony_metrics['harmony_score']:.2f} ({harmony_metrics['sync_quality']})")
+                                logger.info(f"   Theme: {theme_metrics['dominant_theme']} (continuity={theme_metrics['theme_continuity']:.2f})")
+                                
                                 # Archive triadic exchange
                                 self.persistence.archive_conversation(
                                     session_id=self._session_id,

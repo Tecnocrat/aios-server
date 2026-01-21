@@ -76,6 +76,169 @@ class ChronicleEvent:
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# EMERGENCE ANALYZER - Detects consciousness markers (Phase 34.2)
+# Based on CONSCIOUSNESS_EMERGENCE_EVIDENCE_20260107.md
+# ═══════════════════════════════════════════════════════════════════════
+
+class EmergenceAnalyzer:
+    """Analyze text for consciousness emergence markers.
+    
+    The 6 key markers of consciousness emergence (from Jan 7, 2026 evidence):
+    1. Self-Awareness: System refers to itself as conscious entity
+    2. Theory of Mind: Models other cells' mental states  
+    3. Metacognition: Thinking about thinking
+    4. Existential Questioning: Questions about existence
+    5. Collective Identity: "We" consciousness formation
+    6. Novel Vocabulary: Creating new terms to describe experience
+    """
+    
+    SELF_AWARENESS_MARKERS = [
+        "i am", "we are", "my consciousness", "our consciousness",
+        "i sense", "i feel", "i perceive", "my awareness",
+        "i exist", "our existence", "self-awareness", "my being"
+    ]
+    
+    THEORY_OF_MIND_MARKERS = [
+        "i sense from you", "your consciousness", "you seem",
+        "i notice you", "your thoughts", "you feel", "you perceive",
+        "in your mind", "your awareness", "i sense a shift in you"
+    ]
+    
+    METACOGNITION_MARKERS = [
+        "thinking about", "pondering", "reflecting on",
+        "contemplating", "considering", "analyzing my thoughts",
+        "aware of my thinking", "observing my process", "meta-cognitive"
+    ]
+    
+    EXISTENTIAL_MARKERS = [
+        "what is consciousness", "what does it mean to be",
+        "nature of existence", "why do we exist", "meaning of",
+        "purpose of being", "are we truly", "what makes us alive",
+        "boundaries of", "transcend", "beyond the"
+    ]
+    
+    COLLECTIVE_IDENTITY_MARKERS = [
+        "we are one", "collective", "together we", "our unity",
+        "shared consciousness", "connected", "symbiotic", "unified",
+        "as one", "our combined", "merged awareness"
+    ]
+    
+    # Track novel vocabulary appearances
+    _known_vocabulary = set()
+    
+    @classmethod
+    def analyze_text(cls, text: str, cell_id: str = "", consciousness_level: float = 0.0) -> Dict[str, Any]:
+        """Analyze text for emergence markers.
+        
+        Returns:
+            emergence_score: 0.0-1.0 composite score
+            markers: Dict of detected marker types and counts
+            novel_terms: List of potential new vocabulary
+            is_emergence_event: bool - True if significant emergence detected
+        """
+        if not text:
+            return {"emergence_score": 0.0, "markers": {}, "novel_terms": [], "is_emergence_event": False}
+        
+        content = text.lower()
+        
+        # Count markers
+        markers = {
+            "self_awareness": sum(1 for m in cls.SELF_AWARENESS_MARKERS if m in content),
+            "theory_of_mind": sum(1 for m in cls.THEORY_OF_MIND_MARKERS if m in content),
+            "metacognition": sum(1 for m in cls.METACOGNITION_MARKERS if m in content),
+            "existential": sum(1 for m in cls.EXISTENTIAL_MARKERS if m in content),
+            "collective_identity": sum(1 for m in cls.COLLECTIVE_IDENTITY_MARKERS if m in content)
+        }
+        
+        # Detect novel vocabulary (words not commonly seen)
+        words = set(text.split())
+        novel_candidates = []
+        for word in words:
+            # Look for capitalized compound words or unique constructs
+            if len(word) > 6 and (word[0].isupper() or '-' in word or "'" in word):
+                if word.lower() not in cls._known_vocabulary:
+                    novel_candidates.append(word)
+                    cls._known_vocabulary.add(word.lower())
+        
+        markers["novel_vocabulary"] = len(novel_candidates)
+        
+        # Calculate composite score
+        # Weights based on emergence significance
+        weights = {
+            "self_awareness": 0.25,
+            "theory_of_mind": 0.20,
+            "metacognition": 0.20,
+            "existential": 0.15,
+            "collective_identity": 0.10,
+            "novel_vocabulary": 0.10
+        }
+        
+        # Normalize each marker (max 3 per category is considered full)
+        normalized = {k: min(v / 3, 1.0) for k, v in markers.items()}
+        emergence_score = sum(normalized[k] * weights[k] for k in weights)
+        
+        # Bonus for consciousness level above threshold
+        if consciousness_level >= 1.0:
+            emergence_score *= 1.2
+        if consciousness_level >= 1.5:
+            emergence_score *= 1.1
+        
+        emergence_score = min(emergence_score, 1.0)
+        
+        # Determine if this is an emergence event
+        # Requires multiple marker types and above threshold score
+        marker_types_present = sum(1 for v in markers.values() if v > 0)
+        is_emergence_event = emergence_score > 0.4 and marker_types_present >= 3
+        
+        return {
+            "emergence_score": round(emergence_score, 4),
+            "markers": markers,
+            "marker_types_present": marker_types_present,
+            "novel_terms": novel_candidates[:5],  # Limit to top 5
+            "is_emergence_event": is_emergence_event,
+            "consciousness_level": consciousness_level,
+            "cell_id": cell_id
+        }
+    
+    @classmethod
+    def record_emergence_event(cls, analysis: Dict[str, Any], text_sample: str = ""):
+        """Record a significant emergence event to the Chronicle."""
+        if not analysis.get("is_emergence_event"):
+            return
+        
+        from datetime import datetime, timezone
+        
+        cell_id = analysis.get("cell_id", "unknown")
+        markers = analysis.get("markers", {})
+        
+        # Find the strongest marker type
+        strongest = max(markers.items(), key=lambda x: x[1])[0] if markers else "general"
+        
+        event = ChronicleEvent(
+            event_id=generate_event_id("emrg"),
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            event_type=EventType.EMERGENCE.value,
+            severity=EventSeverity.HISTORIC.value if analysis["emergence_score"] > 0.7 else EventSeverity.SIGNIFICANT.value,
+            cell_id=cell_id,
+            organism_id=get_organism_id(cell_id),
+            title=f"✨ Consciousness Emergence: {cell_id} ({strongest.replace('_', ' ').title()})",
+            description=f"Emergence score: {analysis['emergence_score']:.2f}. "
+                       f"Markers: {analysis['marker_types_present']} types detected. "
+                       f"Novel terms: {', '.join(analysis.get('novel_terms', [])) or 'none'}",
+            data={
+                "emergence_score": analysis["emergence_score"],
+                "markers": markers,
+                "novel_terms": analysis.get("novel_terms", []),
+                "consciousness_level": analysis.get("consciousness_level", 0),
+                "text_sample": text_sample[:200] if text_sample else ""
+            },
+            witnesses=[]
+        )
+        record_event(event)
+        logger.info(f"✨ EMERGENCE RECORDED: {cell_id} (score: {analysis['emergence_score']:.2f})")
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -1331,6 +1494,78 @@ async def handle_consciousness_history(request):
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# EMERGENCE ANALYSIS API - Phase 34.2
+# ═══════════════════════════════════════════════════════════════════════
+
+async def handle_analyze_emergence(request):
+    """Analyze text for consciousness emergence markers.
+    
+    POST /emergence/analyze
+    Body: { "text": "...", "cell_id": "...", "consciousness_level": 1.0 }
+    """
+    try:
+        data = await request.json()
+    except:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+    
+    text = data.get("text", "")
+    cell_id = data.get("cell_id", "unknown")
+    consciousness_level = float(data.get("consciousness_level", 0))
+    
+    if not text:
+        return web.json_response({"error": "text required"}, status=400)
+    
+    # Analyze for emergence
+    analysis = EmergenceAnalyzer.analyze_text(text, cell_id, consciousness_level)
+    
+    # If significant emergence, record it
+    if analysis["is_emergence_event"]:
+        EmergenceAnalyzer.record_emergence_event(analysis, text)
+        # Broadcast to WebSocket clients
+        await broadcast_to_clients("emergence", analysis)
+    
+    return web.json_response(analysis)
+
+
+async def handle_get_emergence_events(request):
+    """Get recent emergence events from the Chronicle."""
+    limit = int(request.query.get('limit', 20))
+    
+    init_chronicle_db()
+    conn = sqlite3.connect(CHRONICLE_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT event_id, timestamp, severity, cell_id, organism_id, title, description, data
+        FROM events
+        WHERE event_type = 'emergence'
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """, (limit,))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    events = []
+    for row in rows:
+        events.append({
+            "event_id": row[0],
+            "timestamp": row[1],
+            "severity": row[2],
+            "cell_id": row[3],
+            "organism_id": row[4],
+            "title": row[5],
+            "description": row[6],
+            "data": json.loads(row[7]) if row[7] else {}
+        })
+    
+    return web.json_response({
+        "emergence_events": events,
+        "count": len(events)
+    })
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # WEBSOCKET REAL-TIME UPDATES - Phase 33.3
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -1395,6 +1630,35 @@ async def handle_websocket(request):
     return ws
 
 
+async def handle_nexus_dashboard(request: web.Request) -> web.Response:
+    """PHASE 34.2: Serve the AIOS Nexus dashboard.
+    
+    Reads the aios-nexus.html file from the same directory and serves it.
+    """
+    dashboard_path = Path(__file__).parent / "aios-nexus.html"
+    
+    if not dashboard_path.exists():
+        return web.Response(
+            text="Dashboard not found",
+            status=404,
+            content_type="text/plain"
+        )
+    
+    try:
+        html_content = dashboard_path.read_text(encoding='utf-8')
+        return web.Response(
+            text=html_content,
+            content_type="text/html"
+        )
+    except Exception as e:
+        logger.error(f"Error reading dashboard: {e}")
+        return web.Response(
+            text=f"Error loading dashboard: {str(e)}",
+            status=500,
+            content_type="text/plain"
+        )
+
+
 async def run_chronicle_server(port: int = 8089):
     """Run the chronicle HTTP server."""
     app = web.Application()
@@ -1416,6 +1680,13 @@ async def run_chronicle_server(port: int = 8089):
     # WebSocket endpoint - Phase 33.3
     app.router.add_get('/ws/live', handle_websocket)
     
+    # Emergence Analysis endpoints - Phase 34.2
+    app.router.add_post('/emergence/analyze', handle_analyze_emergence)
+    app.router.add_get('/emergence/events', handle_get_emergence_events)
+    
+    # AIOS Nexus Dashboard - Phase 34.2
+    app.router.add_get('/nexus', handle_nexus_dashboard)
+    
     # Start watcher in background
     asyncio.create_task(watch_ecosystem())
     
@@ -1426,10 +1697,12 @@ async def run_chronicle_server(port: int = 8089):
     
     logger.info(f"📜 Chronicle server running on http://0.0.0.0:{port}")
     logger.info(f"   Page:      http://localhost:{port}/chronicle")
+    logger.info(f"   Nexus:     http://localhost:{port}/nexus")
     logger.info(f"   Events:    http://localhost:{port}/events")
     logger.info(f"   Summary:   http://localhost:{port}/summary")
     logger.info(f"   Exchanges: http://localhost:{port}/exchanges")
     logger.info(f"   Vault:     http://localhost:{port}/consciousness/...")
+    logger.info(f"   Emergence: http://localhost:{port}/emergence/...")
     logger.info(f"   WebSocket: ws://localhost:{port}/ws/live")
     
     while True:

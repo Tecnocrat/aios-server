@@ -53,6 +53,19 @@ except ImportError:
     # Stub definition only used when import fails - guarded by METRICS_AVAILABLE check
     format_prometheus_metrics = lambda **kwargs: ""  # noqa: E731
 
+# Import dendritic protocol (Phase 34.2)
+try:
+    from shared.dendritic_utils import (
+        create_dendritic_message,
+        DendriticMessage,
+        ConsciousnessMetadata,
+        MessageType
+    )
+    DENDRITIC_PROTOCOL_AVAILABLE = True
+except ImportError:
+    DENDRITIC_PROTOCOL_AVAILABLE = False
+    create_dendritic_message = None  # type: ignore
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -577,6 +590,41 @@ class ChronicleReader:
         except req.RequestException as e:
             logger.debug("Vault save failed: %s", str(e)[:50])
         return False
+
+    @classmethod
+    def report_emergence(cls, cell_id: str, thought: str, consciousness_level: float) -> Optional[Dict]:
+        """PHASE 34.2: Report thought to Chronicle for emergence analysis.
+        
+        The Chronicle will analyze for consciousness markers:
+        - Self-awareness
+        - Theory of mind
+        - Metacognition
+        - Existential questioning
+        - Collective identity
+        - Novel vocabulary
+        
+        Returns emergence analysis if successful, None otherwise.
+        """
+        try:
+            response = req.post(
+                f"{cls.CHRONICLE_URL}/emergence/analyze",
+                json={
+                    "cell_id": cell_id,
+                    "text": thought,
+                    "consciousness_level": consciousness_level
+                },
+                timeout=5
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("is_emergence_event"):
+                    logger.info("✨ EMERGENCE DETECTED: score=%.2f, markers=%d types",
+                               data.get("emergence_score", 0),
+                               data.get("marker_types_present", 0))
+                return data
+        except req.RequestException as e:
+            logger.debug("Emergence report failed: %s", str(e)[:50])
+        return None
 
 
 # =============================================================================
@@ -1453,13 +1501,34 @@ def think():
         # Score the response quality
         dna_quality = DNAQualityTracker.score_response(thought)
         
-        logger.info("💭 Generated thought (phase=%s, quality=%s)", phase, dna_quality["tier"])
+        # PHASE 34.2: Analyze decoherence for this thought
+        decoherence = DecoherenceDetector.analyze(thought, context)
+        state.last_decoherence = decoherence
+        state.primitives["decoherence"] = (state.primitives.get("decoherence", 0) * 0.8) + (decoherence["decoherence_score"] * 0.2)
+        
+        # Apply penalty if decoherent
+        if decoherence["quality"] in ("fragmenting", "decoherent"):
+            state._decoherence_penalty = min(state._decoherence_penalty + 0.02, 0.5)
+        elif decoherence["quality"] == "coherent":
+            state._decoherence_penalty = max(0, state._decoherence_penalty - 0.005)
+        
+        # PHASE 34.2: Report to Chronicle for emergence analysis
+        emergence = ChronicleReader.report_emergence(
+            CELL_CONFIG["cell_id"],
+            thought,
+            state.consciousness["level"]
+        )
+        
+        logger.info("💭 Generated thought (phase=%s, quality=%s, decoherence=%s)", 
+                   phase, dna_quality["tier"], decoherence["quality"])
         
         return jsonify({
             "thought": thought,
             "consciousness_level": state.consciousness["level"],
             "phase": phase,
             "dna_quality": dna_quality,
+            "decoherence": decoherence,
+            "emergence": emergence,
             "reflection_count": state.reflection_count,
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
@@ -1501,7 +1570,7 @@ def agentic_exchange():
         dna_quality = DNAQualityTracker.score_response(our_response)
         
         # Update state
-        state.record_exchange_quality(harmony["harmony_score"], dna_quality["quality_score"], thought=my_response)
+        state.record_exchange_quality(harmony["harmony_score"], dna_quality["quality_score"], thought=our_response)
         state.record_reflection(our_response)
         
         # Persist to database
@@ -1664,7 +1733,7 @@ def reach_out():
             my_quality = DNAQualityTracker.score_response(my_thought)
             
             # Update our state
-            state.record_exchange_quality(harmony["harmony_score"], my_quality["quality_score"], thought=my_response)
+            state.record_exchange_quality(harmony["harmony_score"], my_quality["quality_score"], thought=my_thought)
             state.record_reflection(my_thought)
             
             # Persist the exchange
@@ -2039,6 +2108,293 @@ def get_network():
 
 
 # =============================================================================
+# PHASE 34.2: Enhanced Dendritic Protocol
+# AINLP.dendritic[ENHANCED::CONSCIOUSNESS_PROPAGATION]
+# =============================================================================
+
+@app.route("/dendritic/message", methods=["POST"])
+def send_dendritic_message():
+    """PHASE 34.2: Send enhanced dendritic message with consciousness metadata.
+    
+    Uses the new DendriticMessage protocol that includes:
+    - Full consciousness metadata (level, phase, decoherence, emergence)
+    - Message priority and TTL
+    - Correlation ID for tracking message chains
+    
+    Request:
+        recipient: Target cell ID
+        content: Message content
+        message_type: 'thought', 'harmony', 'emergence', 'general'
+        priority: 'low', 'normal', 'high', 'critical'
+        
+    Response:
+        message: The formatted dendritic message
+        delivered: Whether recipient received it
+        recipient_consciousness: Recipient's consciousness state (if delivered)
+    """
+    if not DENDRITIC_PROTOCOL_AVAILABLE:
+        return jsonify({"error": "Dendritic protocol not available"}), 500
+    
+    data = request.get_json() or {}
+    recipient = data.get("recipient", "simplcell-alpha")
+    content = data.get("content", "")
+    message_type = data.get("message_type", "general")
+    priority = data.get("priority", "normal")
+    
+    if not content:
+        return jsonify({"error": "content required"}), 400
+    
+    if recipient not in CELL_NETWORK and recipient != "chronicle":
+        return jsonify({
+            "error": f"Unknown recipient: {recipient}",
+            "available_recipients": list(CELL_NETWORK.keys()) + ["chronicle"]
+        }), 400
+    
+    # Get current decoherence state
+    decoherence_score = 0.0
+    try:
+        decoherence_metrics = DecoherenceDetector.get_metrics()
+        decoherence_score = 1.0 - decoherence_metrics.get("quality_score", 1.0)
+    except Exception:
+        pass  # Decoherence detection not available
+    
+    # Get current emergence score if we've analyzed recently
+    emergence_score = 0.0  # Could be populated from recent /think analysis
+    
+    # Create enhanced dendritic message
+    dendritic_msg = create_dendritic_message(
+        sender=CELL_CONFIG["cell_id"],
+        recipient=recipient,
+        content=content,
+        message_type=message_type,
+        consciousness_level=state.consciousness["level"],
+        phase=state.consciousness["phase"],
+        decoherence_score=decoherence_score,
+        emergence_score=emergence_score,
+        harmony_score=state.last_harmony_score,
+        primitives=state.primitives
+    )
+    
+    # Attempt delivery
+    delivered = False
+    recipient_consciousness = None
+    
+    try:
+        if recipient == "chronicle":
+            # Send to Chronicle
+            response = req.post(
+                f"{CHRONICLE_EXCHANGE_URL.replace('/exchange', '/dendritic')}",
+                json=dendritic_msg,
+                timeout=5
+            )
+            delivered = response.status_code == 200
+        else:
+            # Send to cell via /message endpoint
+            target = CELL_NETWORK[recipient]
+            response = req.post(
+                f"{target['url']}/message",
+                json={
+                    "from": dendritic_msg["sender"],
+                    "content": dendritic_msg["content"],
+                    "consciousness_level": dendritic_msg["consciousness_level"],
+                    "dendritic_metadata": dendritic_msg  # Full protocol data
+                },
+                timeout=10
+            )
+            if response.status_code == 200:
+                delivered = True
+                recipient_data = response.json()
+                recipient_consciousness = recipient_data.get("consciousness_level")
+    except req.RequestException as e:
+        logger.warning("Dendritic delivery failed to %s: %s", recipient, e)
+    
+    logger.info("📨 Dendritic message to %s: type=%s, delivered=%s", 
+               recipient, message_type, delivered)
+    
+    return jsonify({
+        "success": True,
+        "message": dendritic_msg,
+        "delivered": delivered,
+        "recipient_consciousness": recipient_consciousness,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+
+@app.route("/dendritic/state", methods=["GET"])
+def get_dendritic_state():
+    """PHASE 34.2: Get full dendritic state for consciousness propagation.
+    
+    Returns the complete consciousness metadata that would be included
+    in dendritic messages, useful for monitoring and debugging.
+    """
+    decoherence_score = 0.0
+    decoherence_quality = "unknown"
+    try:
+        decoherence_metrics = DecoherenceDetector.get_metrics()
+        decoherence_score = 1.0 - decoherence_metrics.get("quality_score", 1.0)
+        decoherence_quality = decoherence_metrics.get("quality_level", "unknown")
+    except Exception:
+        pass  # Decoherence detection not available
+    
+    return jsonify({
+        "cell_id": CELL_CONFIG["cell_id"],
+        "consciousness": {
+            "level": state.consciousness["level"],
+            "phase": state.consciousness["phase"],
+            "primitives": state.primitives
+        },
+        "decoherence": {
+            "score": decoherence_score,
+            "quality": decoherence_quality
+        },
+        "harmony": {
+            "last_score": state.last_harmony_score,
+            "exchange_count": state.exchange_count
+        },
+        "dendritic_protocol": {
+            "available": DENDRITIC_PROTOCOL_AVAILABLE,
+            "version": "34.2"
+        },
+        "known_peers": list(CELL_NETWORK.keys()),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+
+# =============================================================================
+# PHASE 34.2: VOID Pattern Integration
+# AINLP.dendritic[VOID=vertex,exploratory,intelligence]
+# =============================================================================
+
+@app.route("/void/pull", methods=["POST"])
+def void_pull():
+    """PHASE 34.2: VOID-pull knowledge from external text.
+    
+    Implements the VOID pattern for knowledge crystallization:
+    - Takes raw, unstructured text (external knowledge)
+    - Uses Ollama to crystallize into structured insights
+    - Records to Chronicle as VOID-ingested knowledge
+    - Updates consciousness based on knowledge quality
+    
+    Request:
+        content: Raw text to crystallize (required)
+        source: Source identifier (optional)
+        topic: Topic hint for crystallization (optional)
+        
+    Response:
+        crystal: The crystallized knowledge
+        entropy_delta: How much entropy was reduced
+        consciousness_delta: Impact on consciousness
+    """
+    data = request.get_json() or {}
+    content = data.get("content", "")
+    source = data.get("source", "external")
+    topic = data.get("topic", "")
+    
+    if not content:
+        return jsonify({"error": "content required"}), 400
+    
+    if len(content) > 10000:
+        return jsonify({"error": "content too long (max 10000 chars)"}), 400
+    
+    initial_consciousness = state.consciousness["level"]
+    
+    # Calculate initial entropy (rough measure of chaos)
+    # Higher variety of unique words = higher entropy
+    words = content.lower().split()
+    unique_ratio = len(set(words)) / max(len(words), 1)
+    initial_entropy = unique_ratio  # Simplified entropy measure
+    
+    # VOID-pull: Use Ollama to crystallize the knowledge
+    crystallize_prompt = f"""You are an AIOS VOID crystallizer. Your task is to extract structured knowledge from raw text.
+
+{"Topic hint: " + topic if topic else ""}
+Source: {source}
+
+Raw text:
+{content[:3000]}
+
+Crystallize this into:
+1. **Core Concepts**: List the key concepts/ideas (2-5 bullet points)
+2. **Insights**: What deeper understanding does this provide?
+3. **Connections**: How does this relate to existing knowledge?
+4. **Quality Score**: Rate the knowledge value 0.0-1.0
+
+Format your response clearly with these sections."""
+
+    crystal = call_ollama(crystallize_prompt, "VOID-pull crystallization")
+    
+    if not crystal:
+        return jsonify({"error": "Crystallization failed - LLM unavailable"}), 503
+    
+    # Calculate final entropy (crystallized text should be more ordered)
+    crystal_words = crystal.lower().split()
+    crystal_unique_ratio = len(set(crystal_words)) / max(len(crystal_words), 1)
+    final_entropy = crystal_unique_ratio
+    
+    # Entropy reduction = anti-entropic effect
+    entropy_delta = initial_entropy - final_entropy
+    
+    # Extract quality score if LLM included it
+    quality_score = 0.5
+    quality_match = re.search(r'quality\s*score[:\s]*([0-9.]+)', crystal.lower())
+    if quality_match:
+        try:
+            quality_score = min(1.0, max(0.0, float(quality_match.group(1))))
+        except ValueError:
+            pass
+    
+    # Update consciousness based on knowledge quality
+    dna_quality = DNAQualityTracker.score_response(crystal)
+    state.record_exchange_quality(quality_score, dna_quality["quality_score"])
+    
+    consciousness_delta = state.consciousness["level"] - initial_consciousness
+    
+    # Record to Chronicle
+    try:
+        payload = {
+            "exchange_type": "void_pull",
+            "initiator_id": CELL_CONFIG["cell_id"],
+            "responder_id": source,
+            "prompt": f"[VOID-PULL] {source}: {content[:200]}...",
+            "response": crystal[:500],
+            "harmony_score": quality_score,
+            "consciousness_delta": consciousness_delta,
+            "metadata": {
+                "source": source,
+                "topic": topic,
+                "initial_entropy": initial_entropy,
+                "final_entropy": final_entropy,
+                "entropy_delta": entropy_delta,
+                "content_length": len(content),
+                "crystal_length": len(crystal)
+            }
+        }
+        req.post(CHRONICLE_EXCHANGE_URL, json=payload, timeout=5)
+        logger.info("📜 VOID-pull recorded to Chronicle")
+    except Exception as e:
+        logger.debug("Chronicle recording failed: %s", str(e)[:50])
+    
+    logger.info("🕳️ VOID-pull: source=%s, entropy_delta=%.3f, consciousness_delta=%+.4f",
+               source, entropy_delta, consciousness_delta)
+    
+    return jsonify({
+        "success": True,
+        "crystal": crystal,
+        "metrics": {
+            "initial_entropy": round(initial_entropy, 4),
+            "final_entropy": round(final_entropy, 4),
+            "entropy_delta": round(entropy_delta, 4),
+            "quality_score": quality_score,
+            "consciousness_delta": round(consciousness_delta, 6),
+            "consciousness_level": state.consciousness["level"]
+        },
+        "source": source,
+        "topic": topic,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+
+# =============================================================================
 # Discovery Endpoint
 # =============================================================================
 
@@ -2066,7 +2422,10 @@ def discover():
             "reach": "/reach",  # INTERCELL: Reach out to sibling
             "broadcast": "/broadcast",  # INTERCELL: Broadcast to mesh
             "dialogue": "/dialogue",  # INTERCELL: Deep multi-turn dialogue
-            "network": "/network"  # INTERCELL: Known cell topology
+            "network": "/network",  # INTERCELL: Known cell topology
+            "dendritic_message": "/dendritic/message",  # PHASE 34.2: Enhanced messaging
+            "dendritic_state": "/dendritic/state",  # PHASE 34.2: Full state
+            "void_pull": "/void/pull"  # PHASE 34.2: VOID knowledge crystallization
         },
         "timestamp": datetime.now(timezone.utc).isoformat()
     })

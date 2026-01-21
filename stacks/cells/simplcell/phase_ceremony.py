@@ -716,6 +716,20 @@ async def generate_ceremony_html() -> str:
 
 from aiohttp import web
 
+async def handle_health(request):
+    """Health check endpoint for Docker."""
+    init_ceremony_db()
+    history = get_transition_history(10)
+    predictions = await fetch_predictions()
+    return web.json_response({
+        "healthy": True,
+        "service": "phase-ceremony",
+        "transitions_recorded": len(history),
+        "cells_monitored": len(predictions),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+
 async def handle_ceremony_page(request):
     """Serve ceremony dashboard."""
     html = await generate_ceremony_html()
@@ -783,6 +797,7 @@ async def ceremony_watcher():
 async def run_ceremony_server(port: int = 8092):
     """Run the ceremony server."""
     app = web.Application()
+    app.router.add_get('/health', handle_health)
     app.router.add_get('/ceremony', handle_ceremony_page)
     app.router.add_get('/transitions', handle_transitions)
     app.router.add_get('/pending', handle_pending)

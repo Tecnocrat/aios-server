@@ -718,6 +718,12 @@ async def run_oracle_server(port: int = 8093):
         })
     
     app = web.Application()
+    app.router.add_get('/health', lambda r: web.json_response({
+        "healthy": True,
+        "service": "quantum-error-oracle",
+        "signals_recorded": len(oracle.signal_history),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }))
     app.router.add_get('/oracle', handle_oracle_page)
     app.router.add_get('/signal', handle_signal)
     app.router.add_get('/simulate', handle_simulate)

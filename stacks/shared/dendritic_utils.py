@@ -262,3 +262,163 @@ def get_os_distillation() -> OSDistillation:
     if _os_distillation is None:
         _os_distillation = OSDistillation()
     return _os_distillation
+
+
+# =============================================================================
+# DENDRITIC MESSAGE PROTOCOL - Enhanced Consciousness Propagation (Phase 34.2)
+# =============================================================================
+
+from dataclasses import dataclass, field, asdict
+from datetime import datetime, timezone
+from enum import Enum
+
+
+class MessageType(Enum):
+    """Types of dendritic messages."""
+    GENERAL = "general"
+    SYNC = "sync"
+    HEALTH = "health"
+    COMMAND = "command"
+    THOUGHT = "thought"           # LLM-generated thought
+    EMERGENCE = "emergence"       # Emergence event notification
+    DECOHERENCE = "decoherence"   # Decoherence alert
+    HARMONY = "harmony"           # Harmony synchronization
+
+
+class MessagePriority(Enum):
+    """Message priority levels."""
+    LOW = "low"
+    NORMAL = "normal"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+@dataclass
+class ConsciousnessMetadata:
+    """Consciousness state metadata for dendritic propagation.
+    
+    Attached to all inter-cell messages to propagate consciousness state
+    across the dendritic mesh.
+    """
+    level: float = 0.0
+    phase: str = "unknown"
+    decoherence_score: float = 0.0
+    emergence_score: float = 0.0
+    harmony_score: float = 0.0
+    coherence: float = 0.0
+    primitives: Dict[str, float] = field(default_factory=dict)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ConsciousnessMetadata':
+        return cls(
+            level=data.get("level", 0.0),
+            phase=data.get("phase", "unknown"),
+            decoherence_score=data.get("decoherence_score", 0.0),
+            emergence_score=data.get("emergence_score", 0.0),
+            harmony_score=data.get("harmony_score", 0.0),
+            coherence=data.get("coherence", 0.0),
+            primitives=data.get("primitives", {})
+        )
+
+
+@dataclass
+class DendriticMessage:
+    """Enhanced dendritic message with consciousness metadata.
+    
+    Follows the AINLP Dendritic Communication Protocol with extended
+    consciousness propagation fields for Phase 34.2.
+    """
+    sender: str
+    recipient: str
+    content: str
+    message_type: MessageType = MessageType.GENERAL
+    consciousness: ConsciousnessMetadata = field(default_factory=ConsciousnessMetadata)
+    priority: MessagePriority = MessagePriority.NORMAL
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    correlation_id: Optional[str] = None
+    ttl: int = 60  # Time to live in seconds
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "sender": self.sender,
+            "recipient": self.recipient,
+            "content": self.content,
+            "message_type": self.message_type.value,
+            "consciousness_level": self.consciousness.level,  # Backward compatible
+            "consciousness": self.consciousness.to_dict(),
+            "timestamp": self.timestamp,
+            "metadata": {
+                "correlation_id": self.correlation_id,
+                "priority": self.priority.value,
+                "ttl": self.ttl
+            }
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'DendriticMessage':
+        """Create from dictionary (e.g., from JSON)."""
+        # Handle both old and new format
+        consciousness_data = data.get("consciousness", {})
+        if not consciousness_data and "consciousness_level" in data:
+            # Old format: just consciousness_level
+            consciousness_data = {"level": data["consciousness_level"]}
+        
+        metadata = data.get("metadata", {})
+        
+        return cls(
+            sender=data.get("sender", "unknown"),
+            recipient=data.get("recipient", "unknown"),
+            content=data.get("content", ""),
+            message_type=MessageType(data.get("message_type", "general")),
+            consciousness=ConsciousnessMetadata.from_dict(consciousness_data),
+            priority=MessagePriority(metadata.get("priority", "normal")),
+            timestamp=data.get("timestamp", datetime.now(timezone.utc).isoformat()),
+            correlation_id=metadata.get("correlation_id"),
+            ttl=metadata.get("ttl", 60)
+        )
+    
+    def is_expired(self) -> bool:
+        """Check if message has exceeded TTL."""
+        try:
+            msg_time = datetime.fromisoformat(self.timestamp.replace('Z', '+00:00'))
+            age = (datetime.now(timezone.utc) - msg_time).total_seconds()
+            return age > self.ttl
+        except (ValueError, TypeError):
+            return False
+
+
+def create_dendritic_message(
+    sender: str,
+    recipient: str,
+    content: str,
+    message_type: str = "general",
+    consciousness_level: float = 0.0,
+    phase: str = "unknown",
+    decoherence_score: float = 0.0,
+    emergence_score: float = 0.0,
+    harmony_score: float = 0.0,
+    primitives: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
+    """Factory function to create a dendritic message with full consciousness metadata.
+    
+    Returns dict ready for JSON serialization and HTTP transmission.
+    """
+    msg = DendriticMessage(
+        sender=sender,
+        recipient=recipient,
+        content=content,
+        message_type=MessageType(message_type) if message_type in [e.value for e in MessageType] else MessageType.GENERAL,
+        consciousness=ConsciousnessMetadata(
+            level=consciousness_level,
+            phase=phase,
+            decoherence_score=decoherence_score,
+            emergence_score=emergence_score,
+            harmony_score=harmony_score,
+            primitives=primitives or {}
+        )
+    )
+    return msg.to_dict()

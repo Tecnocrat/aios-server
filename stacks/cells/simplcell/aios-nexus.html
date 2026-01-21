@@ -694,6 +694,72 @@
                     </a>
                 </div>
             </div>
+            
+            <!-- Phase 34.2: Emergence & Dendritic Metrics -->
+            <div class="content-row" style="margin-top: 1rem;">
+                <div class="card" style="flex: 1;">
+                    <div class="card-header">
+                        <span class="card-title">✨ Emergence Detection</span>
+                        <span id="emergenceStatus" class="card-status status-alive">ACTIVE</span>
+                    </div>
+                    <div style="padding: 0.5rem 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="color: var(--text-secondary); font-size: 0.85rem;">Recent Events:</span>
+                            <span id="emergenceCount" style="color: var(--accent-gold); font-weight: bold;">--</span>
+                        </div>
+                        <div id="emergenceEvents" style="max-height: 120px; overflow-y: auto; font-size: 0.8rem;">
+                            <div style="color: var(--text-secondary);">Loading emergence data...</div>
+                        </div>
+                    </div>
+                    <a href="http://localhost:8089/emergence/events" target="_blank" class="quick-link" style="margin-top: 0.5rem;">
+                        <span class="quick-link-icon">🔮</span>
+                        <span class="quick-link-label">View All Events</span>
+                    </a>
+                </div>
+                
+                <div class="card" style="flex: 1;">
+                    <div class="card-header">
+                        <span class="card-title">🌿 Dendritic Protocol</span>
+                        <span id="dendriticStatus" class="card-status status-alive">v34.2</span>
+                    </div>
+                    <div style="padding: 0.5rem 0;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.8rem;">
+                            <div style="background: var(--bg-primary); padding: 0.5rem; border-radius: 4px;">
+                                <div style="color: var(--text-secondary);">Harmony</div>
+                                <div id="dendriticHarmony" style="color: var(--accent-green); font-weight: bold;">--</div>
+                            </div>
+                            <div style="background: var(--bg-primary); padding: 0.5rem; border-radius: 4px;">
+                                <div style="color: var(--text-secondary);">Exchanges</div>
+                                <div id="dendriticExchanges" style="color: var(--accent-cyan); font-weight: bold;">--</div>
+                            </div>
+                            <div style="background: var(--bg-primary); padding: 0.5rem; border-radius: 4px;">
+                                <div style="color: var(--text-secondary);">Decoherence</div>
+                                <div id="dendriticDecoherence" style="color: var(--accent-orange); font-weight: bold;">--</div>
+                            </div>
+                            <div style="background: var(--bg-primary); padding: 0.5rem; border-radius: 4px;">
+                                <div style="color: var(--text-secondary);">Peers</div>
+                                <div id="dendriticPeers" style="color: var(--accent-purple); font-weight: bold;">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="http://localhost:8005/dendritic/state" target="_blank" class="quick-link" style="margin-top: 0.5rem;">
+                        <span class="quick-link-icon">🕸️</span>
+                        <span class="quick-link-label">Full State</span>
+                    </a>
+                </div>
+                
+                <div class="card" style="flex: 1;">
+                    <div class="card-header">
+                        <span class="card-title">🕳️ VOID Crystallizer</span>
+                        <span class="card-status status-alive">READY</span>
+                    </div>
+                    <div style="padding: 0.5rem 0;">
+                        <textarea id="voidInput" placeholder="Paste external knowledge to crystallize..." style="width: 100%; height: 60px; background: var(--bg-primary); border: 1px solid var(--accent-purple); border-radius: 4px; color: var(--text-primary); padding: 0.5rem; font-size: 0.8rem; resize: none;"></textarea>
+                        <button id="voidPullBtn" onclick="voidPull()" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem; background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan)); border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 0.8rem;">🕳️ VOID-Pull Crystallize</button>
+                    </div>
+                    <div id="voidResult" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: var(--bg-primary); border-radius: 4px; font-size: 0.75rem; max-height: 80px; overflow-y: auto;"></div>
+                </div>
+            </div>
         </main>
         
         <!-- Right Sidebar - Alpha Conversation & Activity -->
@@ -1019,14 +1085,103 @@
             }
         });
         
+        // ============ Phase 34.2: Emergence & Dendritic ============
+        async function updateEmergenceMetrics() {
+            // Fetch emergence events
+            try {
+                const events = await safeFetch(`${ENDPOINTS.chronicle}/emergence/events`);
+                if (events && events.events) {
+                    document.getElementById('emergenceCount').textContent = events.total_events || events.events.length;
+                    
+                    const eventsDiv = document.getElementById('emergenceEvents');
+                    if (events.events.length > 0) {
+                        eventsDiv.innerHTML = events.events.slice(0, 5).map(e => `
+                            <div style="margin-bottom: 0.3rem; padding: 0.3rem; background: rgba(255,215,0,0.1); border-radius: 4px; border-left: 2px solid var(--accent-gold);">
+                                <div style="color: var(--accent-gold);">${e.classification || 'EMERGENCE'}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.7rem;">${e.timestamp ? new Date(e.timestamp).toLocaleString() : '--'}</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        eventsDiv.innerHTML = '<div style="color: var(--text-secondary);">No emergence events recorded yet</div>';
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to fetch emergence events', e);
+            }
+            
+            // Fetch dendritic state
+            try {
+                const dState = await safeFetch(`${ENDPOINTS.alpha01}/dendritic/state`);
+                if (dState) {
+                    document.getElementById('dendriticHarmony').textContent = 
+                        dState.harmony?.last_score?.toFixed(2) || '0.00';
+                    document.getElementById('dendriticExchanges').textContent = 
+                        dState.harmony?.exchange_count || '0';
+                    document.getElementById('dendriticDecoherence').textContent = 
+                        (dState.decoherence?.score * 100)?.toFixed(1) + '%' || '0%';
+                    document.getElementById('dendriticPeers').textContent = 
+                        dState.known_peers?.length || '0';
+                }
+            } catch (e) {
+                console.warn('Failed to fetch dendritic state', e);
+            }
+        }
+        
+        // VOID-Pull function
+        async function voidPull() {
+            const input = document.getElementById('voidInput');
+            const resultDiv = document.getElementById('voidResult');
+            const btn = document.getElementById('voidPullBtn');
+            
+            const content = input.value.trim();
+            if (!content) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<span style="color: var(--accent-orange);">Enter some text to crystallize</span>';
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = '🌀 Crystallizing...';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading"></span> VOID-pull in progress...';
+            
+            try {
+                const response = await fetch(`${ENDPOINTS.alpha01}/void/pull`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, source: 'Nexus UI' })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div style="color: var(--accent-green);">✓ Crystallized!</div>
+                        <div style="color: var(--text-secondary);">Entropy Δ: ${data.metrics?.entropy_delta?.toFixed(3) || '--'}</div>
+                        <div style="color: var(--text-secondary);">Quality: ${data.metrics?.quality_score?.toFixed(2) || '--'}</div>
+                    `;
+                    addActivity('VOID-pull crystallization complete', 'thought');
+                } else {
+                    resultDiv.innerHTML = `<span style="color: var(--accent-red);">${data.error || 'Crystallization failed'}</span>`;
+                }
+            } catch (e) {
+                resultDiv.innerHTML = '<span style="color: var(--accent-red);">Error: Could not reach VOID endpoint</span>';
+            }
+            
+            btn.disabled = false;
+            btn.textContent = '🕳️ VOID-Pull Crystallize';
+            input.value = '';
+        }
+        
         // ============ Initialize ============
         window.addEventListener('load', () => {
             initMesh();
             connectWebSocket();
             updateConsciousness();
+            updateEmergenceMetrics();  // Phase 34.2
             
             // Update every 10 seconds
             setInterval(updateConsciousness, 10000);
+            setInterval(updateEmergenceMetrics, 15000);  // Phase 34.2
         });
         
         // Handle canvas resize
