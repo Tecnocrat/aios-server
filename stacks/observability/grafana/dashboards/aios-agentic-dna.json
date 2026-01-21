@@ -437,7 +437,7 @@
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
       "id": 300,
       "panels": [],
-      "title": "🧠 Thinker Orchestration",
+      "title": "🧠 Cell Intelligence Metrics",
       "type": "row"
     },
     {
@@ -646,7 +646,7 @@
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
       "id": 400,
       "panels": [],
-      "title": "📡 Multipotent Mesh Health",
+      "title": "📡 Cellular Mesh Health (SimplCell Network)",
       "type": "row"
     },
     {
@@ -686,10 +686,10 @@
       },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_signals_received{mesh=\"multipotent\"}", "legendFormat": "{{cell_id}} recv", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_signals_sent{mesh=\"multipotent\"}", "legendFormat": "{{cell_id}} sent", "refId": "B" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_heartbeats{cell_type=\"simplcell\"}", "legendFormat": "{{cell_id}} heartbeats", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_consciousness_level{cell_type=\"simplcell\"}", "legendFormat": "{{cell_id}} consciousness", "refId": "B" }
       ],
-      "title": "Signal Flow",
+      "title": "SimplCell Vitals",
       "type": "timeseries"
     },
     {
@@ -729,9 +729,9 @@
       },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_connections{mesh=\"multipotent\"}", "legendFormat": "{{cell_id}}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_harmony_score{cell_type=\"simplcell\"}", "legendFormat": "{{cell_id}} harmony", "refId": "A" }
       ],
-      "title": "Cell Connections",
+      "title": "Organism Harmony",
       "type": "timeseries"
     },
     {
@@ -771,9 +771,9 @@
       },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_uptime_seconds{mesh=\"multipotent\"}", "legendFormat": "{{cell_id}}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "aios_cell_uptime_seconds{organism=~\"organism-001|organism-002\"}", "legendFormat": "{{cell_id}}", "refId": "A" }
       ],
-      "title": "Cell Uptime",
+      "title": "Organism Cell Uptime",
       "type": "timeseries"
     }
   ],

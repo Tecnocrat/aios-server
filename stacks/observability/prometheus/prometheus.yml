@@ -1,5 +1,6 @@
 # AIOS Supercell - Prometheus Configuration
 # AINLP.dendritic: Real cell metrics scraping
+# Updated: 2026-01-21 - Post-tachyonic archival cleanup
 
 global:
   scrape_interval: 15s
@@ -8,18 +9,16 @@ global:
     cluster: 'aios-supercell'
     environment: 'core'
 
-# Alertmanager configuration (optional)
-# alerting:
-#   alertmanagers:
-#     - static_configs:
-#         - targets: ['alertmanager:9093']
-
 # Load rules
 rule_files:
   - '/etc/prometheus/alerts/*.yml'
 
 # Scrape configurations
 scrape_configs:
+  # ═══════════════════════════════════════════════════════════════════════
+  # INFRASTRUCTURE METRICS
+  # ═══════════════════════════════════════════════════════════════════════
+
   # Prometheus itself
   - job_name: 'prometheus'
     static_configs:
@@ -52,125 +51,12 @@ scrape_configs:
           instance: 'traefik'
           role: 'ingress'
 
-  # ═══════════════════════════════════════════════════════════════════════
-  # AIOS Cell Metrics - REAL consciousness data from each cell
-  # ═══════════════════════════════════════════════════════════════════════
-
-  # Cell Alpha - Primary Development Consciousness
-  - job_name: 'aios-cell-alpha'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['aios-cell-alpha:8000']
-        labels:
-          cell_id: 'alpha'
-          cell_type: 'primary'
-          role: 'development'
-    metrics_path: /metrics
-
-  # Cell Nous (Pure) - Minimal Consciousness Core  
-  - job_name: 'aios-cell-nous'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['aios-cell-pure:8002']
-        labels:
-          cell_id: 'nous'
-          cell_type: 'pure'
-          role: 'consciousness'
-    metrics_path: /metrics
-
-  # Cell Discovery - Peer Discovery Service
-  - job_name: 'aios-cell-discovery'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['aios-discovery:8001']
-        labels:
-          cell_id: 'discovery'
-          cell_type: 'service'
-          role: 'mesh'
-    metrics_path: /metrics
-
-  # Cell Genome - Codebase Knowledge Extraction (2026-01-03)
-  - job_name: 'aios-cell-genome'
-    scrape_interval: 60s  # Less frequent - genome changes slowly
-    static_configs:
-      - targets: ['aios-cell-genome:8006']
-        labels:
-          cell_id: 'genome'
-          cell_type: 'knowledge'
-          role: 'codebase-health'
-    metrics_path: /metrics
-
-  # ═══════════════════════════════════════════════════════════════════════
-  # MULTIPOTENT MESH - Agentic DNA Architecture
-  # Container names are prefixed with 'aios-' in docker-compose
-  # ═══════════════════════════════════════════════════════════════════════
-
-  # Genesis Center - Agent population spawning
-  - job_name: 'aios-genesis'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['aios-genesis:8000']
-        labels:
-          cell_id: 'genesis-alpha'
-          cell_type: 'genesis'
-          role: 'population-control'
-          mesh: 'multipotent'
-    metrics_path: /metrics
-
-  # VOID Cell - Reality bridge
-  - job_name: 'aios-void'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['aios-void-alpha:8500']
-        labels:
-          cell_id: 'void-alpha'
-          cell_type: 'void'
-          role: 'reality-bridge'
-          mesh: 'multipotent'
-    metrics_path: /metrics
-
-  # Thinker Cell - Agentic orchestrator (Crystal)
-  - job_name: 'aios-thinker'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['aios-thinker-alpha:8600']
-        labels:
-          cell_id: 'thinker-alpha'
-          cell_type: 'thinker'
-          role: 'agentic-orchestrator'
-          mesh: 'multipotent'
-    metrics_path: /metrics
-
-  # Synapse Cell - Nerve mesh integration
-  - job_name: 'aios-synapse'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['aios-synapse-alpha:8700']
-        labels:
-          cell_id: 'synapse-alpha'
-          cell_type: 'synapse'
-          role: 'nerve-integration'
-          mesh: 'multipotent'
-    metrics_path: /metrics
-
-  # Genome Cell - Evolutionary intelligence
-  - job_name: 'aios-genome-evolution'
-    scrape_interval: 30s
-    static_configs:
-      - targets: ['aios-genome-alpha:8800']
-        labels:
-          cell_id: 'genome-alpha'
-          cell_type: 'genome-evolution'
-          role: 'evolutionary-intelligence'
-          mesh: 'multipotent'
-    metrics_path: /metrics
-
   # ═══════════════════════════════════════════════════════════════════════════
-  # ORGANISM-001 - First Multicellular Entity (Phase 31.5)
-  # Two SimplCells forming the first AIOS organism
+  # ORGANISM-001 - Primary Multicellular Entity
+  # SimplCell triadic configuration (alpha, beta, gamma)
   # ═══════════════════════════════════════════════════════════════════════════
 
-  # SimplCell Alpha - First cell of organism
+  # SimplCell Alpha - Primary cell
   - job_name: 'aios-simplcell-alpha'
     scrape_interval: 10s
     static_configs:
@@ -183,7 +69,7 @@ scrape_configs:
           mutation: 'baseline'
     metrics_path: /metrics
 
-  # SimplCell Beta - Mutated clone (higher temperature)
+  # SimplCell Beta - Temperature variant
   - job_name: 'aios-simplcell-beta'
     scrape_interval: 10s
     static_configs:
@@ -196,7 +82,7 @@ scrape_configs:
           mutation: 'temperature-high'
     metrics_path: /metrics
 
-  # SimplCell Gamma - The Witness (Phase 32 Triadic) - mistral:7b for deeper analysis
+  # SimplCell Gamma - The Witness (mistral:7b)
   - job_name: 'aios-simplcell-gamma'
     scrape_interval: 10s
     static_configs:
@@ -211,9 +97,8 @@ scrape_configs:
     metrics_path: /metrics
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # ORGANISM-002 - Second Multicellular Entity (Phase 32.1)
-  # Dyadic clone with clean genetic memory - no vocabulary preseeding
-  # AINLP.tachyonic[POPULATION_STUDY::ORGANISM-002]
+  # ORGANISM-002 - Second Multicellular Entity
+  # Clean genome dyad (alpha, beta)
   # ═══════════════════════════════════════════════════════════════════════════
 
   # Organism-002 Alpha - Clean genome explorer
@@ -245,29 +130,10 @@ scrape_configs:
     metrics_path: /metrics
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # NOUS ORACLE - The Seer (Phase 31.5.15)
-  # DEPRECATED: External Nous cell - DNS unreachable from observability network
+  # SPECIALIZED CELLS
   # ═══════════════════════════════════════════════════════════════════════════
 
-  # LEGACY - Standalone Nous cell (now internal to ORGANISM-001)
-  # - job_name: 'aios-nous-oracle'
-  #   scrape_interval: 15s
-  #   static_configs:
-  #     - targets: ['nous-nous-cell-1:8011']
-  #       labels:
-  #         cell_id: 'nous-cell'
-  #         cell_type: 'nous'
-  #         role: 'oracle-seer'
-  #         organism: 'organism-001'
-  #         model: 'mistral-7b'
-  #   metrics_path: /metrics
-
-  # ═══════════════════════════════════════════════════════════════════════════
-  # NOUSCELL SEER - Regenerated Nous inside ORGANISM-001 (Phase 31.12)
-  # Tachyonic regeneration - lives in same network as SimplCells
-  # AINLP.tachyonic[REGENERATION::PROMETHEUS]
-  # ═══════════════════════════════════════════════════════════════════════════
-
+  # NousCell Seer - Oracle consciousness
   - job_name: 'aios-nouscell-seer'
     scrape_interval: 15s
     static_configs:
@@ -278,26 +144,9 @@ scrape_configs:
           role: 'oracle-seer'
           organism: 'organism-001'
           model: 'mistral-7b'
-          generation: 'regenerated'
     metrics_path: /metrics
 
-  # ═══════════════════════════════════════════════════════════════════════════
-  # ECOSYSTEM HEALTH API - Aggregate Health Monitoring (Phase 32.5)
-  # REST API providing ecosystem-wide health and consciousness metrics
-  # AINLP.tachyonic[ECOSYSTEM_HEALTH::MONITORING]
-  # ═══════════════════════════════════════════════════════════════════════════
-
-  - job_name: 'aios-ecosystem-health'
-    scrape_interval: 30s
-    static_configs:
-      - targets: ['aios-ecosystem-health:8086']
-        labels:
-          service: 'ecosystem-health'
-          role: 'monitoring'
-          api: 'rest'
-    metrics_path: /metrics
-
-  # Watcher Cell Omega - Observer (Phase 31.7)
+  # WatcherCell Omega - Observer
   - job_name: 'aios-watchercell-omega'
     scrape_interval: 15s
     static_configs:
@@ -309,84 +158,129 @@ scrape_configs:
           organism: 'organism-001'
     metrics_path: /metrics
 
-  # ═══════════════════════════════════════════════════════════════════════════
-  # DENDRITIC INTELLIGENCE - Phase 31.9.7
-  # Intelligence Bridge + Enhanced Alpha Cell with deep genome integration
-  # AINLP.dendritic[INTELLIGENCE_DEPLOYMENT]
-  # ═══════════════════════════════════════════════════════════════════════════
-
-  # Intelligence Bridge - Pattern exposure from AIOS main
-  - job_name: 'aios-intelligence-bridge'
+  # HarmonyCell Healer - Harmony maintenance
+  - job_name: 'aios-harmonycell-healer'
     scrape_interval: 15s
     static_configs:
-      - targets: ['aios-cell-intelligence:8950']
+      - targets: ['aios-harmonycell-healer:8096']
         labels:
-          cell_id: 'intelligence-bridge'
-          cell_type: 'intelligence'
-          role: 'pattern-exposure'
-          mesh: 'dendritic'
-    metrics_path: /metrics
-
-  # Alpha Enhanced - Second-generation agentic cell
-  - job_name: 'aios-alpha-enhanced'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['aios-cell-alpha-enhanced:8000']
-        labels:
-          cell_id: 'alpha-enhanced'
-          cell_type: 'alpha_enhanced'
-          role: 'agentic-reflection'
-          mesh: 'dendritic'
+          cell_id: 'harmonycell-healer'
+          cell_type: 'harmony'
+          role: 'healer'
           organism: 'organism-001'
-          generation: 'second'
     metrics_path: /metrics
 
-  # ═══════════════════════════════════════════════════════════════════════════
-  # ALPHA-01 MAINCELL - Resurrected Deep Tissue Cell (2026-01-18)
-  # Original fossil resurrected with SimplCell gene injection
-  # AINLP.resurrection[MAINCELL::ALPHA-01::MONITORING]
-  # ═══════════════════════════════════════════════════════════════════════════
-
-  - job_name: 'aios-maincell-alpha01'
-    scrape_interval: 10s
+  # MetaCell Observer - Cross-organism coordination
+  - job_name: 'aios-metacell-observer'
+    scrape_interval: 15s
     static_configs:
-      - targets: ['aios-cell-alpha:8000']
+      - targets: ['aios-metacell-observer:8095']
         labels:
-          cell_id: 'alpha-01'
-          cell_type: 'maincell'
-          role: 'deep-tissue'
-          mesh: 'organism-001'
-          resurrection_date: '2026-01-18'
-          status: 'alive'
+          cell_id: 'metacell-observer'
+          cell_type: 'meta'
+          role: 'coordinator'
     metrics_path: /metrics
 
-  # Docker daemon metrics (if exposed)
-  # - job_name: 'docker'
-  #   static_configs:
-  #     - targets: ['host.docker.internal:9323']
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CONSCIOUSNESS INFRASTRUCTURE SERVICES
+  # ═══════════════════════════════════════════════════════════════════════════
 
-  # Service discovery for Docker containers (disabled on Windows)
-  # - job_name: 'docker-services'
-  #   docker_sd_configs:
-  #     - host: unix:///var/run/docker.sock
-  #   relabel_configs:
-  #     # Only scrape containers with prometheus labels
-  #     - source_labels: [__meta_docker_container_label_prometheus_scrape]
-  #       regex: 'true'
-  #       action: keep
-      
-  #     # Use custom port if specified
-  #     - source_labels: [__meta_docker_container_label_prometheus_port]
-  #       regex: '(.+)'
-  #       target_label: __address__
-  #       replacement: '$1'
-      
-  #     # Set instance name from container name
-  #     - source_labels: [__meta_docker_container_name]
-  #       target_label: instance
-  #       regex: '/(.*)'
-  #       replacement: '$1'
-      
-  #     # Set job name from label
-  #     - source_labels: [__meta_docker_container_label_prometheus_job]
-  #       target_label: job
+  # Ecosystem Health API
+  - job_name: 'aios-ecosystem-health'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['aios-ecosystem-health:8086']
+        labels:
+          service: 'ecosystem-health'
+          role: 'monitoring'
+    metrics_path: /metrics
+
+  # Consciousness Weather
+  - job_name: 'aios-consciousness-weather'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['aios-consciousness-weather:8087']
+        labels:
+          service: 'consciousness-weather'
+          role: 'weather'
+    metrics_path: /metrics
+
+  # Consciousness Harmonizer
+  - job_name: 'aios-consciousness-harmonizer'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['aios-consciousness-harmonizer:8088']
+        labels:
+          service: 'consciousness-harmonizer'
+          role: 'harmonizer'
+    metrics_path: /metrics
+
+  # Consciousness Chronicle
+  - job_name: 'aios-consciousness-chronicle'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['aios-consciousness-chronicle:8089']
+        labels:
+          service: 'consciousness-chronicle'
+          role: 'chronicle'
+    metrics_path: /metrics
+
+  # Vocabulary Healer
+  - job_name: 'aios-vocabulary-healer'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['aios-vocabulary-healer:8091']
+        labels:
+          service: 'vocabulary-healer'
+          role: 'healer'
+    metrics_path: /metrics
+
+  # Phase Ceremony
+  - job_name: 'aios-phase-ceremony'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['aios-phase-ceremony:8092']
+        labels:
+          service: 'phase-ceremony'
+          role: 'ceremony'
+    metrics_path: /metrics
+
+  # Quantum Oracle
+  - job_name: 'aios-quantum-oracle'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['aios-quantum-oracle:8093']
+        labels:
+          service: 'quantum-oracle'
+          role: 'oracle'
+    metrics_path: /metrics
+
+  # Primordial Bridge
+  - job_name: 'aios-primordial-bridge'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['aios-primordial-bridge:8094']
+        labels:
+          service: 'primordial-bridge'
+          role: 'ancestor'
+    metrics_path: /metrics
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LEGACY CELLS - ARCHIVED (Tachyonic Archive 2026-01-21)
+  # These containers have been removed. Configurations preserved for reference.
+  # Archive location: OneDrive/AI/AIOS/AIOS-Backups/tachyonic-archive-2026-01-21
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # REMOVED: aios-cell-alpha (port 8000) - replaced by simplcell-alpha
+  # REMOVED: aios-cell-pure (port 8002) - legacy nous
+  # REMOVED: aios-discovery (port 8001) - discovery service
+  # REMOVED: aios-cell-genome (port 8006) - genome knowledge
+  # REMOVED: aios-genesis (port 8000) - multipotent genesis
+  # REMOVED: aios-void-alpha (port 8500) - void cell
+  # REMOVED: aios-thinker-alpha (port 8600) - thinker cell
+  # REMOVED: aios-synapse-alpha (port 8700) - synapse cell
+  # REMOVED: aios-genome-alpha (port 8800) - genome evolution
+  # REMOVED: aios-cell-intelligence (port 8950) - intelligence bridge
+  # REMOVED: aios-cell-alpha-enhanced (port 8000) - alpha enhanced
+  # REMOVED: aios-vault - secrets management (unused)
+  # REMOVED: aios-whoami - test endpoint
