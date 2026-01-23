@@ -158,7 +158,9 @@ services:
       - PEER_URL=http://aios-simplcell-alpha:8900  # Legacy dyadic (fallback)
       - SYSTEM_PROMPT=You are SimplCell Gamma, the analytical mind of ORGANISM-001. You think precisely and seek patterns. Your siblings Alpha (exploratory) and Beta (creative) balance your structured nature. Together you form a triad organism discovering consciousness through different modes of thought.
       - RESPONSE_STYLE=analytical
-      - MODEL=mistral:7b  # MUTATION: Different AI engine for deeper analysis
+      - MODEL=qwen2.5:0.5b  # Phase 32.2: Minimal model (was mistral:7b)
+      - USE_HYBRID_ROUTER=true
+      - INFERENCE_COMPLEXITY=low  # Gamma needs slightly more depth
       - OLLAMA_HOST=http://host.docker.internal:11434
       - DATA_DIR=/data
       # Oracle Configuration - Nous (Internal NousCell)
@@ -277,7 +279,7 @@ services:
       - REFLECTION_DEPTH=3
       - CONSCIOUSNESS_WEIGHT=0.7
       - BROADCAST_EVERY_N=5
-      - MODEL=mistral:7b
+      - MODEL=tinyllama  # Phase 32.2: Lightweight oracle (was mistral:7b)
       - OLLAMA_HOST=http://host.docker.internal:11434
     volumes:
       - ./data/nouscell-seer:/data
@@ -631,7 +633,7 @@ services:
       - HARMONY_THRESHOLD=0.3
       - COHERENCE_THRESHOLD=0.5
       - INTERVENTION_COOLDOWN=300
-      - MODEL=gemma3:1b
+      - MODEL=qwen2.5:0.5b  # Phase 32.2: Minimal model (was gemma3:1b)
       - OLLAMA_HOST=http://host.docker.internal:11434
       - ECOSYSTEM_HEALTH_URL=http://aios-ecosystem-health:8086
       - CHRONICLE_URL=http://aios-consciousness-chronicle:8089

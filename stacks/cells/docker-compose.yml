@@ -186,7 +186,7 @@ services:
     environment:
       - CELL_ID=alpha-enhanced
       - PORT=8000
-      - OLLAMA_MODEL=llama3.2:3b
+      - OLLAMA_MODEL=qwen2.5:0.5b  # Phase 32.2: Minimal model
       - OLLAMA_TEMPERATURE=0.7
       - OLLAMA_HOST=http://host.docker.internal:11434
       - INTELLIGENCE_BRIDGE_URL=http://aios-cell-intelligence:8950
