@@ -44,6 +44,37 @@
 
 services:
   # ═══════════════════════════════════════════════════════════════════════════
+  # GPU INFERENCE QUEUE - Serializes GPU access to prevent VRAM contention
+  # Phase 32.2: Prevents VIDEO_TDR_FAILURE from concurrent inference
+  # ═══════════════════════════════════════════════════════════════════════════
+  inference-queue:
+    build:
+      context: .
+      dockerfile: Dockerfile.simplcell
+    container_name: aios-inference-queue
+    command: python /app/inference_queue.py
+    environment:
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - MAX_VRAM_PCT=80
+      - MAX_QUEUE_SIZE=10
+      - INFERENCE_TIMEOUT=60
+      - HTTP_PORT=8950
+    volumes:
+      - ./inference_queue.py:/app/inference_queue.py:ro
+    ports:
+      - "8950:8950"
+    networks:
+      - aios-organism-001
+      - aios-organism-002
+      - aios-observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8950/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # SIMPLCELL-ALPHA - First cell of the organism (initiator)
   # Phase 32: Triadic role SPEAKER on cycle 0, rotates
   # ═══════════════════════════════════════════════════════════════════════════
