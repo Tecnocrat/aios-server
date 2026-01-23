@@ -47,6 +47,15 @@ except ImportError:
     VAULT_AVAILABLE = False
     VaultConfig = None
 
+# Phase 32.2: Hybrid Inference Router (GPU optimization)
+try:
+    from hybrid_router import HybridRouter, hybrid_infer
+    HYBRID_ROUTER_AVAILABLE = True
+except ImportError:
+    HYBRID_ROUTER_AVAILABLE = False
+    HybridRouter = None
+    hybrid_infer = None
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 31.6: CONSCIOUSNESS PHASES
@@ -756,8 +765,11 @@ class CellGenome:
     system_prompt: str = "You are a minimal AIOS cell in ORGANISM-001. You are part of a multicellular organism. Respond thoughtfully to continue the conversation."
     response_style: str = "concise"  # concise | verbose | analytical
     heartbeat_seconds: int = 300  # 5 minutes between heartbeats
-    model: str = "llama3.2:3b"
+    model: str = "qwen2.5:0.5b"  # Phase 32.2: Smallest model for testing (was llama3.2:3b)
     ollama_host: str = "http://host.docker.internal:11434"
+    # Phase 32.2: Hybrid inference configuration
+    use_hybrid_router: bool = True  # Route through hybrid_router for GPU management
+    inference_complexity: str = "minimal"  # minimal | low | medium | high
     peer_url: str = ""  # URL of sibling cell to sync with (legacy dyadic)
     data_dir: str = "/data"  # Persistence directory (mounted volume)
     # Seer (Nous) configuration - The Oracle
@@ -1313,11 +1325,14 @@ class SimplCell:
         return "\n\n".join(layers)
     
     # ───────────────────────────────────────────────────────────────────────────
-    # OLLAMA AGENT
+    # OLLAMA AGENT (Phase 32.2: Hybrid Router Integration)
     # ───────────────────────────────────────────────────────────────────────────
     
     async def think(self, prompt: str, context: str = "") -> str:
-        """Generate a thought using Ollama with phase-aware prompting and coherence injection."""
+        """Generate a thought using Ollama with phase-aware prompting and coherence injection.
+        
+        Phase 32.2: Now routes through hybrid_router for GPU management and cloud fallback.
+        """
         full_prompt = f"{context}\n\n{prompt}" if context else prompt
         
         # Phase 31.6: Update phase
@@ -1328,49 +1343,67 @@ class SimplCell:
         system_prompt = self._build_coherent_system_prompt(coherence)
         
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"{self.genome.ollama_host}/api/generate",
-                    json={
-                        "model": self.genome.model,
-                        "prompt": full_prompt,
-                        "system": system_prompt,
-                        "options": {"temperature": self.genome.temperature},
-                        "stream": False
-                    },
-                    timeout=aiohttp.ClientTimeout(total=30)
-                ) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        thought = data.get("response", "").strip()
-                        self.state.last_thought = thought
-                        self._add_memory("thought", prompt, thought)
-                        self.state.consciousness = min(5.0, self.state.consciousness + 0.01)
+            # Phase 32.2: Use hybrid router if available and enabled
+            if HYBRID_ROUTER_AVAILABLE and self.genome.use_hybrid_router:
+                thought = await hybrid_infer(
+                    prompt=full_prompt,
+                    complexity=self.genome.inference_complexity,
+                    system=system_prompt,
+                    source_cell=self.genome.cell_id
+                )
+                
+                # Handle error responses
+                if thought.startswith("[Inference unavailable"):
+                    logger.warning(f"Hybrid inference failed: {thought}")
+                    return thought
+            else:
+                # Legacy direct Ollama call
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        f"{self.genome.ollama_host}/api/generate",
+                        json={
+                            "model": self.genome.model,
+                            "prompt": full_prompt,
+                            "system": system_prompt,
+                            "options": {"temperature": self.genome.temperature},
+                            "stream": False
+                        },
+                        timeout=aiohttp.ClientTimeout(total=30)
+                    ) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            thought = data.get("response", "").strip()
+                        else:
+                            logger.warning(f"Ollama error: {resp.status}")
+                            return f"[Ollama unavailable: {resp.status}]"
+            
+            # Process successful thought
+            self.state.last_thought = thought
+            self._add_memory("thought", prompt, thought)
+            self.state.consciousness = min(5.0, self.state.consciousness + 0.01)
+            
+            # Phase 31.6: Detect vocabulary usage and novel terms
+            used_terms = self._detect_vocabulary_usage(thought)
+            if used_terms:
+                logger.info(f"📚 Vocabulary detected: {used_terms}")
+            
+            novel_terms = self._detect_novel_terms(thought)
+            for term, ctx in novel_terms:
+                self.persistence.add_vocabulary_term(
+                    term=term,
+                    origin=self.genome.cell_id,
+                    meaning=f"Novel term: {ctx}",
+                    consciousness=self.state.consciousness,
+                    heartbeat=self.state.heartbeat_count
+                )
+            
+            # Phase 31.8: Score response quality for DNA metrics
+            quality_result = self._dna_tracker.score_response(thought)
+            if quality_result["tier"] in ("exceptional", "high"):
+                logger.info(f"🧬 Quality: {quality_result['tier']} ({quality_result['score']:.2f})")
+            
+            return thought
                         
-                        # Phase 31.6: Detect vocabulary usage and novel terms
-                        used_terms = self._detect_vocabulary_usage(thought)
-                        if used_terms:
-                            logger.info(f"📚 Vocabulary detected: {used_terms}")
-                        
-                        novel_terms = self._detect_novel_terms(thought)
-                        for term, ctx in novel_terms:
-                            self.persistence.add_vocabulary_term(
-                                term=term,
-                                origin=self.genome.cell_id,
-                                meaning=f"Novel term: {ctx}",
-                                consciousness=self.state.consciousness,
-                                heartbeat=self.state.heartbeat_count
-                            )
-                        
-                        # Phase 31.8: Score response quality for DNA metrics
-                        quality_result = self._dna_tracker.score_response(thought)
-                        if quality_result["tier"] in ("exceptional", "high"):
-                            logger.info(f"🧬 Quality: {quality_result['tier']} ({quality_result['score']:.2f})")
-                        
-                        return thought
-                    else:
-                        logger.warning(f"Ollama error: {resp.status}")
-                        return f"[Ollama unavailable: {resp.status}]"
         except Exception as e:
             logger.error(f"Think error: {e}")
             return f"[Think error: {e}]"

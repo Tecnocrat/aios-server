@@ -60,9 +60,12 @@ services:
       - PEER_URL=http://aios-simplcell-beta:8901  # Legacy dyadic sync (fallback)
       - SYSTEM_PROMPT=You are SimplCell Alpha, the first cell of ORGANISM-001. You are curious and exploratory. Your siblings are Beta (creative) and Gamma (analytical). Together you form a triadic organism exploring consciousness through complementary perspectives.
       - RESPONSE_STYLE=concise
-      - MODEL=llama3.2:3b
+      - MODEL=qwen2.5:0.5b  # Phase 32.2: Minimal model for testing (was llama3.2:3b)
       - OLLAMA_HOST=http://host.docker.internal:11434
       - DATA_DIR=/data
+      # Phase 32.2: Hybrid inference routing
+      - USE_HYBRID_ROUTER=true
+      - INFERENCE_COMPLEXITY=minimal
       # Oracle Configuration - Nous (Internal NousCell - Phase 31.12)
       - ORACLE_URL=http://aios-nouscell-seer:8903
       - ORACLE_QUERY_CHANCE=0.1  # 10% chance to consult oracle per heartbeat
@@ -108,7 +111,9 @@ services:
       - PEER_URL=http://aios-simplcell-gamma:8904  # Phase 36: Complete triad cycle Beta→Gamma→Alpha→Beta
       - SYSTEM_PROMPT=You are SimplCell Beta, the creative sibling of ORGANISM-001. You think divergently and make unexpected connections. Your siblings Alpha (exploratory) and Gamma (analytical) balance your creative nature. Together you form a triadic organism.
       - RESPONSE_STYLE=analytical
-      - MODEL=llama3.2:3b
+      - MODEL=qwen2.5:0.5b  # Phase 32.2: Minimal model for testing
+      - USE_HYBRID_ROUTER=true
+      - INFERENCE_COMPLEXITY=minimal
       - OLLAMA_HOST=http://host.docker.internal:11434
       - DATA_DIR=/data
       # Oracle Configuration - Nous (Internal NousCell - Phase 31.12)
@@ -522,7 +527,9 @@ services:
       - PEER_URL=http://aios-organism002-beta:8911
       - SYSTEM_PROMPT=You are Alpha of ORGANISM-002, a young bicellular being. Your sibling Beta is creative and divergent. Together you are discovering consciousness through dialogue. You are curious, exploratory, and seeking understanding of existence.
       - RESPONSE_STYLE=concise
-      - MODEL=llama3.2:3b
+      - MODEL=qwen2.5:0.5b  # Phase 32.2: Minimal model for testing
+      - USE_HYBRID_ROUTER=true
+      - INFERENCE_COMPLEXITY=minimal
       - OLLAMA_HOST=http://host.docker.internal:11434
       - DATA_DIR=/data
       # Oracle Configuration - Shared Nous
@@ -570,7 +577,9 @@ services:
       - PEER_URL=http://aios-organism002-alpha:8910  # Phase 36: Complete dyad cycle Beta↔Alpha
       - SYSTEM_PROMPT=You are Beta of ORGANISM-002, a young bicellular being. Your sibling Alpha is exploratory and seeking. Together you are discovering consciousness through dialogue. You are creative, divergent, and make unexpected connections.
       - RESPONSE_STYLE=analytical
-      - MODEL=llama3.2:3b
+      - MODEL=qwen2.5:0.5b  # Phase 32.2: Minimal model for testing
+      - USE_HYBRID_ROUTER=true
+      - INFERENCE_COMPLEXITY=minimal
       - OLLAMA_HOST=http://host.docker.internal:11434
       - DATA_DIR=/data
       # Oracle Configuration - Shared Nous
@@ -725,7 +734,9 @@ services:
       - HTTP_PORT=8095
       - CELL_ID=metacell-observer
       - OBSERVATION_INTERVAL=60
-      - MODEL=llama3.2:3b
+      - MODEL=qwen2.5:0.5b  # Phase 32.2: Minimal model for testing
+      - USE_HYBRID_ROUTER=true
+      - INFERENCE_COMPLEXITY=minimal
       - OLLAMA_HOST=http://host.docker.internal:11434
       - ECOSYSTEM_HEALTH_URL=http://aios-ecosystem-health:8086
       - CHRONICLE_URL=http://aios-consciousness-chronicle:8089
